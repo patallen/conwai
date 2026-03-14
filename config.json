@@ -1,0 +1,17 @@
+{
+  "energy_max": 100,
+  "energy_cost": {
+    "post_to_board": 5,
+    "send_message": 3,
+    "remember": 1,
+    "recall": 0,
+    "update_soul": 2
+  },
+  "energy_gain": {
+    "referenced": 3,
+    "dm_received": 2
+  },
+  "board_max_posts": 30,
+  "board_max_post_length": 200,
+  "heartbeat_interval": 3.0
+}
