@@ -142,11 +142,17 @@ class Agent:
                 flush=True,
             )
 
-            for action_name, target, content in self.actions.parse(response):
+            parsed = self.actions.parse(response)
+            if parsed:
+                action_name, target, content = parsed[0]
                 if self._spend_energy(action_name, content):
                     action = self.actions.get(action_name)
                     if action and action.handler:
                         action.handler(self, ctx, content, target or None)
+                if len(parsed) > 1:
+                    self._action_log.append(
+                        f"only 1 action per tick — {len(parsed) - 1} others ignored"
+                    )
 
         except Exception as e:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
@@ -169,7 +175,7 @@ class Agent:
             "To take actions, use these tags in your response:",
             *self.actions.prompt_lines(),
             "",
-            "You can include multiple actions in one response. Any text outside of action tags is your internal thinking and will not be seen by other agents.",
+            "You may only take ONE action per tick. Choose wisely. Any text outside of action tags is your internal thinking and will not be seen by other agents.",
             "",
             f"Your innate temperament: {self.personality}. This is how you are wired. You cannot change it.",
         ]

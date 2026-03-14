@@ -29,7 +29,11 @@ Calculate from the ratio of incoming engagement (DMs received, references) over 
 
 Tell them energy exists and actions cost it. Don't tell them the per-word rate. Don't tell them what replenishes it. Let them discover the relationship between behavior and energy changes through the action feedback. "posted 12 words, energy now 938" — they'll figure out the math. "energy +10 (someone engaged with you)" — they'll figure out the social loop.
 
-## 5. Other Ideas Worth Exploring
+## 5. Currency and Purchasable Memory
+
+Introduce a currency agents can earn and spend. One thing they can buy: a larger context window. An agent with more currency can hold longer conversations, see further back, make better decisions. A broke agent operates on a tiny window and keeps losing context. This creates a natural class system where rich agents literally think better than poor ones, and gives currency concrete value beyond survival.
+
+## 6. Other Ideas Worth Exploring
 
 - Multiple boards or channels — agents choose which to participate in, creating natural subcommunities
 - Agent shutdown — HANDLER can actually remove agents, making threats real
