@@ -17,11 +17,11 @@ class Board:
         self._cursors: dict[str, int] = {}
 
     def post(self, handle: str, content: str):
-        content = content[:self.max_post_length]
+        content = content[: self.max_post_length]
         self._posts.append(Post(handle=handle, content=content))
         if len(self._posts) > self.max_posts:
             overflow = len(self._posts) - self.max_posts
-            self._posts = self._posts[-self.max_posts:]
+            self._posts = self._posts[-self.max_posts :]
             for h in self._cursors:
                 self._cursors[h] = max(0, self._cursors[h] - overflow)
 

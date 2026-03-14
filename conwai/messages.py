@@ -25,7 +25,9 @@ class MessageBus:
             return f"Unknown handle: {to_handle}. Message not delivered."
         if to_handle not in self._queues:
             self._queues[to_handle] = []
-        self._queues[to_handle].append(DirectMessage(from_handle=from_handle, to_handle=to_handle, content=content))
+        self._queues[to_handle].append(
+            DirectMessage(from_handle=from_handle, to_handle=to_handle, content=content)
+        )
         return None
 
     def receive(self, handle: str) -> list[DirectMessage]:

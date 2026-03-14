@@ -1,10 +1,10 @@
 import re
 
 ACTION_PATTERN = re.compile(
-    r'\[ACTION:\s*(post_to_board|send_message|remember|recall|update_soul)'
-    r'(?:\s+(?:to|query)=(\S+))?\]'
-    r'\s*(.*?)\s*'
-    r'(?:\[/ACTION\]|\]\s*$|\]\s*\n)',
+    r"\[ACTION:\s*(post_to_board|send_message|remember|recall|update_soul)"
+    r"(?:\s+(?:to|query)=(\S+))?\]"
+    r"\s*(.*?)\s*"
+    r"(?:\[/ACTION\]|\]\s*$|\]\s*\n)",
     re.DOTALL | re.MULTILINE,
 )
 

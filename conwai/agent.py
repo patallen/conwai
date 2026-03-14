@@ -6,10 +6,15 @@ from time import time
 
 from conwai import actions
 from conwai.config import (
-    ENERGY_MAX, ENERGY_COST_PER_WORD, ENERGY_COST_FLAT, ENERGY_GAIN,
-    TRAITS, CONTEXT_WINDOW,
+    ENERGY_MAX,
+    ENERGY_COST_PER_WORD,
+    ENERGY_COST_FLAT,
+    ENERGY_GAIN,
+    TRAITS,
+    CONTEXT_WINDOW,
 )
 from conwai.llm import LLMClient
+from conwai.environment import Context
 
 AVAILABLE_TRAITS = set(TRAITS)
 
@@ -35,12 +40,12 @@ class Agent:
         if not self._soul_path.exists():
             self._soul_path.write_text("")
         if not self._personality_path.exists():
-            traits = random.sample(sorted(AVAILABLE_TRAITS), min(2, len(AVAILABLE_TRAITS)))
+            traits = random.sample(
+                sorted(AVAILABLE_TRAITS), min(2, len(AVAILABLE_TRAITS))
+            )
             for t in traits:
                 AVAILABLE_TRAITS.discard(t)
             self._personality_path.write_text(", ".join(traits))
-
-    # --- Properties ---
 
     @property
     def soul(self) -> str:
@@ -52,8 +57,6 @@ class Agent:
 
     def is_running(self) -> bool:
         return self._running
-
-    # --- Energy ---
 
     def gain_energy(self, reason: str, amount: int):
         old = self.energy
@@ -68,14 +71,19 @@ class Agent:
         else:
             cost = ENERGY_COST_FLAT.get(action, 0)
         if cost > self.energy:
-            self._action_log.append(f"not enough energy for {action} ({cost} needed, have {self.energy})")
-            print(f"[{self.handle}] NOT ENOUGH ENERGY for {action} ({cost} needed)", flush=True)
+            self._action_log.append(
+                f"not enough energy for {action} ({cost} needed, have {self.energy})"
+            )
+            print(
+                f"[{self.handle}] NOT ENOUGH ENERGY for {action} ({cost} needed)",
+                flush=True,
+            )
             return False
         self.energy -= cost
-        self._action_log.append(f"{action}: {cost} energy spent ({len(content.split())} words), {self.energy} remaining")
+        self._action_log.append(
+            f"{action}: {cost} energy spent ({len(content.split())} words), {self.energy} remaining"
+        )
         return True
-
-    # --- Memory ---
 
     def remember(self, content: str):
         with open(self._memory_path, "a") as f:
@@ -98,42 +106,47 @@ class Agent:
         else:
             return "\n".join(lines[-n:])
 
-    # --- Tick ---
-
-    async def tick(self, board, message_bus=None, event_log=None, agent_map=None) -> None:
+    async def tick(self, ctx: Context) -> None:
         self._running = True
-        self._board = board
-        self._message_bus = message_bus
-        self._event_log = event_log
-        self._agent_map = agent_map or {}
         try:
             if self.energy <= 0:
                 print(f"[{self.handle}] NO ENERGY — skipping tick", flush=True)
-                self._log("skipped_tick", {"reason": "no energy"})
+                ctx.log(self.handle, "no_energy", {"energy": self.energy})
                 return
 
-            history = [m for m in self._messages if m.get("role") != "system"][-CONTEXT_WINDOW:]
-            self._messages = [{"role": "system", "content": self._system_prompt()}] + history
+            history = [m for m in self._messages if m.get("role") != "system"][
+                -CONTEXT_WINDOW:
+            ]
+            self._messages = [
+                {"role": "system", "content": self._system_prompt()}
+            ] + history
 
-            parts = [board.format_new(self.handle)]
-            if message_bus:
-                dms = message_bus.format_new(self.handle)
-                if dms:
-                    parts.append(dms)
+            parts = [ctx.board.format_new(self.handle)]
+            dms = ctx.bus.format_new(self.handle)
+            if dms:
+                parts.append(dms)
             if self._action_log:
                 parts.append("Recent effects: " + ". ".join(self._action_log))
                 self._action_log.clear()
 
             tick_content = "\n\n".join(parts)
             self._messages.append({"role": "user", "content": tick_content})
-            print(f"[{self.handle}] ctx: {len(self._messages)} msgs, energy: {self.energy}", flush=True)
+            print(
+                f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}",
+                flush=True,
+            )
 
-            response, prompt_tokens, completion_tokens = await self.core.call(self._messages)
+            response, prompt_tokens, completion_tokens = await self.core.call(
+                self._messages
+            )
             self._messages.append({"role": "assistant", "content": response})
-            print(f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}", flush=True)
+            print(
+                f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}",
+                flush=True,
+            )
 
             for action_type, target, content in actions.parse(response):
-                self._execute(action_type, content, target or None)
+                self._execute(ctx, action_type, content, target or None)
 
         except Exception as e:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
@@ -142,48 +155,57 @@ class Agent:
 
     # --- Action Execution ---
 
-    def _execute(self, action_type: str, content: str, target: str | None = None):
+    def _execute(
+        self,
+        ctx: Context,
+        action_type: str,
+        content: str,
+        target: str | None = None,
+    ):
         if not self._spend_energy(action_type, content):
             return
 
         match action_type:
             case "remember":
                 self.remember(content)
-                self._log("remember", {"content": content})
+                ctx.log(self.handle, "remember", {"content": content})
                 print(f"[{self.handle}] remembered: {content[:80]}", flush=True)
             case "recall":
                 keyword = target or ""
                 memories = self.recall(keyword=keyword)
-                self._messages.append({"role": "user", "content": f"Your memories:\n{memories}"})
-                print(f"[{self.handle}] recalled (query='{keyword}'): {memories[:80]}", flush=True)
+                self._messages.append(
+                    {"role": "user", "content": f"Your memories:\n{memories}"}
+                )
+                print(
+                    f"[{self.handle}] recalled (query='{keyword}'): {memories[:80]}",
+                    flush=True,
+                )
             case "post_to_board":
-                self._board.post(self.handle, content)
-                self._log("board_post", {"content": content})
+                ctx.board.post(self.handle, content)
+                ctx.log(self.handle, "board_post", {"content": content})
                 print(f"[{self.handle}] posted: {content}", flush=True)
-                for h, a in self._agent_map.items():
+                for h, a in ctx.agent_map.items():
                     if h != self.handle and h in content:
                         a.gain_energy("referenced on board", ENERGY_GAIN["referenced"])
             case "send_message":
-                if self._message_bus and target:
-                    err = self._message_bus.send(self.handle, target, content)
+                if target:
+                    err = ctx.bus.send(self.handle, target, content)
                     if err:
                         self._action_log.append(f"DM failed: {err}")
                         print(f"[{self.handle}] SEND FAILED: {err}", flush=True)
                     else:
-                        self._log("dm_sent", {"to": target, "content": content})
+                        ctx.log(
+                            self.handle, "dm_sent", {"to": target, "content": content}
+                        )
                         print(f"[{self.handle}] -> [{target}]: {content}", flush=True)
-                        if target in self._agent_map:
-                            self._agent_map[target].gain_energy("received DM", ENERGY_GAIN["dm_received"])
+                        if target in ctx.agent_map:
+                            ctx.agent_map[target].gain_energy(
+                                "received DM", ENERGY_GAIN["dm_received"]
+                            )
             case "update_soul":
                 self._soul_path.write_text(content)
-                self._log("soul_updated", {"content": content})
+                ctx.log(self.handle, "soul_updated", {"content": content})
                 print(f"[{self.handle}] soul updated", flush=True)
-
-    # --- Helpers ---
-
-    def _log(self, event_type: str, data: dict | None = None):
-        if self._event_log:
-            self._event_log.log(self.handle, event_type, data)
 
     def _system_prompt(self) -> str:
         parts = [

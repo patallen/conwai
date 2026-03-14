@@ -8,7 +8,9 @@ class LLMClient:
     model: str = "/mnt/models/Qwen3.5-9B-AWQ"
     base_url: str = "http://ai-lab.lan:8080/v1"
     api_key: str = "ollama"
-    extra_body: dict = field(default_factory=lambda: {"chat_template_kwargs": {"enable_thinking": False}})
+    extra_body: dict = field(
+        default_factory=lambda: {"chat_template_kwargs": {"enable_thinking": False}}
+    )
     _client: AsyncOpenAI = field(default=None, repr=False)
 
     def __post_init__(self):
@@ -21,4 +23,8 @@ class LLMClient:
             extra_body=self.extra_body,
         )
         usage = response.usage
-        return response.choices[0].message.content, usage.prompt_tokens, usage.completion_tokens
+        return (
+            response.choices[0].message.content,
+            usage.prompt_tokens,
+            usage.completion_tokens,
+        )
