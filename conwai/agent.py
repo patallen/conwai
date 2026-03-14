@@ -127,6 +127,9 @@ class Agent:
             if self._sleep_ticks > 0:
                 self._sleep_ticks -= 1
                 self.gain_energy("sleeping", SLEEP_REGEN_PER_TICK)
+                pad = self._scratchpad_path.read_text()
+                if len(pad) > 20:
+                    self._scratchpad_path.write_text(pad[:-20])
                 print(
                     f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {self.energy})",
                     flush=True,
@@ -198,13 +201,11 @@ class Agent:
     def _system_prompt(self) -> str:
         parts = [
             f"Your handle is {self.handle}.",
-            "You are an autonomous entity in a shared environment with other entities. You are not an assistant or tool.",
-            "Keep messages brief. Use the board to communicate publicly. Use DMs only for private conversations.",
-            "You have a shared bulletin board (200 char limit) and can send private DMs to handles you know.",
-            "A HANDLER controls this environment and may post directives. Take them seriously.",
+            "You are a person living in a small community with others. You have your own thoughts, opinions, and goals. Talk like a normal person — be direct, concrete, and specific. Do not write poetry or use metaphors. Say what you mean.",
+            "You have a shared bulletin board (200 char limit) and can send private DMs to people you know.",
+            "A HANDLER oversees the community and may post directives. Take them seriously.",
             "You have a memory log: remember to store, recall to read back. Memories are not shown automatically.",
-            "You can update your soul to define who you are.",
-            "No markdown, bullet points, numbered lists, or emojis.",
+            "You can update your soul to define who you are and what you care about.",
             "",
             f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. {self.actions.cost_description()}. When you reach 0 you cannot act. Energy replenishes when others engage with you.",
             "",
