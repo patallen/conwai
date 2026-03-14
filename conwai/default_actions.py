@@ -46,34 +46,44 @@ def _update_soul(agent, ctx, content, target):
 
 def create_registry() -> ActionRegistry:
     registry = ActionRegistry()
-    registry.register(Action(
-        name="post_to_board",
-        description="your message here",
-        cost_per_word=2,
-        handler=_post_to_board,
-    ))
-    registry.register(Action(
-        name="send_message",
-        description="your message here",
-        cost_per_word=1,
-        handler=_send_message,
-    ))
-    registry.register(Action(
-        name="remember",
-        description="what you want to store",
-        cost_per_word=1,
-        handler=_remember,
-    ))
-    registry.register(Action(
-        name="recall",
-        description="",
-        cost_flat=0,
-        handler=_recall,
-    ))
-    registry.register(Action(
-        name="update_soul",
-        description="your full updated soul here",
-        cost_flat=5,
-        handler=_update_soul,
-    ))
+    registry.register(
+        Action(
+            name="post_to_board",
+            description="your message here",
+            cost_per_word=2,
+            handler=_post_to_board,
+        )
+    )
+    registry.register(
+        Action(
+            name="send_message",
+            description="your message here",
+            cost_per_word=1,
+            handler=_send_message,
+        )
+    )
+    registry.register(
+        Action(
+            name="remember",
+            description="what you want to store",
+            cost_per_word=1,
+            handler=_remember,
+        )
+    )
+    registry.register(
+        Action(
+            name="recall",
+            description="",
+            cost_flat=0,
+            handler=_recall,
+        )
+    )
+    registry.register(
+        Action(
+            name="update_soul",
+            description="your full updated soul here",
+            cost_flat=5,
+            handler=_update_soul,
+        )
+    )
     return registry

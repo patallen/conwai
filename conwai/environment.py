@@ -8,7 +8,11 @@ from conwai.messages import MessageBus
 
 @dataclass
 class Context:
-    board: Board = field(default_factory=lambda: Board(max_posts=BOARD_MAX_POSTS, max_post_length=BOARD_MAX_POST_LENGTH))
+    board: Board = field(
+        default_factory=lambda: Board(
+            max_posts=BOARD_MAX_POSTS, max_post_length=BOARD_MAX_POST_LENGTH
+        )
+    )
     bus: MessageBus = field(default_factory=MessageBus)
     events: EventLog = field(default_factory=EventLog)
     agent_map: dict = field(default_factory=dict)

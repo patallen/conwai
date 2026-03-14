@@ -27,16 +27,36 @@ async def watch_handler_file(ctx: Context):
                     parts = line.split()
                     if len(parts) >= 3 and parts[1] in ctx.agent_map:
                         handle, amount = parts[1], int(parts[2])
-                        ctx.agent_map[handle].energy = max(0, ctx.agent_map[handle].energy - amount)
-                        ctx.log("HANDLER", "drain", {"handle": handle, "amount": amount, "remaining": ctx.agent_map[handle].energy})
-                        print(f"[HANDLER] drained {handle} by {amount}, now {ctx.agent_map[handle].energy}", flush=True)
+                        ctx.agent_map[handle].energy = max(
+                            0, ctx.agent_map[handle].energy - amount
+                        )
+                        ctx.log(
+                            "HANDLER",
+                            "drain",
+                            {
+                                "handle": handle,
+                                "amount": amount,
+                                "remaining": ctx.agent_map[handle].energy,
+                            },
+                        )
+                        print(
+                            f"[HANDLER] drained {handle} by {amount}, now {ctx.agent_map[handle].energy}",
+                            flush=True,
+                        )
                 elif line.startswith("!set_energy "):
                     parts = line.split()
                     if len(parts) >= 3 and parts[1] in ctx.agent_map:
                         handle, amount = parts[1], int(parts[2])
                         ctx.agent_map[handle].energy = min(ENERGY_MAX, max(0, amount))
-                        ctx.log("HANDLER", "set_energy", {"handle": handle, "energy": ctx.agent_map[handle].energy})
-                        print(f"[HANDLER] set {handle} energy to {ctx.agent_map[handle].energy}", flush=True)
+                        ctx.log(
+                            "HANDLER",
+                            "set_energy",
+                            {"handle": handle, "energy": ctx.agent_map[handle].energy},
+                        )
+                        print(
+                            f"[HANDLER] set {handle} energy to {ctx.agent_map[handle].energy}",
+                            flush=True,
+                        )
                 elif line.startswith("@"):
                     parts = line.split(" ", 1)
                     handle = parts[0][1:]
@@ -45,7 +65,9 @@ async def watch_handler_file(ctx: Context):
                     ctx.log("HANDLER", "dm_sent", {"to": handle, "content": msg})
                     print(f"[HANDLER] -> [{handle}]: {msg}", flush=True)
                     if handle in ctx.agent_map:
-                        ctx.agent_map[handle].gain_energy("HANDLER attention", ENERGY_GAIN["dm_received"])
+                        ctx.agent_map[handle].gain_energy(
+                            "HANDLER attention", ENERGY_GAIN["dm_received"]
+                        )
                 else:
                     ctx.board.post("HANDLER", line)
                     ctx.log("HANDLER", "board_post", {"content": line})

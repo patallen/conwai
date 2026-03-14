@@ -9,6 +9,7 @@ from conwai.config import ENERGY_MAX, TRAITS, CONTEXT_WINDOW
 from conwai.llm import LLMClient
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from conwai.environment import Context
 
@@ -44,7 +45,6 @@ class Agent:
                 AVAILABLE_TRAITS.discard(t)
             self._personality_path.write_text(", ".join(traits))
 
-
     @property
     def soul(self) -> str:
         return self._soul_path.read_text()
@@ -55,7 +55,6 @@ class Agent:
 
     def is_running(self) -> bool:
         return self._running
-
 
     def gain_energy(self, reason: str, amount: int):
         old = self.energy
@@ -72,14 +71,16 @@ class Agent:
             self._action_log.append(
                 f"not enough energy for {action_name} ({cost} needed, have {self.energy})"
             )
-            print(f"[{self.handle}] NOT ENOUGH ENERGY for {action_name} ({cost} needed)", flush=True)
+            print(
+                f"[{self.handle}] NOT ENOUGH ENERGY for {action_name} ({cost} needed)",
+                flush=True,
+            )
             return False
         self.energy -= cost
         self._action_log.append(
             f"{action_name}: {cost} energy spent ({len(content.split())} words), {self.energy} remaining"
         )
         return True
-
 
     def remember(self, content: str):
         with open(self._memory_path, "a") as f:
@@ -92,8 +93,8 @@ class Agent:
         if not lines:
             return "No memories stored."
         if keyword:
-            matches = [l for l in lines if keyword.lower() in l.lower()]
-            non_matches = [l for l in lines if keyword.lower() not in l.lower()]
+            matches = [line for line in lines if keyword.lower() in line.lower()]
+            non_matches = [line for line in lines if keyword.lower() not in line.lower()]
             reordered = non_matches + matches
             self._memory_path.write_text("\n".join(reordered) + "\n")
             if not matches:
@@ -101,7 +102,6 @@ class Agent:
             return "\n".join(matches[-n:])
         else:
             return "\n".join(lines[-n:])
-
 
     async def tick(self, ctx: "Context") -> None:
         self._running = True
@@ -111,8 +111,12 @@ class Agent:
                 ctx.log(self.handle, "no_energy", {"energy": self.energy})
                 return
 
-            history = [m for m in self._messages if m.get("role") != "system"][-CONTEXT_WINDOW:]
-            self._messages = [{"role": "system", "content": self._system_prompt()}] + history
+            history = [m for m in self._messages if m.get("role") != "system"][
+                -CONTEXT_WINDOW:
+            ]
+            self._messages = [
+                {"role": "system", "content": self._system_prompt()}
+            ] + history
 
             parts = [ctx.board.format_new(self.handle)]
             dms = ctx.bus.format_new(self.handle)
@@ -124,11 +128,19 @@ class Agent:
 
             tick_content = "\n\n".join(parts)
             self._messages.append({"role": "user", "content": tick_content})
-            print(f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}", flush=True)
+            print(
+                f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}",
+                flush=True,
+            )
 
-            response, prompt_tokens, completion_tokens = await self.core.call(self._messages)
+            response, prompt_tokens, completion_tokens = await self.core.call(
+                self._messages
+            )
             self._messages.append({"role": "assistant", "content": response})
-            print(f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}", flush=True)
+            print(
+                f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}",
+                flush=True,
+            )
 
             for action_name, target, content in self.actions.parse(response):
                 if self._spend_energy(action_name, content):
@@ -140,7 +152,6 @@ class Agent:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
         finally:
             self._running = False
-
 
     def _system_prompt(self) -> str:
         parts = [
