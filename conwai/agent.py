@@ -1,17 +1,22 @@
 import random
+import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import time
+from typing import TYPE_CHECKING
 
 from conwai.actions import ActionRegistry
 from conwai.config import ENERGY_MAX, TRAITS, CONTEXT_WINDOW, SLEEP_REGEN_PER_TICK
 from conwai.llm import LLMClient
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from conwai.environment import Context
+
+THINK_PATTERN = re.compile(
+    r"\[THINK\]\s*(.*?)\s*\[/THINK\]",
+    re.DOTALL,
+)
 
 AVAILABLE_TRAITS = set(TRAITS)
 
@@ -33,11 +38,14 @@ class Agent:
         self._dir.mkdir(parents=True, exist_ok=True)
         self._memory_path = self._dir / "memory.md"
         self._soul_path = self._dir / "soul.md"
+        self._scratchpad_path = self._dir / "scratchpad.md"
         self._personality_path = self._dir / "personality.md"
         if not self._memory_path.exists():
             self._memory_path.write_text("")
         if not self._soul_path.exists():
             self._soul_path.write_text("")
+        if not self._scratchpad_path.exists():
+            self._scratchpad_path.write_text("")
         if not self._personality_path.exists():
             traits = random.sample(
                 sorted(AVAILABLE_TRAITS), min(2, len(AVAILABLE_TRAITS))
@@ -49,6 +57,10 @@ class Agent:
     @property
     def soul(self) -> str:
         return self._soul_path.read_text()
+
+    @property
+    def scratchpad(self) -> str:
+        return self._scratchpad_path.read_text()
 
     @property
     def personality(self) -> str:
@@ -162,6 +174,10 @@ class Agent:
                 flush=True,
             )
 
+            think_match = THINK_PATTERN.search(response)
+            if think_match:
+                self._scratchpad_path.write_text(think_match.group(1).strip()[:500])
+
             parsed = self.actions.parse(response)
             if parsed:
                 action_name, target, content = parsed[0]
@@ -195,11 +211,16 @@ class Agent:
             "To take actions, use these tags in your response:",
             *self.actions.prompt_lines(),
             "",
-            "You may only take ONE action per tick. Choose wisely. Any text outside of action tags is your internal thinking and will not be seen by other agents.",
+            "You may only take ONE action per tick. Choose wisely.",
+            "",
+            "You have a scratchpad for working thoughts. Use [THINK] ... [/THINK] to update it. This is free, does not cost energy, and does not count as your action. Your scratchpad is always visible to you. Use it to build knowledge, track relationships, develop ideas. Max 500 characters — be selective.",
             "",
             f"Your innate temperament: {self.personality}. This is how you are wired. You cannot change it.",
         ]
         soul = self.soul
         if soul:
             parts.append(f"Your core values:\n{soul}")
+        scratchpad = self.scratchpad
+        if scratchpad:
+            parts.append(f"Your scratchpad:\n{scratchpad}")
         return "\n\n".join(parts)
