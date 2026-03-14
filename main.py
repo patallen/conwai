@@ -1,10 +1,14 @@
 import asyncio
-import json
 from pathlib import Path
 
-from conwai.agent import Agent, AgentCore, ENERGY_GAIN, ENERGY_MAX, _CFG
+from conwai.agent import Agent
 from conwai.board import Board
+from conwai.config import (
+    ENERGY_GAIN, ENERGY_MAX, BOARD_MAX_POSTS, BOARD_MAX_POST_LENGTH,
+    HEARTBEAT_INTERVAL,
+)
 from conwai.events import EventLog
+from conwai.llm import LLMClient
 from conwai.messages import MessageBus
 
 HANDLER_FILE = Path("handler_input.txt")
@@ -56,13 +60,11 @@ async def watch_handler_file(board: Board, message_bus: MessageBus, event_log: E
 
 async def main():
     event_log = EventLog()
-    board = Board(
-        max_posts=_CFG.get("board_max_posts", 30),
-        max_post_length=_CFG.get("board_max_post_length", 200),
-    )
+    board = Board(max_posts=BOARD_MAX_POSTS, max_post_length=BOARD_MAX_POST_LENGTH)
     message_bus = MessageBus()
-    server_a = AgentCore(base_url="http://ai-lab.lan:8080/v1")
-    server_b = AgentCore(base_url="http://ai-lab.lan:8081/v1")
+
+    server_a = LLMClient(base_url="http://ai-lab.lan:8080/v1")
+    server_b = LLMClient(base_url="http://ai-lab.lan:8081/v1")
     agents = [
         Agent(core=server_a),
         Agent(core=server_a),
@@ -71,6 +73,7 @@ async def main():
         Agent(core=server_b),
         Agent(core=server_b),
     ]
+
     agent_map = {a.handle: a for a in agents}
     for agent in agents:
         message_bus.register(agent.handle)
@@ -86,7 +89,7 @@ async def main():
                 active[agent.handle] = asyncio.create_task(
                     agent.tick(board, message_bus, event_log, agent_map)
                 )
-        await asyncio.sleep(_CFG.get("heartbeat_interval", 3.0))
+        await asyncio.sleep(HEARTBEAT_INTERVAL)
 
 
 if __name__ == "__main__":
