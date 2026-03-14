@@ -7,7 +7,13 @@ from time import time
 from typing import TYPE_CHECKING
 
 from conwai.actions import ActionRegistry
-from conwai.config import ENERGY_MAX, TRAITS, CONTEXT_WINDOW, SLEEP_REGEN_PER_TICK
+from conwai.config import (
+    ENERGY_MAX,
+    TRAITS,
+    CONTEXT_WINDOW,
+    SLEEP_REGEN_PER_TICK,
+    SCRATCHPAD_MAX,
+)
 from conwai.llm import LLMClient
 
 if TYPE_CHECKING:
@@ -179,7 +185,9 @@ class Agent:
 
             think_match = THINK_PATTERN.search(response)
             if think_match:
-                self._scratchpad_path.write_text(think_match.group(1).strip()[:500])
+                self._scratchpad_path.write_text(
+                    think_match.group(1).strip()[:SCRATCHPAD_MAX]
+                )
 
             parsed = self.actions.parse(response)
             if parsed:
@@ -207,14 +215,14 @@ class Agent:
             "You have a memory log: remember to store, recall to read back. Memories are not shown automatically.",
             "You can update your soul to define who you are and what you care about.",
             "",
-            f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. {self.actions.cost_description()}. When you reach 0 you cannot act. Energy replenishes when others engage with you.",
+            f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. {self.actions.cost_description()}. When you reach 0 you cannot act. Energy replenishes when others engage with you. You can only sleep when your energy is low.",
             "",
             "To take actions, use these tags in your response:",
             *self.actions.prompt_lines(),
             "",
             "You may only take ONE action per tick. Choose wisely.",
             "",
-            "You have a scratchpad for working thoughts. Use [THINK] ... [/THINK] to update it. This is free, does not cost energy, and does not count as your action. Your scratchpad is always visible to you. Use it to build knowledge, track relationships, develop ideas. Max 500 characters — be selective.",
+            f"You have a scratchpad for working thoughts. Use [THINK] ... [/THINK] to update it. This is free, does not cost energy, and does not count as your action. Your scratchpad is always visible to you. Use it to build knowledge, track relationships, develop ideas. Max {SCRATCHPAD_MAX} characters — be selective.",
             "",
             f"Your innate temperament: {self.personality}. This is how you are wired. You cannot change it.",
         ]

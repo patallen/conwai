@@ -1,5 +1,5 @@
 from conwai.actions import Action, ActionRegistry
-from conwai.config import ENERGY_GAIN
+from conwai.config import ENERGY_GAIN, ENERGY_MAX
 
 
 def _remember(agent, ctx, content, target):
@@ -39,6 +39,12 @@ def _send_message(agent, ctx, content, target):
 
 
 def _sleep(agent, ctx, content, target):
+    if agent.energy > ENERGY_MAX // 2:
+        agent._action_log.append(
+            f"cannot sleep — energy too high ({agent.energy}/{ENERGY_MAX})"
+        )
+        print(f"[{agent.handle}] CANNOT SLEEP — energy above 50%", flush=True)
+        return
     try:
         ticks = int(content.strip())
     except ValueError:
