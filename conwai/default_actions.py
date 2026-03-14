@@ -38,6 +38,10 @@ def _send_message(agent, ctx, content, target):
             ctx.agent_map[target].gain_energy("received DM", ENERGY_GAIN["dm_received"])
 
 
+def _wait(agent, ctx, content, target):
+    print(f"[{agent.handle}] waiting", flush=True)
+
+
 def _sleep(agent, ctx, content, target):
     if agent.energy > ENERGY_MAX // 2:
         agent._action_log.append(
@@ -92,6 +96,14 @@ def create_registry() -> ActionRegistry:
             description="",
             cost_flat=0,
             handler=_recall,
+        )
+    )
+    registry.register(
+        Action(
+            name="wait",
+            description="do nothing this tick",
+            cost_flat=0,
+            handler=_wait,
         )
     )
     registry.register(
