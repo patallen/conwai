@@ -6,6 +6,7 @@ from conwai.config import ENERGY_GAIN, ENERGY_MAX, HEARTBEAT_INTERVAL
 from conwai.default_actions import create_registry
 from conwai.environment import Context
 from conwai.llm import LLMClient
+from conwai.world import WorldEvents
 
 HANDLER_FILE = Path("handler_input.txt")
 
@@ -94,11 +95,14 @@ async def main():
     for agent in agents:
         ctx.register_agent(agent)
     ctx.bus.register("HANDLER")
+    ctx.bus.register("WORLD")
+    world = WorldEvents()
 
     active: dict[str, asyncio.Task] = {}
     asyncio.create_task(watch_handler_file(ctx))
 
     while True:
+        world.tick(ctx)
         for agent in agents:
             task = active.get(agent.handle)
             if task is None or task.done():
