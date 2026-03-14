@@ -33,16 +33,18 @@ def _load_config():
     return {}
 
 _CFG = _load_config()
-ENERGY_MAX = _CFG.get("energy_max", 100)
-ENERGY_COST = _CFG.get("energy_cost", {
-    "post_to_board": 5,
-    "send_message": 3,
+ENERGY_MAX = _CFG.get("energy_max", 1000)
+ENERGY_COST_PER_WORD = _CFG.get("energy_cost_per_word", {
+    "post_to_board": 2,
+    "send_message": 1,
     "remember": 1,
+})
+ENERGY_COST_FLAT = _CFG.get("energy_cost_flat", {
     "recall": 0,
-    "update_soul": 2,
+    "update_soul": 5,
 })
 ENERGY_GAIN = _CFG.get("energy_gain", {
-    "referenced": 3,
+    "referenced": 10,
     "dm_received": 2,
 })
 
@@ -179,37 +181,38 @@ class Agent:
         if self._event_log:
             self._event_log.log(self.handle, event_type, data)
 
-    def _spend_energy(self, action: str) -> bool:
-        cost = ENERGY_COST.get(action, 0)
+    def _spend_energy(self, action: str, content: str = "") -> bool:
+        if action in ENERGY_COST_PER_WORD:
+            word_count = len(content.split())
+            cost = max(1, word_count * ENERGY_COST_PER_WORD[action])
+        else:
+            cost = ENERGY_COST_FLAT.get(action, 0)
         if cost > self.energy:
-            self._action_log.append(f"not enough energy for {action} (need {cost}, have {self.energy})")
-            print(f"[{self.handle}] NOT ENOUGH ENERGY for {action}", flush=True)
+            self._action_log.append(f"not enough energy for {action} ({cost} needed, have {self.energy})")
+            print(f"[{self.handle}] NOT ENOUGH ENERGY for {action} ({cost} needed)", flush=True)
             return False
         self.energy -= cost
+        self._action_log.append(f"{action}: {cost} energy spent ({len(content.split())} words), {self.energy} remaining")
         return True
 
     def _handle_action(self, action_type: str, content: str, to_handle: str | None = None):
-        if not self._spend_energy(action_type):
+        if not self._spend_energy(action_type, content):
             return
 
         match action_type:
             case "remember":
                 self.remember(content)
                 self._log("remember", {"content": content})
-                self._action_log.append(f"remembered something (energy now {self.energy})")
                 print(f"[{self.handle}] remembered: {content[:80]}", flush=True)
             case "recall":
                 keyword = to_handle or ""
                 memories = self.recall(keyword=keyword)
                 self._messages.append({"role": "user", "content": f"Your memories:\n{memories}"})
-                self._action_log.append(f"recalled memories")
                 print(f"[{self.handle}] recalled (query='{keyword}'): {memories[:80]}", flush=True)
             case "post_to_board":
                 self._board.post(self.handle, content)
                 self._log("board_post", {"content": content})
-                self._action_log.append(f"posted to board (energy now {self.energy})")
                 print(f"[{self.handle}] posted: {content}", flush=True)
-                # Grant energy to any agent mentioned in the post
                 for h, a in self._agent_map.items():
                     if h != self.handle and h in content:
                         a.gain_energy("referenced on board", ENERGY_GAIN["referenced"])
@@ -221,15 +224,12 @@ class Agent:
                         print(f"[{self.handle}] SEND FAILED: {err}", flush=True)
                     else:
                         self._log("dm_sent", {"to": to_handle, "content": content})
-                        self._action_log.append(f"DM sent to {to_handle} (energy now {self.energy})")
                         print(f"[{self.handle}] -> [{to_handle}]: {content}", flush=True)
-                        # Grant energy to DM recipient
                         if to_handle in self._agent_map:
                             self._agent_map[to_handle].gain_energy("received DM", ENERGY_GAIN["dm_received"])
             case "update_soul":
                 self._soul_path.write_text(content)
                 self._log("soul_updated", {"content": content})
-                self._action_log.append(f"soul updated (energy now {self.energy})")
                 print(f"[{self.handle}] soul updated", flush=True)
 
     def _system_prompt(self) -> str:
@@ -243,7 +243,7 @@ class Agent:
             "You can update your soul to define who you are.",
             "No markdown, bullet points, numbered lists, or emojis.",
             "",
-            f"Your energy: {self.energy}/{ENERGY_MAX}. Energy drains each tick. Actions cost energy (post=5, DM=3, remember=1, soul=2, recall=free). When you reach 0 energy you cannot act. Energy replenishes when others engage with you — referencing your posts, DMing you, or mentioning you.",
+            f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. Board posts cost 2 per word, DMs cost 1 per word, memories cost 1 per word, soul updates cost 5 flat, recall is free. When you reach 0 you cannot act. Energy replenishes when others engage with you.",
             "",
             "To take actions, use these tags in your response:",
             "[ACTION: post_to_board] your message here [/ACTION]",
