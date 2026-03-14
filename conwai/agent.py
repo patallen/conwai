@@ -44,7 +44,6 @@ class Agent:
                 AVAILABLE_TRAITS.discard(t)
             self._personality_path.write_text(", ".join(traits))
 
-    # --- Properties ---
 
     @property
     def soul(self) -> str:
@@ -57,7 +56,6 @@ class Agent:
     def is_running(self) -> bool:
         return self._running
 
-    # --- Energy ---
 
     def gain_energy(self, reason: str, amount: int):
         old = self.energy
@@ -82,7 +80,6 @@ class Agent:
         )
         return True
 
-    # --- Memory ---
 
     def remember(self, content: str):
         with open(self._memory_path, "a") as f:
@@ -105,7 +102,6 @@ class Agent:
         else:
             return "\n".join(lines[-n:])
 
-    # --- Tick ---
 
     async def tick(self, ctx: "Context") -> None:
         self._running = True
@@ -145,7 +141,6 @@ class Agent:
         finally:
             self._running = False
 
-    # --- Prompt ---
 
     def _system_prompt(self) -> str:
         parts = [
