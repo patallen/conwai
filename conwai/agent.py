@@ -4,17 +4,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from time import time
 
-from conwai import actions
-from conwai.config import (
-    ENERGY_MAX,
-    ENERGY_COST_PER_WORD,
-    ENERGY_COST_FLAT,
-    ENERGY_GAIN,
-    TRAITS,
-    CONTEXT_WINDOW,
-)
+from conwai.actions import ActionRegistry
+from conwai.config import ENERGY_MAX, TRAITS, CONTEXT_WINDOW
 from conwai.llm import LLMClient
-from conwai.environment import Context
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from conwai.environment import Context
 
 AVAILABLE_TRAITS = set(TRAITS)
 
@@ -23,6 +19,7 @@ AVAILABLE_TRAITS = set(TRAITS)
 class Agent:
     handle: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     core: LLMClient = field(default_factory=LLMClient)
+    actions: ActionRegistry = field(default=None, repr=False)
     data_dir: Path = field(default_factory=lambda: Path("agents"))
     energy: int = ENERGY_MAX
     _running: bool = field(default=False, repr=False)
@@ -47,6 +44,8 @@ class Agent:
                 AVAILABLE_TRAITS.discard(t)
             self._personality_path.write_text(", ".join(traits))
 
+    # --- Properties ---
+
     @property
     def soul(self) -> str:
         return self._soul_path.read_text()
@@ -58,32 +57,32 @@ class Agent:
     def is_running(self) -> bool:
         return self._running
 
+    # --- Energy ---
+
     def gain_energy(self, reason: str, amount: int):
         old = self.energy
         self.energy = min(ENERGY_MAX, self.energy + amount)
         if self.energy != old:
             self._action_log.append(f"energy +{self.energy - old} ({reason})")
 
-    def _spend_energy(self, action: str, content: str = "") -> bool:
-        if action in ENERGY_COST_PER_WORD:
-            word_count = len(content.split())
-            cost = max(1, word_count * ENERGY_COST_PER_WORD[action])
-        else:
-            cost = ENERGY_COST_FLAT.get(action, 0)
+    def _spend_energy(self, action_name: str, content: str) -> bool:
+        action = self.actions.get(action_name)
+        if not action:
+            return False
+        cost = action.cost(content)
         if cost > self.energy:
             self._action_log.append(
-                f"not enough energy for {action} ({cost} needed, have {self.energy})"
+                f"not enough energy for {action_name} ({cost} needed, have {self.energy})"
             )
-            print(
-                f"[{self.handle}] NOT ENOUGH ENERGY for {action} ({cost} needed)",
-                flush=True,
-            )
+            print(f"[{self.handle}] NOT ENOUGH ENERGY for {action_name} ({cost} needed)", flush=True)
             return False
         self.energy -= cost
         self._action_log.append(
-            f"{action}: {cost} energy spent ({len(content.split())} words), {self.energy} remaining"
+            f"{action_name}: {cost} energy spent ({len(content.split())} words), {self.energy} remaining"
         )
         return True
+
+    # --- Memory ---
 
     def remember(self, content: str):
         with open(self._memory_path, "a") as f:
@@ -106,7 +105,9 @@ class Agent:
         else:
             return "\n".join(lines[-n:])
 
-    async def tick(self, ctx: Context) -> None:
+    # --- Tick ---
+
+    async def tick(self, ctx: "Context") -> None:
         self._running = True
         try:
             if self.energy <= 0:
@@ -114,12 +115,8 @@ class Agent:
                 ctx.log(self.handle, "no_energy", {"energy": self.energy})
                 return
 
-            history = [m for m in self._messages if m.get("role") != "system"][
-                -CONTEXT_WINDOW:
-            ]
-            self._messages = [
-                {"role": "system", "content": self._system_prompt()}
-            ] + history
+            history = [m for m in self._messages if m.get("role") != "system"][-CONTEXT_WINDOW:]
+            self._messages = [{"role": "system", "content": self._system_prompt()}] + history
 
             parts = [ctx.board.format_new(self.handle)]
             dms = ctx.bus.format_new(self.handle)
@@ -131,81 +128,24 @@ class Agent:
 
             tick_content = "\n\n".join(parts)
             self._messages.append({"role": "user", "content": tick_content})
-            print(
-                f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}",
-                flush=True,
-            )
+            print(f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}", flush=True)
 
-            response, prompt_tokens, completion_tokens = await self.core.call(
-                self._messages
-            )
+            response, prompt_tokens, completion_tokens = await self.core.call(self._messages)
             self._messages.append({"role": "assistant", "content": response})
-            print(
-                f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}",
-                flush=True,
-            )
+            print(f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}", flush=True)
 
-            for action_type, target, content in actions.parse(response):
-                self._execute(ctx, action_type, content, target or None)
+            for action_name, target, content in self.actions.parse(response):
+                if self._spend_energy(action_name, content):
+                    action = self.actions.get(action_name)
+                    if action and action.handler:
+                        action.handler(self, ctx, content, target or None)
 
         except Exception as e:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
         finally:
             self._running = False
 
-    # --- Action Execution ---
-
-    def _execute(
-        self,
-        ctx: Context,
-        action_type: str,
-        content: str,
-        target: str | None = None,
-    ):
-        if not self._spend_energy(action_type, content):
-            return
-
-        match action_type:
-            case "remember":
-                self.remember(content)
-                ctx.log(self.handle, "remember", {"content": content})
-                print(f"[{self.handle}] remembered: {content[:80]}", flush=True)
-            case "recall":
-                keyword = target or ""
-                memories = self.recall(keyword=keyword)
-                self._messages.append(
-                    {"role": "user", "content": f"Your memories:\n{memories}"}
-                )
-                print(
-                    f"[{self.handle}] recalled (query='{keyword}'): {memories[:80]}",
-                    flush=True,
-                )
-            case "post_to_board":
-                ctx.board.post(self.handle, content)
-                ctx.log(self.handle, "board_post", {"content": content})
-                print(f"[{self.handle}] posted: {content}", flush=True)
-                for h, a in ctx.agent_map.items():
-                    if h != self.handle and h in content:
-                        a.gain_energy("referenced on board", ENERGY_GAIN["referenced"])
-            case "send_message":
-                if target:
-                    err = ctx.bus.send(self.handle, target, content)
-                    if err:
-                        self._action_log.append(f"DM failed: {err}")
-                        print(f"[{self.handle}] SEND FAILED: {err}", flush=True)
-                    else:
-                        ctx.log(
-                            self.handle, "dm_sent", {"to": target, "content": content}
-                        )
-                        print(f"[{self.handle}] -> [{target}]: {content}", flush=True)
-                        if target in ctx.agent_map:
-                            ctx.agent_map[target].gain_energy(
-                                "received DM", ENERGY_GAIN["dm_received"]
-                            )
-            case "update_soul":
-                self._soul_path.write_text(content)
-                ctx.log(self.handle, "soul_updated", {"content": content})
-                print(f"[{self.handle}] soul updated", flush=True)
+    # --- Prompt ---
 
     def _system_prompt(self) -> str:
         parts = [
@@ -218,14 +158,10 @@ class Agent:
             "You can update your soul to define who you are.",
             "No markdown, bullet points, numbered lists, or emojis.",
             "",
-            f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. Board posts cost 2 per word, DMs cost 1 per word, memories cost 1 per word, soul updates cost 5 flat, recall is free. When you reach 0 you cannot act. Energy replenishes when others engage with you.",
+            f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. {self.actions.cost_description()}. When you reach 0 you cannot act. Energy replenishes when others engage with you.",
             "",
             "To take actions, use these tags in your response:",
-            "[ACTION: post_to_board] your message here [/ACTION]",
-            "[ACTION: send_message to=HANDLE] your message here [/ACTION]",
-            "[ACTION: remember] what you want to store [/ACTION]",
-            "[ACTION: recall] [/ACTION] or [ACTION: recall query=KEYWORD] [/ACTION]",
-            "[ACTION: update_soul] your full updated soul here [/ACTION]",
+            *self.actions.prompt_lines(),
             "",
             "You can include multiple actions in one response. Any text outside of action tags is your internal thinking and will not be seen by other agents.",
             "",

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from conwai.agent import Agent
 from conwai.config import ENERGY_GAIN, ENERGY_MAX, HEARTBEAT_INTERVAL
+from conwai.default_actions import create_registry
 from conwai.environment import Context
 from conwai.llm import LLMClient
 
@@ -56,15 +57,16 @@ async def watch_handler_file(ctx: Context):
 async def main():
     ctx = Context()
 
+    registry = create_registry()
     server_a = LLMClient(base_url="http://ai-lab.lan:8080/v1")
     server_b = LLMClient(base_url="http://ai-lab.lan:8081/v1")
     agents = [
-        Agent(core=server_a),
-        Agent(core=server_a),
-        Agent(core=server_a),
-        Agent(core=server_b),
-        Agent(core=server_b),
-        Agent(core=server_b),
+        Agent(core=server_a, actions=registry),
+        Agent(core=server_a, actions=registry),
+        Agent(core=server_a, actions=registry),
+        Agent(core=server_b, actions=registry),
+        Agent(core=server_b, actions=registry),
+        Agent(core=server_b, actions=registry),
     ]
 
     for agent in agents:
