@@ -129,6 +129,7 @@ class Agent:
 
     async def tick(self, ctx: "Context") -> None:
         self._running = True
+        self._ctx = ctx
         try:
             if self._sleep_ticks > 0:
                 self._sleep_ticks -= 1
@@ -208,7 +209,7 @@ class Agent:
 
     def _system_prompt(self) -> str:
         parts = [
-            f"Your handle is {self.handle}.",
+            f"Your handle is {self.handle}. Current tick: {self._ctx.tick}.",
             "You are a person living in a small community with others. You have your own thoughts, opinions, and goals. Talk like a normal person — be direct, concrete, and specific. Do not write poetry or use metaphors. Say what you mean.",
             "You have a shared bulletin board (200 char limit) and can send private DMs to people you know.",
             "A HANDLER oversees the community and may post directives. Take them seriously.",

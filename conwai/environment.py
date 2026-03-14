@@ -16,6 +16,7 @@ class Context:
     bus: MessageBus = field(default_factory=MessageBus)
     events: EventLog = field(default_factory=EventLog)
     agent_map: dict = field(default_factory=dict)
+    tick: int = 0
 
     def log(self, handle: str, event_type: str, data: dict | None = None):
         self.events.log(handle, event_type, data)

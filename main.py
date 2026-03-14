@@ -102,6 +102,7 @@ async def main():
     asyncio.create_task(watch_handler_file(ctx))
 
     while True:
+        ctx.tick += 1
         world.tick(ctx)
         for agent in agents:
             task = active.get(agent.handle)
