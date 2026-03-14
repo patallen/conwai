@@ -68,5 +68,8 @@ TRAITS = [
     "stubborn",
 ]
 
+# Sleep
+SLEEP_REGEN_PER_TICK = CFG.get("sleep_regen_per_tick", 10)
+
 # Short-term memory
 CONTEXT_WINDOW = CFG.get("context_window", 10)

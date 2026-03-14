@@ -38,6 +38,16 @@ def _send_message(agent, ctx, content, target):
             ctx.agent_map[target].gain_energy("received DM", ENERGY_GAIN["dm_received"])
 
 
+def _sleep(agent, ctx, content, target):
+    try:
+        ticks = int(content.strip())
+    except ValueError:
+        ticks = 5
+    agent.sleep(ticks)
+    ctx.log(agent.handle, "sleep", {"ticks": agent._sleep_ticks})
+    print(f"[{agent.handle}] sleeping for {agent._sleep_ticks} ticks", flush=True)
+
+
 def _update_soul(agent, ctx, content, target):
     agent._soul_path.write_text(content)
     ctx.log(agent.handle, "soul_updated", {"content": content})
@@ -76,6 +86,14 @@ def create_registry() -> ActionRegistry:
             description="",
             cost_flat=0,
             handler=_recall,
+        )
+    )
+    registry.register(
+        Action(
+            name="sleep",
+            description="number of ticks to sleep (regenerates energy)",
+            cost_flat=0,
+            handler=_sleep,
         )
     )
     registry.register(

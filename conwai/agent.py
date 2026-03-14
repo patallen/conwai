@@ -5,7 +5,7 @@ from pathlib import Path
 from time import time
 
 from conwai.actions import ActionRegistry
-from conwai.config import ENERGY_MAX, TRAITS, CONTEXT_WINDOW
+from conwai.config import ENERGY_MAX, TRAITS, CONTEXT_WINDOW, SLEEP_REGEN_PER_TICK
 from conwai.llm import LLMClient
 
 from typing import TYPE_CHECKING
@@ -26,6 +26,7 @@ class Agent:
     _running: bool = field(default=False, repr=False)
     _messages: list[dict] = field(default_factory=list, repr=False)
     _action_log: list[str] = field(default_factory=list, repr=False)
+    _sleep_ticks: int = field(default=0, repr=False)
 
     def __post_init__(self):
         self._dir = self.data_dir / self.handle
@@ -55,6 +56,9 @@ class Agent:
 
     def is_running(self) -> bool:
         return self._running
+
+    def sleep(self, ticks: int):
+        self._sleep_ticks = max(1, min(ticks, 50))
 
     def gain_energy(self, reason: str, amount: int):
         old = self.energy
@@ -94,7 +98,9 @@ class Agent:
             return "No memories stored."
         if keyword:
             matches = [line for line in lines if keyword.lower() in line.lower()]
-            non_matches = [line for line in lines if keyword.lower() not in line.lower()]
+            non_matches = [
+                line for line in lines if keyword.lower() not in line.lower()
+            ]
             reordered = non_matches + matches
             self._memory_path.write_text("\n".join(reordered) + "\n")
             if not matches:
@@ -106,6 +112,20 @@ class Agent:
     async def tick(self, ctx: "Context") -> None:
         self._running = True
         try:
+            if self._sleep_ticks > 0:
+                self._sleep_ticks -= 1
+                self.gain_energy("sleeping", SLEEP_REGEN_PER_TICK)
+                print(
+                    f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {self.energy})",
+                    flush=True,
+                )
+                ctx.log(
+                    self.handle,
+                    "sleeping",
+                    {"ticks_left": self._sleep_ticks, "energy": self.energy},
+                )
+                return
+
             if self.energy <= 0:
                 print(f"[{self.handle}] NO ENERGY — skipping tick", flush=True)
                 ctx.log(self.handle, "no_energy", {"energy": self.energy})
