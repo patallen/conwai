@@ -316,7 +316,7 @@ async function openAgent(handle) {
     <span class="modal-close" onclick="closeModal()">&times;</span>
     <h2>${a.handle}</h2>
     <div style="color:#e0af68;font-size:12px;margin:2px 0">${esc(a.personality)}</div>
-    <div style="color:#9ece6a;font-size:12px;margin:2px 0">energy: ${a.energy != null ? a.energy + '/1000' : 'unknown'}</div>
+    <div style="color:#9ece6a;font-size:12px;margin:2px 0">energy: ${a.energy != null ? a.energy : 'unknown'}</div>
     <div class="modal-stats">
       <span>posts: <span class="val">${s.posts||0}</span></span>
       <span>dms sent: <span class="val">${s.dms_sent||0}</span></span>

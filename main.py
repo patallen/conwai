@@ -12,7 +12,6 @@ from conwai.llm import LLMClient
 from conwai.world import WorldEvents
 
 HANDLER_FILE = Path("handler_input.txt")
-WRONG_GUESS_DEATH_THRESHOLD = 10
 
 
 async def watch_handler_file(ctx: Context):
@@ -85,9 +84,14 @@ async def main():
     ctx = Context()
 
     registry = create_registry()
+    qwen4b0 = LLMClient(  # noqa: F841
+        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-4B-AWQ"
+    )
+    qwen4b1 = LLMClient(  # noqa: F841
+        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-4B-AWQ"
+    )
     qwen9b0 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8080/v1",
-        model="/mnt/models/Qwen3.5-9B-AWQ",
+        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
     )
     qwen9b1 = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
@@ -105,44 +109,48 @@ async def main():
         api_key=os.environ.get("GOOGLE_AI_API_KEY", ""),
         extra_body={},
     )
-    agents = [
-        Agent(
-            core=qwen9b1,
-            actions=registry,
-            context_window=5,
-            handle=f"{uuid4().hex[:3]}.05",
-        ),
-        Agent(
-            core=qwen9b0,
-            actions=registry,
-            context_window=10,
-            handle=f"{uuid4().hex[:3]}.10",
-        ),
-        Agent(
-            core=qwen9b0,
-            actions=registry,
-            context_window=20,
-            handle=f"{uuid4().hex[:3]}.20",
-        ),
-        Agent(
-            core=qwen9b0,
-            actions=registry,
-            context_window=30,
-            handle=f"{uuid4().hex[:3]}.30",
-        ),
-        Agent(
-            core=qwen9b1,
-            actions=registry,
-            context_window=40,
-            handle=f"{uuid4().hex[:3]}.40",
-        ),
-        Agent(
-            core=qwen9b1,
-            actions=registry,
-            context_window=50,
-            handle=f"{uuid4().hex[:3]}.50",
-        ),
-    ]
+    agents = []
+    for i in range(8):
+        agents.append(
+            Agent(core=qwen4b0, context_window=10, actions=registry, handle=f"Q0.{i}")
+        )
+    for i in range(8):
+        agents.append(
+            Agent(core=qwen4b1, context_window=10, actions=registry, handle=f"Q1.{i}")
+        )
+
+    #     agents = [
+    #         Agent(
+    #             core=flash,
+    #             actions=registry,
+    #             context_window=5,
+    #             handle=f"{uuid4().hex[:3]}.10",
+    #         ),
+    #         Agent(
+    #             core=flash,
+    #             actions=registry,
+    #             context_window=10,
+    #             handle=f"{uuid4().hex[:3]}.20",
+    #         ),
+    #         Agent(
+    #             core=flash,
+    #             actions=registry,
+    #             context_window=15,
+    #             handle=f"{uuid4().hex[:3]}.30",
+    #         ),
+    #         Agent(
+    #             core=flash,
+    #             actions=registry,
+    #             context_window=20,
+    #             handle=f"{uuid4().hex[:3]}.40",
+    #         ),
+    #         Agent(
+    #             core=qwen9b1,
+    #             actions=registry,
+    #             context_window=25,
+    #             handle=f"{uuid4().hex[:3]}.50",
+    #         ),
+    #     ]
 
     for agent in agents:
         ctx.register_agent(agent)
@@ -165,28 +173,14 @@ async def main():
 
         for i, agent in enumerate(agents):
             if not agent.alive:
-                continue
-            if agent.wrong_guesses >= WRONG_GUESS_DEATH_THRESHOLD:
-                agent.alive = False
                 ctx.bus.unregister(agent.handle)
-                del ctx.agent_map[agent.handle]
+                if agent.handle in ctx.agent_map:
+                    del ctx.agent_map[agent.handle]
                 ctx.board.post(
                     "WORLD",
-                    f"{agent.handle} has been removed (too many wrong guesses). A new member is joining.",
+                    f"{agent.handle} has died. A new member is joining.",
                 )
-                ctx.log(
-                    "WORLD",
-                    "agent_died",
-                    {
-                        "handle": agent.handle,
-                        "reason": "wrong_guesses",
-                        "count": agent.wrong_guesses,
-                    },
-                )
-                print(
-                    f"[WORLD] {agent.handle} DIED ({agent.wrong_guesses} wrong guesses)",
-                    flush=True,
-                )
+                print(f"[WORLD] {agent.handle} DIED", flush=True)
                 replacement = make_agent(agent.core, agent.handle[0])
                 agents[i] = replacement
                 ctx.board.post("WORLD", f"New member {replacement.handle} has joined.")

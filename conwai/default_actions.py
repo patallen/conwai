@@ -9,6 +9,13 @@ from conwai.config import (
 
 def _post_to_board(agent, ctx, args):
     content = args.get("message", "")
+    recent = [p for p in ctx.board._posts[-10:] if p.handle == agent.handle]
+    if any(p.content == content for p in recent):
+        penalty = 50
+        agent.energy = max(0, agent.energy - penalty)
+        agent._action_log.append(f"duplicate post penalty: -{penalty} energy")
+        print(f"[{agent.handle}] DUPLICATE POST penalty: -{penalty}", flush=True)
+        return
     ctx.board.post(agent.handle, content)
     ctx.log(agent.handle, "board_post", {"content": content})
     print(f"[{agent.handle}] posted: {content}", flush=True)
@@ -40,7 +47,7 @@ def _wait(agent, ctx, args):
 def _sleep(agent, ctx, args):
     if agent.energy > ENERGY_MAX // 2:
         agent._action_log.append(
-            f"cannot sleep — energy too high ({int(agent.energy)}/{ENERGY_MAX})"
+            f"cannot sleep — energy too high ({int(agent.energy)})"
         )
         print(f"[{agent.handle}] CANNOT SLEEP — energy above 50%", flush=True)
         return
@@ -127,15 +134,44 @@ def _inspect(agent, ctx, args):
     lines = [
         f"Handle: {handle}",
         f"Personality: {other.personality}",
-        f"Energy: {int(other.energy)}/{ENERGY_MAX}",
+        f"Energy: {int(other.energy)}",
     ]
     soul = other.soul
     if soul:
         lines.append(f"Soul: {soul[:200]}")
     lines.append(f"Activity: {posts} posts, {dms} DMs sent, {sleeps} sleeps")
-    agent.inject_context(f"Inspect {handle}:\n" + "\n".join(lines))
+    agent._action_log.append(f"Inspect {handle}:\n" + "\n".join(lines))
     ctx.log(agent.handle, "inspect", {"target": handle})
     print(f"[{agent.handle}] inspected {handle}", flush=True)
+
+
+def _give_energy(agent, ctx, args):
+    to = args.get("to", "")
+    amount = args.get("amount", 0)
+    try:
+        amount = int(amount)
+    except ValueError, TypeError:
+        agent._action_log.append("invalid amount")
+        return
+    if amount <= 0:
+        agent._action_log.append("amount must be positive")
+        return
+    if amount > agent.energy:
+        agent._action_log.append(
+            f"not enough energy to give {amount} (have {int(agent.energy)})"
+        )
+        return
+    other = ctx.agent_map.get(to)
+    if not other:
+        agent._action_log.append(f"unknown agent: {to}")
+        return
+    if to == agent.handle:
+        agent._action_log.append("cannot give energy to yourself")
+        return
+    agent.energy -= amount
+    other.gain_energy(f"gift from {agent.handle}", amount)
+    ctx.log(agent.handle, "give_energy", {"to": to, "amount": amount})
+    print(f"[{agent.handle}] gave {amount} energy to {to}", flush=True)
 
 
 def _submit_code(agent, ctx, args):
@@ -145,16 +181,10 @@ def _submit_code(agent, ctx, args):
         return
     result = ctx.world.submit_code(agent, ctx, code)
     agent._action_log.append(result)
-    if result.startswith("WRONG"):
-        agent.wrong_guesses += 1
     ctx.log(
         agent.handle,
         "code_submitted",
-        {
-            "guess": code.strip(),
-            "result": result,
-            "wrong_guesses": agent.wrong_guesses,
-        },
+        {"guess": code.strip(), "result": result},
     )
     print(f"[{agent.handle}] submit_code '{code.strip()}': {result}", flush=True)
 
@@ -275,6 +305,21 @@ def create_registry() -> ActionRegistry:
             },
             cost_flat=0,
             handler=_inspect,
+        )
+    )
+    registry.register(
+        Action(
+            name="give_energy",
+            description="Transfer energy to another agent.",
+            parameters={
+                "to": {"type": "string", "description": "Handle of the recipient"},
+                "amount": {
+                    "type": "integer",
+                    "description": "Amount of energy to give",
+                },
+            },
+            cost_flat=0,
+            handler=_give_energy,
         )
     )
     registry.register(

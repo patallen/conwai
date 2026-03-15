@@ -31,7 +31,9 @@ _available_traits = set(TRAITS)
 
 
 def assign_traits(n: int = 2) -> list[str]:
-    chosen = random.sample(sorted(_available_traits), min(n, len(_available_traits)))
+    if len(_available_traits) < n:
+        _available_traits.update(TRAITS)
+    chosen = random.sample(sorted(_available_traits), n)
     _available_traits.difference_update(chosen)
     return chosen
 
@@ -121,8 +123,8 @@ class Agent:
     _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
     _sleep_ticks: int = field(default=0, init=False, repr=False)
     _system_prompt: str = field(default="", init=False, repr=False)
-    wrong_guesses: int = field(default=0, init=False, repr=False)
     alive: bool = field(default=True, init=False, repr=False)
+    code_fragment: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         self._state = AgentState.init(self.data_dir, self.handle)
@@ -152,13 +154,10 @@ class Agent:
 
     def gain_energy(self, reason: str, amount: int) -> None:
         old = self.energy
-        self.energy = min(ENERGY_MAX, self.energy + amount)
+        self.energy = self.energy + amount
         gained = self.energy - old
         if gained > 0:
             self._energy_log.append(f"energy +{int(gained)} ({reason})")
-
-    def inject_context(self, content: str) -> None:
-        self._messages.append({"role": "user", "content": content})
 
     async def tick(self, ctx: Context) -> None:
         self._running = True
@@ -168,9 +167,13 @@ class Agent:
                 return
 
             if self.energy <= 0:
-                print(f"[{self.handle}] NO ENERGY — auto-sleeping", flush=True)
-                self.sleep(10)
-                ctx.log(self.handle, "auto_sleep", {"energy": self.energy})
+                self.alive = False
+                print(f"[{self.handle}] DEAD — no energy", flush=True)
+                ctx.log(
+                    self.handle,
+                    "agent_died",
+                    {"reason": "no_energy", "energy": self.energy},
+                )
                 return
 
             self._rebuild_context(ctx)
@@ -219,10 +222,13 @@ class Agent:
         if self._energy_log:
             parts.append("Energy changes: " + ". ".join(self._energy_log))
             self._energy_log.clear()
+        if self.code_fragment:
+            parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
+        if ctx.tick % 20 == 0:
+            parts.append("What have you learned recently? Update your rules.")
         tick_content = TICK_TEMPLATE.format(
             tick=ctx.tick,
             energy=int(self.energy),
-            energy_max=ENERGY_MAX,
             content="\n\n".join(parts),
         )
         self._messages.append({"role": "user", "content": tick_content})
@@ -241,9 +247,16 @@ class Agent:
             print(f"[{self.handle}] empty response, skipping", flush=True)
             return None
 
+        MAX_REASONING = 200
         assistant_msg: dict = {"role": "assistant"}
         if resp.text:
-            assistant_msg["content"] = resp.text
+            if len(resp.text) > MAX_REASONING:
+                assistant_msg["content"] = (
+                    resp.text[:MAX_REASONING]
+                    + "... (truncated — use scratchpad to preserve important thoughts)"
+                )
+            else:
+                assistant_msg["content"] = resp.text
         if resp.tool_calls:
             assistant_msg["tool_calls"] = [
                 {
@@ -282,7 +295,6 @@ class Agent:
         prompt = SYSTEM_TEMPLATE.format(
             handle=self.handle,
             context_ticks=self.context_window // 2,
-            cost_description=self.actions.cost_description(),
             personality=self.personality,
         )
         return prompt + "\n\n" + self._build_state_block()

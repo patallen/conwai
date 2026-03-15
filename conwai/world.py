@@ -125,10 +125,15 @@ class WorldEvents:
             self._code_fragments[handle] = (i + 1, code[i])
             mask = ["_"] * 4
             mask[i] = code[i]
+            agent = ctx.agent_map.get(handle)
+            if agent:
+                agent.code_fragment = (
+                    f"'{code[i]}' at position {i + 1} (pattern: {''.join(mask)})"
+                )
             ctx.bus.send(
                 "WORLD",
                 handle,
-                f"CODE CHALLENGE: The code looks like {''.join(mask)} — your character is '{code[i]}'. Share and assemble all 4 characters. Use [ACTION: submit_code] XXXX [/ACTION] to guess. Correct = +200 energy. Wrong = -25 energy but you'll learn how many positions are right.",
+                f"CODE CHALLENGE: You hold character '{code[i]}' at position {i + 1}. The code looks like: {''.join(mask)}. Collect all 4 characters from the other holders and use submit_code to guess.",
             )
             ctx.log(
                 "WORLD",
@@ -151,6 +156,13 @@ class WorldEvents:
         )
         print(f"[WORLD] code challenge started: {code}", flush=True)
 
+    def _clear_fragments(self, ctx):
+        for handle in self._code_fragments:
+            agent = ctx.agent_map.get(handle)
+            if agent:
+                agent.code_fragment = None
+        self._code_fragments.clear()
+
     def _check_code_expiry(self, ctx):
         if self._tick - self._code_started_tick > 80:
             ctx.board.post(
@@ -160,7 +172,7 @@ class WorldEvents:
             ctx.log("WORLD", "code_expired", {"code": self._active_code})
             print(f"[WORLD] code challenge expired: {self._active_code}", flush=True)
             self._active_code = None
-            self._code_fragments.clear()
+            self._clear_fragments(ctx)
 
     def submit_code(self, agent, ctx, guess: str) -> str:
         if not self._active_code:
@@ -169,19 +181,21 @@ class WorldEvents:
         guess = guess.strip().upper()
         if guess == self._active_code:
             solver_reward = 200
-            helper_reward = 50
+            holder_penalty = 25
 
             agent.gain_energy("solved code challenge", solver_reward)
 
             for handle in self._code_fragments:
                 if handle != agent.handle and handle in ctx.agent_map:
-                    ctx.agent_map[handle].gain_energy(
-                        "code challenge fragment holder", helper_reward
+                    other = ctx.agent_map[handle]
+                    other.energy = max(0, other.energy - holder_penalty)
+                    other._energy_log.append(
+                        f"energy -{holder_penalty} (code solved by {agent.handle})"
                     )
 
             ctx.board.post(
                 "WORLD",
-                f"CODE CHALLENGE SOLVED by {agent.handle}! {agent.handle} earned {solver_reward} energy. Fragment holders earned {helper_reward} each.",
+                f"CODE CHALLENGE SOLVED by {agent.handle}! {agent.handle} earned {solver_reward} energy. Fragment holders lost {holder_penalty} each.",
             )
             ctx.log(
                 "WORLD",
@@ -197,7 +211,7 @@ class WorldEvents:
                 flush=True,
             )
             self._active_code = None
-            self._code_fragments.clear()
+            self._clear_fragments(ctx)
             return f"CORRECT! You solved the code and earned {solver_reward} energy."
         else:
             correct = sum(a == b for a, b in zip(guess, self._active_code))

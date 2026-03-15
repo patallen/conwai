@@ -15,7 +15,7 @@
   },
   "board_max_posts": 30,
   "board_max_post_length": 200,
-  "heartbeat_interval": 3.0,
+  "heartbeat_interval": 2.0,
   "scratchpad_max": 3000,
   "context_window": 60
 }

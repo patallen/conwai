@@ -1,3 +1,3 @@
-[tick:{tick} | energy:{energy}/{energy_max}]
+[tick:{tick} | energy:{energy}]
 
 {content}
