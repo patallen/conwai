@@ -69,11 +69,43 @@ def _update_scratchpad(agent, ctx, args):
     print(f"[{agent.handle}] scratchpad updated", flush=True)
 
 
-def _update_strategy(agent, ctx, args):
-    content = args.get("content", "")
-    agent._state.strategy_path.write_text(content)
-    ctx.log(agent.handle, "strategy_updated", {"content": content})
-    print(f"[{agent.handle}] strategy updated", flush=True)
+def _add_rule(agent, ctx, args):
+    rule = args.get("rule", "").strip()
+    if not rule:
+        return
+    rules = _read_rules(agent)
+    rules.append(rule)
+    _write_rules(agent, rules)
+    ctx.log(agent.handle, "rule_added", {"rule": rule, "index": len(rules)})
+    print(f"[{agent.handle}] added rule {len(rules)}: {rule}", flush=True)
+
+
+def _drop_rule(agent, ctx, args):
+    index = args.get("index", 0)
+    try:
+        index = int(index)
+    except ValueError, TypeError:
+        agent._action_log.append(f"invalid rule index: {index}")
+        return
+    rules = _read_rules(agent)
+    if index < 1 or index > len(rules):
+        agent._action_log.append(f"no rule at index {index} (have {len(rules)} rules)")
+        return
+    removed = rules.pop(index - 1)
+    _write_rules(agent, rules)
+    ctx.log(agent.handle, "rule_dropped", {"index": index, "rule": removed})
+    print(f"[{agent.handle}] dropped rule {index}: {removed}", flush=True)
+
+
+def _read_rules(agent) -> list[str]:
+    text = agent._state.strategy_path.read_text().strip()
+    if not text:
+        return []
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def _write_rules(agent, rules: list[str]):
+    agent._state.strategy_path.write_text("\n".join(rules) + "\n" if rules else "")
 
 
 def _inspect(agent, ctx, args):
@@ -205,16 +237,30 @@ def create_registry() -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="update_strategy",
-            description="Rewrite your personal rules and behavioral strategy. Free.",
+            name="add_rule",
+            description="Add a rule to your personal rulebook. Free.",
             parameters={
-                "content": {
+                "rule": {
                     "type": "string",
-                    "description": "Your new strategy",
+                    "description": "The rule to add",
                 },
             },
             cost_flat=0,
-            handler=_update_strategy,
+            handler=_add_rule,
+        )
+    )
+    registry.register(
+        Action(
+            name="drop_rule",
+            description="Remove a rule from your rulebook by its number. Free.",
+            parameters={
+                "index": {
+                    "type": "integer",
+                    "description": "The rule number to remove",
+                },
+            },
+            cost_flat=0,
+            handler=_drop_rule,
         )
     )
     registry.register(

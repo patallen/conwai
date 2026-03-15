@@ -271,8 +271,14 @@ class Agent:
         )
 
     def _build_state_block(self) -> str:
+        raw_rules = self.strategy.strip()
+        if raw_rules:
+            lines = [r.strip() for r in raw_rules.splitlines() if r.strip()]
+            numbered = "\n".join(f"{i + 1}. {line}" for i, line in enumerate(lines))
+        else:
+            numbered = "(no rules yet)"
         parts = [
-            STRATEGY_TEMPLATE.format(strategy=self.strategy or "(empty)"),
+            STRATEGY_TEMPLATE.format(rules=numbered),
             SOUL_TEMPLATE.format(soul=self.soul or "(empty)"),
             SCRATCHPAD_TEMPLATE.format(scratchpad=self.scratchpad or "(empty)"),
         ]
