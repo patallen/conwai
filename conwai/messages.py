@@ -18,6 +18,10 @@ class MessageBus:
     def register(self, handle: str):
         self._known_handles.add(handle)
 
+    def unregister(self, handle: str):
+        self._known_handles.discard(handle)
+        self._queues.pop(handle, None)
+
     def send(self, from_handle: str, to_handle: str, content: str) -> str | None:
         if from_handle == to_handle:
             return "Cannot message yourself."

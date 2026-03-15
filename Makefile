@@ -18,6 +18,7 @@ stop:
 clean:
 	rm -rf data/agents
 	: > data/events.jsonl
+	: > handler_input.txt
 
 restart: stop clean
 	@sleep 1

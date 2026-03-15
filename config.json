@@ -1,13 +1,13 @@
 {
   "energy_max": 1000,
   "energy_cost_per_word": {
-    "post_to_board": 1,
+    "post_to_board": 2,
     "send_message": 0,
     "remember": 0.5
   },
   "energy_cost_flat": {
     "recall": 0,
-    "update_soul": 5
+    "update_soul": 3
   },
   "energy_gain": {
     "referenced": 8,
@@ -15,7 +15,7 @@
   },
   "board_max_posts": 30,
   "board_max_post_length": 200,
-  "heartbeat_interval": 2.0,
-  "scratchpad_max": 2500,
+  "heartbeat_interval": 3.0,
+  "scratchpad_max": 3000,
   "context_window": 60
 }

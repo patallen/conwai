@@ -12,6 +12,7 @@ from conwai.llm import LLMClient
 from conwai.world import WorldEvents
 
 HANDLER_FILE = Path("handler_input.txt")
+WRONG_GUESS_DEATH_THRESHOLD = 10
 
 
 async def watch_handler_file(ctx: Context):
@@ -85,7 +86,8 @@ async def main():
 
     registry = create_registry()
     qwen9b0 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
+        base_url="http://ai-lab.lan:8080/v1",
+        model="/mnt/models/Qwen3.5-9B-AWQ",
     )
     qwen9b1 = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
@@ -96,7 +98,6 @@ async def main():
     qwen14b_think = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1",
         model="/mnt/models/Qwen3-14B-AWQ",
-        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
     )
     flash = LLMClient(  # noqa: F841
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
@@ -105,14 +106,12 @@ async def main():
         extra_body={},
     )
     agents = [
-        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
-        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
-        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
-        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
-        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
-        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
-        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
-        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:4]}"),
+        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:4]}"),
+        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:4]}"),
+        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:4]}"),
+        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:4]}"),
+        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:4]}"),
     ]
 
     for agent in agents:
@@ -125,13 +124,57 @@ async def main():
     active: dict[str, asyncio.Task] = {}
     asyncio.create_task(watch_handler_file(ctx))
 
+    def make_agent(core: LLMClient, prefix: str) -> Agent:
+        agent = Agent(core=core, actions=registry, handle=f"{prefix}{uuid4().hex[:3]}")
+        ctx.register_agent(agent)
+        return agent
+
     while True:
         ctx.tick += 1
         world.tick(ctx)
-        for agent in agents:
+
+        for i, agent in enumerate(agents):
+            if not agent.alive:
+                continue
+            if agent.wrong_guesses >= WRONG_GUESS_DEATH_THRESHOLD:
+                agent.alive = False
+                ctx.bus.unregister(agent.handle)
+                del ctx.agent_map[agent.handle]
+                ctx.board.post(
+                    "WORLD",
+                    f"{agent.handle} has been removed (too many wrong guesses). A new member is joining.",
+                )
+                ctx.log(
+                    "WORLD",
+                    "agent_died",
+                    {
+                        "handle": agent.handle,
+                        "reason": "wrong_guesses",
+                        "count": agent.wrong_guesses,
+                    },
+                )
+                print(
+                    f"[WORLD] {agent.handle} DIED ({agent.wrong_guesses} wrong guesses)",
+                    flush=True,
+                )
+                replacement = make_agent(agent.core, agent.handle[0])
+                agents[i] = replacement
+                ctx.board.post("WORLD", f"New member {replacement.handle} has joined.")
+                ctx.log(
+                    "WORLD",
+                    "agent_spawned",
+                    {"handle": replacement.handle, "replaced": agent.handle},
+                )
+                print(
+                    f"[WORLD] {replacement.handle} spawned (replacing {agent.handle})",
+                    flush=True,
+                )
+                continue
+
             task = active.get(agent.handle)
             if task is None or task.done():
                 active[agent.handle] = asyncio.create_task(agent.tick(ctx))
+
         await asyncio.sleep(HEARTBEAT_INTERVAL)
 
 

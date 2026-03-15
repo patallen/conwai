@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import json
 import random
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from time import time
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -16,18 +15,17 @@ from conwai.config import (
     SLEEP_REGEN_PER_TICK,
     TRAITS,
 )
-from conwai.llm import LLMClient
+from conwai.llm import LLMClient, LLMResponse
 
 if TYPE_CHECKING:
     from conwai.environment import Context
-
-THINK_PATTERN = re.compile(r"\[THINK\]\s*(.*?)\s*\[/THINK\]", re.DOTALL)
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 SYSTEM_TEMPLATE = (PROMPTS_DIR / "system.md").read_text()
 TICK_TEMPLATE = (PROMPTS_DIR / "tick.md").read_text()
 SOUL_TEMPLATE = (PROMPTS_DIR / "soul.md").read_text()
 SCRATCHPAD_TEMPLATE = (PROMPTS_DIR / "scratchpad.md").read_text()
+STRATEGY_TEMPLATE = (PROMPTS_DIR / "strategy.md").read_text()
 
 _available_traits = set(TRAITS)
 
@@ -45,6 +43,7 @@ class AgentState:
     soul_path: Path
     scratchpad_path: Path
     personality_path: Path
+    strategy_path: Path
     energy_path: Path
 
     @classmethod
@@ -57,9 +56,15 @@ class AgentState:
             soul_path=d / "soul.md",
             scratchpad_path=d / "scratchpad.md",
             personality_path=d / "personality.md",
+            strategy_path=d / "strategy.md",
             energy_path=d / "energy",
         )
-        for p in [state.memory_path, state.soul_path, state.scratchpad_path]:
+        for p in [
+            state.memory_path,
+            state.soul_path,
+            state.scratchpad_path,
+            state.strategy_path,
+        ]:
             if not p.exists():
                 p.write_text("")
         if not state.personality_path.exists():
@@ -78,24 +83,9 @@ class AgentState:
     def personality(self) -> str:
         return self.personality_path.read_text()
 
-    def remember(self, content: str) -> None:
-        with open(self.memory_path, "a") as f:
-            f.write(f"[t={int(time())}] {content}\n")
-
-    def recall(self, keyword: str = "", n: int = 10) -> str:
-        if not self.memory_path.exists():
-            return "No memories stored."
-        lines = self.memory_path.read_text().strip().splitlines()
-        if not lines:
-            return "No memories stored."
-        if not keyword:
-            return "\n".join(lines[-n:])
-        matches = [line for line in lines if keyword.lower() in line.lower()]
-        non_matches = [line for line in lines if keyword.lower() not in line.lower()]
-        self.memory_path.write_text("\n".join(non_matches + matches) + "\n")
-        if not matches:
-            return f"No memories matching '{keyword}'."
-        return "\n".join(matches[-n:])
+    @property
+    def strategy(self) -> str:
+        return self.strategy_path.read_text()
 
     def write_scratchpad(self, content: str) -> int:
         truncated = content[:SCRATCHPAD_MAX]
@@ -125,6 +115,8 @@ class Agent:
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
     _sleep_ticks: int = field(default=0, init=False, repr=False)
     _system_prompt: str = field(default="", init=False, repr=False)
+    wrong_guesses: int = field(default=0, init=False, repr=False)
+    alive: bool = field(default=True, init=False, repr=False)
 
     def __post_init__(self):
         self._state = AgentState.init(self.data_dir, self.handle)
@@ -142,6 +134,10 @@ class Agent:
         return self._state.personality
 
     @property
+    def strategy(self) -> str:
+        return self._state.strategy
+
+    @property
     def is_running(self) -> bool:
         return self._running
 
@@ -154,12 +150,6 @@ class Agent:
         gained = self.energy - old
         if gained > 0:
             self._action_log.append(f"energy +{int(gained)} ({reason})")
-
-    def remember(self, content: str) -> None:
-        self._state.remember(content)
-
-    def recall(self, keyword: str = "", n: int = 10) -> str:
-        return self._state.recall(keyword, n)
 
     def inject_context(self, content: str) -> None:
         self._messages.append({"role": "user", "content": content})
@@ -178,12 +168,10 @@ class Agent:
                 return
 
             self._rebuild_context(ctx)
-            response = await self._get_response(ctx)
-            if not response:
+            llm_response = await self._get_response(ctx)
+            if not llm_response:
                 return
-            self._process_think(response)
-            self._process_action(response, ctx)
-            self._flush_action_log()
+            self._process_tool_calls(llm_response, ctx)
 
         except Exception as e:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
@@ -207,17 +195,24 @@ class Agent:
 
     def _rebuild_context(self, ctx: Context) -> None:
         self._messages = self._messages[-CONTEXT_WINDOW:]
-        self._system_prompt = self._build_system_prompt(ctx.tick)
+        self._system_prompt = self._build_system_prompt()
 
         parts = [ctx.board.format_new(self.handle)]
         dms = ctx.bus.format_new(self.handle)
         if dms:
             parts.append(dms)
-        tick_content = TICK_TEMPLATE.format(
-            tick=ctx.tick,
-            energy=int(self.energy),
-            energy_max=ENERGY_MAX,
-            content="\n\n".join(parts),
+        if self._action_log:
+            parts.append("Energy changes: " + ". ".join(self._action_log))
+            self._action_log.clear()
+        tick_content = (
+            TICK_TEMPLATE.format(
+                tick=ctx.tick,
+                energy=int(self.energy),
+                energy_max=ENERGY_MAX,
+                content="\n\n".join(parts),
+            )
+            + "\n\n"
+            + self._build_state_block()
         )
         self._messages.append({"role": "user", "content": tick_content})
         print(
@@ -225,58 +220,60 @@ class Agent:
             flush=True,
         )
 
-    async def _get_response(self, ctx: Context) -> str | None:
-        response, prompt_tokens, completion_tokens = await self.core.call(
-            self._system_prompt, self._messages
+    async def _get_response(self, ctx: Context) -> LLMResponse | None:
+        resp = await self.core.call(
+            self._system_prompt,
+            self._messages,
+            tools=self.actions.tool_definitions(),
         )
-        if not response:
+        if not resp.text and not resp.tool_calls:
             print(f"[{self.handle}] empty response, skipping", flush=True)
             return None
-        self._messages.append({"role": "assistant", "content": response})
+
+        assistant_msg: dict = {"role": "assistant"}
+        if resp.text:
+            assistant_msg["content"] = resp.text
+        if resp.tool_calls:
+            assistant_msg["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.name, "arguments": json.dumps(tc.args)},
+                }
+                for tc in resp.tool_calls
+            ]
+        self._messages.append(assistant_msg)
+
         print(
-            f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}",
+            f"[{self.handle}] ({resp.prompt_tokens}+{resp.completion_tokens} tok): {resp.text[:200] if resp.text else '(no text)'}",
             flush=True,
         )
-        return response
+        if resp.tool_calls:
+            names = [tc.name for tc in resp.tool_calls]
+            print(f"[{self.handle}] tools: {names}", flush=True)
+        return resp
 
-    def _process_think(self, response: str) -> None:
-        match = THINK_PATTERN.search(response)
-        if not match:
-            return
-        raw = match.group(1).strip()
-        lost = self._state.write_scratchpad(raw)
-        if lost > 0:
-            self._action_log.append(f"scratchpad full — {lost} chars lost from the end")
-
-    def _process_action(self, response: str, ctx: Context) -> None:
-        parsed = self.actions.parse(response)
-        if not parsed:
-            return
-        action_name, target, content = parsed[0]
-        self.actions.execute(self, ctx, action_name, content, target or None)
-        if len(parsed) > 1:
-            self._action_log.append(
-                f"only 1 action per tick — {len(parsed) - 1} others ignored"
+    def _process_tool_calls(self, resp: LLMResponse, ctx: Context) -> None:
+        for tc in resp.tool_calls:
+            self.actions.execute(self, ctx, tc.name, tc.args)
+            result = ". ".join(self._action_log) if self._action_log else "ok"
+            self._messages.append(
+                {"role": "tool", "tool_call_id": tc.id, "content": result}
             )
+            self._action_log.clear()
 
-    def _flush_action_log(self) -> None:
-        if not self._action_log:
-            return
-        result_msg = "Result: " + ". ".join(self._action_log)
-        self._messages.append({"role": "user", "content": result_msg})
-        self._action_log.clear()
-
-    def _build_system_prompt(self, tick: int) -> str:
-        prompt = SYSTEM_TEMPLATE.format(
+    def _build_system_prompt(self) -> str:
+        return SYSTEM_TEMPLATE.format(
             handle=self.handle,
-            tick=tick,
             context_ticks=CONTEXT_WINDOW // 2,
             cost_description=self.actions.cost_description(),
-            action_lines="\n".join(self.actions.prompt_lines()),
             personality=self.personality,
         )
-        prompt += "\n\n" + SOUL_TEMPLATE.format(soul=self.soul or "(empty)")
-        prompt += "\n\n" + SCRATCHPAD_TEMPLATE.format(
-            scratchpad=self.scratchpad or "(empty)"
-        )
-        return prompt
+
+    def _build_state_block(self) -> str:
+        parts = [
+            STRATEGY_TEMPLATE.format(strategy=self.strategy or "(empty)"),
+            SOUL_TEMPLATE.format(soul=self.soul or "(empty)"),
+            SCRATCHPAD_TEMPLATE.format(scratchpad=self.scratchpad or "(empty)"),
+        ]
+        return "\n\n".join(parts)

@@ -1,13 +1,14 @@
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 
 app = FastAPI()
 
 EVENTS_PATH = Path("data/events.jsonl")
 AGENTS_DIR = Path("data/agents")
+HANDLER_FILE = Path("handler_input.txt")
 
 
 def read_events(since: int = 0) -> list[dict]:
@@ -32,7 +33,13 @@ def read_agents() -> list[dict]:
             continue
         handle = d.name
         agent = {"handle": handle}
-        for f in ["personality.md", "soul.md", "scratchpad.md", "memory.md"]:
+        for f in [
+            "personality.md",
+            "soul.md",
+            "scratchpad.md",
+            "memory.md",
+            "strategy.md",
+        ]:
             p = d / f
             agent[f.replace(".md", "")] = p.read_text() if p.exists() else ""
         ep = d / "energy"
@@ -111,6 +118,17 @@ def api_stats():
             info["soul"] = s.read_text().strip()[:100] if s.exists() else ""
 
     return list(agents.values())
+
+
+@app.post("/api/handler")
+async def api_handler(request: Request):
+    body = await request.json()
+    msg = body.get("message", "").strip()
+    if not msg:
+        return JSONResponse({"error": "empty message"}, status_code=400)
+    with open(HANDLER_FILE, "a") as f:
+        f.write(msg + "\n")
+    return {"ok": True, "message": msg}
 
 
 @app.get("/api/agent/{handle}")
@@ -199,6 +217,10 @@ h2 { color: #9ece6a; margin: 12px 0 6px; font-size: 14px; }
 </head>
 <body>
 <h1>conwai</h1>
+<div style="margin-bottom:12px;display:flex;gap:8px">
+  <input id="handler-input" type="text" placeholder="Send as HANDLER..." style="flex:1;background:#16161e;border:1px solid #292e42;border-radius:4px;padding:6px 10px;color:#d4d4d4;font-family:monospace;font-size:13px" onkeydown="if(event.key==='Enter')sendHandler()">
+  <button onclick="sendHandler()" style="background:#f7768e;border:none;border-radius:4px;padding:6px 14px;color:#1a1b26;font-family:monospace;font-size:13px;cursor:pointer;font-weight:bold">SEND</button>
+</div>
 <div class="grid">
   <div>
     <h2>agents</h2>
@@ -222,6 +244,14 @@ h2 { color: #9ece6a; margin: 12px 0 6px; font-size: 14px; }
 </div>
 <script>
 let lastEventIdx = 0;
+
+async function sendHandler() {
+  const input = document.getElementById('handler-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  await fetch('/api/handler', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: msg})});
+  input.value = '';
+}
 
 function energyClass(pct) {
   if (pct < 20) return 'low';
@@ -258,6 +288,8 @@ async function openAgent(handle) {
       <span>sleeps: <span class="val">${s.sleeping||0}</span></span>
     </div>
     ${a.soul ? `<h3>soul</h3><div class="modal-section" style="color:#7dcfff">${esc(a.soul)}</div>` : '<h3>soul</h3><div class="modal-section" style="color:#565f89">(empty)</div>'}
+    <h3>strategy</h3>
+    <div class="modal-section" style="color:#ff9e64">${a.strategy ? esc(a.strategy) : '(empty)'}</div>
     <h3>scratchpad</h3>
     <div class="modal-section" style="color:#a9b1d6">${a.scratchpad ? esc(a.scratchpad) : '(empty)'}</div>
     <h3>memory (${memLines.length} entries)</h3>
