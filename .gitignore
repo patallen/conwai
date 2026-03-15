@@ -16,3 +16,5 @@ wheels/
 data/agents/
 data/events.jsonl
 handler_input.txt
+.superpowers/
+.worktrees/
