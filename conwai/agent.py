@@ -11,11 +11,11 @@ from conwai.actions import ActionRegistry
 from conwai.config import (
     CONTEXT_WINDOW,
     ENERGY_MAX,
+    SCRATCHPAD_MAX,
     SLEEP_REGEN_PER_TICK,
     TRAITS,
 )
 from conwai.llm import LLMClient, LLMResponse
-from conwai.repository import AgentRepository
 
 if TYPE_CHECKING:
     from conwai.environment import Context
@@ -45,34 +45,25 @@ class Agent:
     handle: str = field(default_factory=lambda: uuid4().hex[:8])
     core: LLMClient = field(default_factory=LLMClient)
     actions: ActionRegistry = field(default=None, repr=False)
-    repo: AgentRepository = field(default=None, repr=False)
     energy: float = ENERGY_MAX
     context_window: int = CONTEXT_WINDOW
+    personality: str = ""
+    soul: str = ""
+    scratchpad: str = ""
+    alive: bool = True
+    code_fragment: str | None = None
+
+    messages: list[dict] = field(default_factory=list, repr=False)
+    system_prompt: str = field(default="", repr=False)
 
     _running: bool = field(default=False, init=False, repr=False)
-    _messages: list[dict] = field(default_factory=list, init=False, repr=False)
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
     _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
     _sleep_ticks: int = field(default=0, init=False, repr=False)
-    _system_prompt: str = field(default="", init=False, repr=False)
-    alive: bool = field(default=True, init=False, repr=False)
-    code_fragment: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
-        if self.repo:
-            self.repo.init(self)
-
-    @property
-    def soul(self) -> str:
-        return self.repo.load_soul(self.handle) if self.repo else ""
-
-    @property
-    def scratchpad(self) -> str:
-        return self.repo.load_scratchpad(self.handle) if self.repo else ""
-
-    @property
-    def personality(self) -> str:
-        return self.repo.load_personality(self.handle) if self.repo else ""
+        if not self.personality:
+            self.personality = ", ".join(assign_traits())
 
     @property
     def is_running(self) -> bool:
@@ -87,6 +78,14 @@ class Agent:
         gained = self.energy - old
         if gained > 0:
             self._energy_log.append(f"energy +{int(gained)} ({reason})")
+
+    def write_scratchpad(self, content: str) -> int:
+        self.scratchpad = content[:SCRATCHPAD_MAX]
+        return max(0, len(content) - SCRATCHPAD_MAX)
+
+    def decay_scratchpad(self, chars: int = 5) -> None:
+        if len(self.scratchpad) > chars:
+            self.scratchpad = self.scratchpad[:-chars]
 
     async def tick(self, ctx: Context) -> None:
         self._running = True
@@ -115,14 +114,11 @@ class Agent:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
         finally:
             self._running = False
-            if self.repo:
-                self.repo.save(self)
 
     def _handle_sleep(self, ctx: Context) -> None:
         self._sleep_ticks -= 1
         self.gain_energy("sleeping", SLEEP_REGEN_PER_TICK)
-        if self.repo:
-            self.repo.decay_scratchpad(self.handle)
+        self.decay_scratchpad()
         print(
             f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {int(self.energy)})",
             flush=True,
@@ -136,14 +132,14 @@ class Agent:
     def _rebuild_context(self, ctx: Context) -> None:
         turn_count = 0
         cut = 0
-        for i in range(len(self._messages) - 1, -1, -1):
-            if self._messages[i]["role"] == "user":
+        for i in range(len(self.messages) - 1, -1, -1):
+            if self.messages[i]["role"] == "user":
                 turn_count += 1
                 if turn_count > self.context_window:
                     cut = i
                     break
-        self._messages = self._messages[cut:]
-        self._system_prompt = self._build_system_prompt()
+        self.messages = self.messages[cut:]
+        self.system_prompt = self._build_system_prompt()
 
         parts = [ctx.board.format_new(self.handle)]
         dms = ctx.bus.format_new(self.handle)
@@ -159,16 +155,16 @@ class Agent:
             energy=int(self.energy),
             content="\n\n".join(parts),
         )
-        self._messages.append({"role": "user", "content": tick_content})
+        self.messages.append({"role": "user", "content": tick_content})
         print(
-            f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}",
+            f"[{self.handle}] context: {len(self.messages)} msgs, energy: {self.energy}",
             flush=True,
         )
 
     async def _get_response(self, ctx: Context) -> LLMResponse | None:
         resp = await self.core.call(
-            self._system_prompt,
-            self._messages,
+            self.system_prompt,
+            self.messages,
             tools=self.actions.tool_definitions(),
         )
         if not resp.text and not resp.tool_calls:
@@ -193,7 +189,7 @@ class Agent:
                 }
                 for tc in resp.tool_calls
             ]
-        self._messages.append(assistant_msg)
+        self.messages.append(assistant_msg)
 
         print(
             f"[{self.handle}] ({resp.prompt_tokens}+{resp.completion_tokens} tok): {resp.text[:200] if resp.text else '(no text)'}",
@@ -208,7 +204,7 @@ class Agent:
         for tc in resp.tool_calls:
             self.actions.execute(self, ctx, tc.name, tc.args)
             result = ". ".join(self._action_log) if self._action_log else "ok"
-            self._messages.append(
+            self.messages.append(
                 {
                     "role": "tool",
                     "tool_call_id": tc.id,

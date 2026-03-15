@@ -63,15 +63,14 @@ def _sleep(agent, ctx, args):
 
 def _update_soul(agent, ctx, args):
     content = args.get("content", "")
-    if agent.repo:
-        agent.repo.save_soul(agent.handle, content)
+    agent.soul = content
     ctx.log(agent.handle, "soul_updated", {"content": content})
     print(f"[{agent.handle}] soul updated", flush=True)
 
 
 def _update_scratchpad(agent, ctx, args):
     content = args.get("content", "")
-    lost = agent.repo.save_scratchpad(agent.handle, content) if agent.repo else 0
+    lost = agent.write_scratchpad(content)
     if lost > 0:
         agent._action_log.append(f"scratchpad full — {lost} chars lost from the end")
     print(f"[{agent.handle}] scratchpad updated", flush=True)

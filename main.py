@@ -113,25 +113,13 @@ async def main():
     repo = AgentRepository()
     agents = []
     for i in range(8):
-        agents.append(
-            Agent(
-                core=qwen4b0,
-                context_window=10,
-                actions=registry,
-                repo=repo,
-                handle=f"Q0.{i}",
-            )
-        )
+        a = Agent(core=qwen4b0, context_window=10, actions=registry, handle=f"Q0.{i}")
+        repo.save(a)
+        agents.append(a)
     for i in range(8):
-        agents.append(
-            Agent(
-                core=qwen4b1,
-                context_window=10,
-                actions=registry,
-                repo=repo,
-                handle=f"Q1.{i}",
-            )
-        )
+        a = Agent(core=qwen4b1, context_window=10, actions=registry, handle=f"Q1.{i}")
+        repo.save(a)
+        agents.append(a)
 
     #     agents = [
     #         Agent(
@@ -177,9 +165,8 @@ async def main():
     asyncio.create_task(watch_handler_file(ctx))
 
     def make_agent(core: LLMClient, prefix: str) -> Agent:
-        agent = Agent(
-            core=core, actions=registry, repo=repo, handle=f"{prefix}{uuid4().hex[:3]}"
-        )
+        agent = Agent(core=core, actions=registry, handle=f"{prefix}{uuid4().hex[:3]}")
+        repo.save(agent)
         ctx.register_agent(agent)
         return agent
 
@@ -213,7 +200,12 @@ async def main():
 
             task = active.get(agent.handle)
             if task is None or task.done():
-                active[agent.handle] = asyncio.create_task(agent.tick(ctx))
+
+                async def tick_and_save(a=agent):
+                    await a.tick(ctx)
+                    repo.save(a)
+
+                active[agent.handle] = asyncio.create_task(tick_and_save())
 
         await asyncio.sleep(HEARTBEAT_INTERVAL)
 

@@ -28,6 +28,8 @@ from conwai.llm import LLMClient
 from conwai.repository import AgentRepository
 from conwai.world import WorldEvents
 
+repo = AgentRepository()
+
 
 async def run(args):
     ctx = Context()
@@ -41,9 +43,9 @@ async def run(args):
         else {"chat_template_kwargs": {"enable_thinking": False}},
     )
 
-    repo = AgentRepository()
     handle = args.handle or uuid4().hex[:3]
-    agent = Agent(core=client, actions=registry, repo=repo, handle=handle)
+    agent = Agent(core=client, actions=registry, handle=handle)
+    repo.save(agent)
     ctx.register_agent(agent)
     ctx.bus.register("HANDLER")
     ctx.bus.register("WORLD")
@@ -52,7 +54,8 @@ async def run(args):
     ctx.world = world
 
     for name in ["alice", "bob", "carol"]:
-        fake = Agent(core=client, actions=registry, repo=repo, handle=name)
+        fake = Agent(core=client, actions=registry, handle=name)
+        repo.save(fake)
         ctx.register_agent(fake)
 
     print(f"Agent: {handle}")
@@ -115,6 +118,7 @@ async def run(args):
 
         ctx.tick += 1
         await agent.tick(ctx)
+        repo.save(agent)
         print()
 
 
