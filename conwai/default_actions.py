@@ -68,12 +68,12 @@ def _update_soul(agent, ctx, args):
     print(f"[{agent.handle}] soul updated", flush=True)
 
 
-def _update_scratchpad(agent, ctx, args):
+def _update_memory(agent, ctx, args):
     content = args.get("content", "")
-    lost = agent.write_scratchpad(content)
+    lost = agent.write_memory(content)
     if lost > 0:
-        agent._action_log.append(f"scratchpad full — {lost} chars lost from the end")
-    print(f"[{agent.handle}] scratchpad updated", flush=True)
+        agent._action_log.append(f"memory full — {lost} chars lost from the end")
+    print(f"[{agent.handle}] memory updated", flush=True)
 
 
 def _inspect(agent, ctx, args):
@@ -200,16 +200,16 @@ def create_registry() -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="update_scratchpad",
-            description="Update your private scratchpad / working memory. Free. Only you can see it.",
+            name="update_memory",
+            description="Update your long-term memory. Free. Only you can see it.",
             parameters={
                 "content": {
                     "type": "string",
-                    "description": "Your updated scratchpad contents",
+                    "description": "Your updated memory contents",
                 },
             },
             cost_flat=0,
-            handler=_update_scratchpad,
+            handler=_update_memory,
         )
     )
     registry.register(

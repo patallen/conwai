@@ -46,6 +46,8 @@ HEARTBEAT_INTERVAL = CFG.get("heartbeat_interval", 3.0)
 
 # Personality
 TRAITS = [
+    "leader",
+    "organizer",
     "contrarian",
     "curious",
     "impatient",
@@ -95,4 +97,4 @@ SLEEP_REGEN_PER_TICK = CFG.get("sleep_regen_per_tick", 10)
 CONTEXT_WINDOW = CFG.get("context_window", 10)
 
 # Scratchpad
-SCRATCHPAD_MAX = CFG.get("scratchpad_max", 1000)
+MEMORY_MAX = CFG.get("memory_max", CFG.get("scratchpad_max", 1000))

@@ -36,7 +36,7 @@ def read_agents() -> list[dict]:
         for f in [
             "personality.md",
             "soul.md",
-            "scratchpad.md",
+            "memory.md",
             "memory.md",
         ]:
             p = d / f
@@ -190,7 +190,7 @@ h2 { color: #9ece6a; margin: 12px 0 6px; font-size: 14px; }
 .energy-fill { background: #9ece6a; height: 100%; border-radius: 2px; transition: width 0.3s; }
 .energy-fill.low { background: #f7768e; }
 .energy-fill.mid { background: #e0af68; }
-.scratchpad { color: #565f89; font-size: 11px; margin-top: 4px; white-space: pre-wrap; max-height: 60px; overflow: hidden; }
+.memory { color: #565f89; font-size: 11px; margin-top: 4px; white-space: pre-wrap; max-height: 60px; overflow: hidden; }
 .soul { color: #7dcfff; font-size: 11px; font-style: italic; }
 .memory-count { color: #565f89; font-size: 11px; }
 .event { padding: 3px 0; border-bottom: 1px solid #16161e; }
@@ -330,8 +330,8 @@ async function openAgent(handle) {
       <span>sleeps: <span class="val">${s.sleeping||0}</span></span>
     </div>
     ${a.soul ? `<h3>soul</h3><div class="modal-section" style="color:#7dcfff">${esc(a.soul)}</div>` : '<h3>soul</h3><div class="modal-section" style="color:#565f89">(empty)</div>'}
-    <h3>scratchpad</h3>
-    <div class="modal-section" style="color:#a9b1d6">${a.scratchpad ? esc(a.scratchpad) : '(empty)'}</div>
+    <h3>memory</h3>
+    <div class="modal-section" style="color:#a9b1d6">${a.memory ? esc(a.memory) : '(empty)'}</div>
     <h3>recent board posts</h3>
     <div class="modal-section">${a.board_posts.length ? a.board_posts.map(e => esc(e.data.content)).join('\\n\\n') : '(none)'}</div>
     <h3>recent DMs</h3>
@@ -361,7 +361,7 @@ async function refreshAgents() {
       <div><span class="agent-handle">${a.handle}</span> <span class="agent-personality">${esc(a.personality)}</span></div>
       <div class="energy-bar"><div class="energy-fill ${ecls}" style="width:${pct}%"></div></div>
       ${a.soul ? `<div class="soul">${esc(a.soul).substring(0,120)}</div>` : ''}
-      ${a.scratchpad ? `<div class="scratchpad">${esc(a.scratchpad).substring(0,300)}</div>` : ''}
+      ${a.memory ? `<div class="memory">${esc(a.memory).substring(0,300)}</div>` : ''}
     </div>`;
   }).join('');
 }

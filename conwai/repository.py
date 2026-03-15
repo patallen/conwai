@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from conwai.config import ENERGY_MAX, SCRATCHPAD_MAX
+from conwai.config import ENERGY_MAX, MEMORY_MAX
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
@@ -50,9 +50,7 @@ class AgentRepository:
             system_prompt=context["system"],
             messages=context["messages"],
             soul=(d / "soul.md").read_text() if (d / "soul.md").exists() else "",
-            scratchpad=(d / "scratchpad.md").read_text()
-            if (d / "scratchpad.md").exists()
-            else "",
+            memory=(d / "memory.md").read_text() if (d / "memory.md").exists() else "",
             personality=(d / "personality.md").read_text()
             if (d / "personality.md").exists()
             else "",
@@ -64,7 +62,7 @@ class AgentRepository:
         (d / "energy").write_text(str(agent.energy))
         (d / "alive").write_text("true" if agent.alive else "false")
         (d / "soul.md").write_text(agent.soul)
-        (d / "scratchpad.md").write_text(agent.scratchpad[:SCRATCHPAD_MAX])
+        (d / "memory.md").write_text(agent.memory[:MEMORY_MAX])
         (d / "personality.md").write_text(agent.personality)
         (d / "context.json").write_text(
             json.dumps(

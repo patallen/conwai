@@ -11,20 +11,20 @@ from conwai.actions import ActionRegistry
 from conwai.config import (
     CONTEXT_WINDOW,
     ENERGY_MAX,
-    SCRATCHPAD_MAX,
+    MEMORY_MAX,
     SLEEP_REGEN_PER_TICK,
     TRAITS,
 )
 from conwai.llm import LLMClient, LLMResponse
 
 if TYPE_CHECKING:
-    from conwai.environment import Context
+    from conwai.app import Context
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 SYSTEM_TEMPLATE = (PROMPTS_DIR / "system.md").read_text()
 TICK_TEMPLATE = (PROMPTS_DIR / "tick.md").read_text()
 SOUL_TEMPLATE = (PROMPTS_DIR / "soul.md").read_text()
-SCRATCHPAD_TEMPLATE = (PROMPTS_DIR / "scratchpad.md").read_text()
+MEMORY_TEMPLATE = (PROMPTS_DIR / "memory.md").read_text()
 
 _available_traits = set(TRAITS)
 
@@ -49,7 +49,7 @@ class Agent:
     context_window: int = CONTEXT_WINDOW
     personality: str = ""
     soul: str = ""
-    scratchpad: str = ""
+    memory: str = ""
     alive: bool = True
     code_fragment: str | None = None
 
@@ -79,13 +79,13 @@ class Agent:
         if gained > 0:
             self._energy_log.append(f"energy +{int(gained)} ({reason})")
 
-    def write_scratchpad(self, content: str) -> int:
-        self.scratchpad = content[:SCRATCHPAD_MAX]
-        return max(0, len(content) - SCRATCHPAD_MAX)
+    def write_memory(self, content: str) -> int:
+        self.memory = content[:MEMORY_MAX]
+        return max(0, len(content) - MEMORY_MAX)
 
-    def decay_scratchpad(self, chars: int = 5) -> None:
-        if len(self.scratchpad) > chars:
-            self.scratchpad = self.scratchpad[:-chars]
+    def decay_memory(self, chars: int = 5) -> None:
+        if len(self.memory) > chars:
+            self.memory = self.memory[:-chars]
 
     async def tick(self, ctx: Context) -> None:
         self._running = True
@@ -118,7 +118,7 @@ class Agent:
     def _handle_sleep(self, ctx: Context) -> None:
         self._sleep_ticks -= 1
         self.gain_energy("sleeping", SLEEP_REGEN_PER_TICK)
-        self.decay_scratchpad()
+        self.decay_memory()
         print(
             f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {int(self.energy)})",
             flush=True,
@@ -176,7 +176,7 @@ class Agent:
             if len(resp.text) > MAX_REASONING:
                 assistant_msg["content"] = (
                     resp.text[:MAX_REASONING]
-                    + "... (truncated — use scratchpad to preserve important thoughts)"
+                    + "... (truncated — use update_memory to preserve important thoughts)"
                 )
             else:
                 assistant_msg["content"] = resp.text
@@ -225,6 +225,6 @@ class Agent:
     def _build_state_block(self) -> str:
         parts = [
             SOUL_TEMPLATE.format(soul=self.soul or "(empty)"),
-            SCRATCHPAD_TEMPLATE.format(scratchpad=self.scratchpad or "(empty)"),
+            MEMORY_TEMPLATE.format(memory=self.memory or "(empty)"),
         ]
         return "\n\n".join(parts)

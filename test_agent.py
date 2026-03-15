@@ -23,7 +23,7 @@ from uuid import uuid4
 
 from conwai.agent import Agent
 from conwai.default_actions import create_registry
-from conwai.environment import Context
+from conwai.app import Context
 from conwai.llm import LLMClient
 from conwai.repository import AgentRepository
 from conwai.world import WorldEvents

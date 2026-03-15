@@ -2,7 +2,7 @@ import pytest
 
 from conwai.agent import Agent
 from conwai.repository import AgentRepository
-from conwai.config import ENERGY_MAX, SCRATCHPAD_MAX
+from conwai.config import ENERGY_MAX, MEMORY_MAX
 
 
 @pytest.fixture
@@ -60,18 +60,18 @@ class TestSave:
         repo.save(agent)
         assert (repo._base_dir / "test1" / "soul.md").read_text() == "I am a thinker"
 
-    def test_persists_scratchpad(self, repo, agent):
-        agent.scratchpad = "tick 1: nothing happened"
+    def test_persists_memory(self, repo, agent):
+        agent.memory = "tick 1: nothing happened"
         repo.save(agent)
         assert (
-            repo._base_dir / "test1" / "scratchpad.md"
+            repo._base_dir / "test1" / "memory.md"
         ).read_text() == "tick 1: nothing happened"
 
-    def test_truncates_scratchpad(self, repo, agent):
-        agent.scratchpad = "x" * (SCRATCHPAD_MAX + 500)
+    def test_truncates_memory(self, repo, agent):
+        agent.memory = "x" * (MEMORY_MAX + 500)
         repo.save(agent)
-        saved = (repo._base_dir / "test1" / "scratchpad.md").read_text()
-        assert len(saved) == SCRATCHPAD_MAX
+        saved = (repo._base_dir / "test1" / "memory.md").read_text()
+        assert len(saved) == MEMORY_MAX
 
     def test_persists_context(self, repo, agent):
         agent.system_prompt = "you are test1"
@@ -98,7 +98,7 @@ class TestLoad:
     def test_roundtrip(self, repo, agent):
         agent.energy = 777
         agent.soul = "test soul"
-        agent.scratchpad = "test scratch"
+        agent.memory = "test scratch"
         agent.system_prompt = "sys prompt"
         agent.messages = [{"role": "user", "content": "hi"}]
         repo.save(agent)
@@ -108,7 +108,7 @@ class TestLoad:
         assert loaded.energy == 777
         assert loaded.alive is True
         assert loaded.soul == "test soul"
-        assert loaded.scratchpad == "test scratch"
+        assert loaded.memory == "test scratch"
         assert loaded.personality == "curious, blunt"
         assert loaded.system_prompt == "sys prompt"
         assert len(loaded.messages) == 1

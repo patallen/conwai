@@ -5,8 +5,7 @@ from pathlib import Path
 from conwai.agent import Agent
 from conwai.config import ENERGY_GAIN, ENERGY_MAX, HEARTBEAT_INTERVAL
 from conwai.default_actions import create_registry
-from conwai.environment import Context
-from uuid import uuid4
+from conwai.app import Context
 
 from conwai.llm import LLMClient
 from conwai.repository import AgentRepository
@@ -113,49 +112,26 @@ async def main():
     repo = AgentRepository()
     agents = []
     for i in range(8):
-        a = Agent(core=qwen4b0, context_window=10, actions=registry, handle=f"Q0.{i}")
-        repo.save(a)
-        agents.append(a)
-    for i in range(8):
-        a = Agent(core=qwen4b1, context_window=10, actions=registry, handle=f"Q1.{i}")
-        repo.save(a)
-        agents.append(a)
+        agents.append(
+            repo.create(
+                Agent(
+                    core=qwen4b0, context_window=10, actions=registry, handle=f"Q0.{i}"
+                )
+            )
+        )
 
-    #     agents = [
-    #         Agent(
-    #             core=flash,
-    #             actions=registry,
-    #             context_window=5,
-    #             handle=f"{uuid4().hex[:3]}.10",
-    #         ),
-    #         Agent(
-    #             core=flash,
-    #             actions=registry,
-    #             context_window=10,
-    #             handle=f"{uuid4().hex[:3]}.20",
-    #         ),
-    #         Agent(
-    #             core=flash,
-    #             actions=registry,
-    #             context_window=15,
-    #             handle=f"{uuid4().hex[:3]}.30",
-    #         ),
-    #         Agent(
-    #             core=flash,
-    #             actions=registry,
-    #             context_window=20,
-    #             handle=f"{uuid4().hex[:3]}.40",
-    #         ),
-    #         Agent(
-    #             core=qwen9b1,
-    #             actions=registry,
-    #             context_window=25,
-    #             handle=f"{uuid4().hex[:3]}.50",
-    #         ),
-    #     ]
+    for i in range(8):
+        agents.append(
+            repo.create(
+                Agent(
+                    core=qwen4b1, context_window=10, actions=registry, handle=f"Q1.{i}"
+                )
+            )
+        )
 
     for agent in agents:
         ctx.register_agent(agent)
+
     ctx.bus.register("HANDLER")
     ctx.bus.register("WORLD")
     world = WorldEvents()
@@ -165,8 +141,9 @@ async def main():
     asyncio.create_task(watch_handler_file(ctx))
 
     def make_agent(core: LLMClient, prefix: str) -> Agent:
-        agent = Agent(core=core, actions=registry, handle=f"{prefix}{uuid4().hex[:3]}")
-        repo.save(agent)
+        agent = repo.create(
+            Agent(core=core, context_window=10, actions=registry, handle=f"{prefix}0")
+        )
         ctx.register_agent(agent)
         return agent
 
