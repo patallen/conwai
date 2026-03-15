@@ -11,7 +11,10 @@ dependencies = [
     "uvicorn>=0.41.0",
 ]
 
+[tool.setuptools.packages.find]
+include = ["conwai*"]
+
 [dependency-groups]
 dev = [
-    "ruff>=0.15.6",
+    "pytest>=9.0.2",
 ]

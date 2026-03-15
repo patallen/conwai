@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from conwai.config import SCRATCHPAD_MAX
+from conwai.config import ENERGY_MAX, SCRATCHPAD_MAX
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
@@ -17,8 +17,46 @@ class AgentRepository:
     def _agent_dir(self, handle: str) -> Path:
         return self._base_dir / handle
 
-    def ensure_dir(self, handle: str) -> None:
-        self._agent_dir(handle).mkdir(parents=True, exist_ok=True)
+    def create(self, agent: Agent) -> Agent:
+        if self.exists(agent.handle):
+            raise ValueError(f"Agent {agent.handle} already exists")
+        self.save(agent)
+        return agent
+
+    def exists(self, handle: str) -> bool:
+        return self._agent_dir(handle).exists()
+
+    def load(self, handle: str) -> Agent | None:
+        from conwai.agent import Agent
+
+        if not self.exists(handle):
+            return None
+        d = self._agent_dir(handle)
+        ctx_path = d / "context.json"
+        if ctx_path.exists():
+            context = json.loads(ctx_path.read_text())
+        else:
+            context = {"system": "", "messages": []}
+        energy_path = d / "energy"
+        alive_path = d / "alive"
+        return Agent(
+            handle=handle,
+            energy=float(energy_path.read_text().strip())
+            if energy_path.exists()
+            else ENERGY_MAX,
+            alive=alive_path.read_text().strip() == "true"
+            if alive_path.exists()
+            else True,
+            system_prompt=context["system"],
+            messages=context["messages"],
+            soul=(d / "soul.md").read_text() if (d / "soul.md").exists() else "",
+            scratchpad=(d / "scratchpad.md").read_text()
+            if (d / "scratchpad.md").exists()
+            else "",
+            personality=(d / "personality.md").read_text()
+            if (d / "personality.md").exists()
+            else "",
+        )
 
     def save(self, agent: Agent) -> None:
         d = self._agent_dir(agent.handle)
@@ -34,21 +72,3 @@ class AgentRepository:
                 indent=2,
             )
         )
-
-    def load(self, handle: str) -> dict:
-        d = self._agent_dir(handle)
-        if not d.exists():
-            return {}
-        result = {}
-        for name, key in [
-            ("personality.md", "personality"),
-            ("soul.md", "soul"),
-            ("scratchpad.md", "scratchpad"),
-        ]:
-            p = d / name
-            result[key] = p.read_text() if p.exists() else ""
-        ep = d / "energy"
-        result["energy"] = float(ep.read_text().strip()) if ep.exists() else None
-        ap = d / "alive"
-        result["alive"] = ap.read_text().strip() == "true" if ap.exists() else True
-        return result
