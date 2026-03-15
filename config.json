@@ -10,12 +10,12 @@
     "update_soul": 5
   },
   "energy_gain": {
-    "referenced": 10,
+    "referenced": 8,
     "dm_received": 5
   },
   "board_max_posts": 30,
   "board_max_post_length": 200,
-  "heartbeat_interval": 5.0,
+  "heartbeat_interval": 2.0,
   "scratchpad_max": 2500,
-  "context_window": 50
+  "context_window": 60
 }

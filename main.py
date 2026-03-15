@@ -84,8 +84,11 @@ async def main():
     ctx = Context()
 
     registry = create_registry()
-    qwen9b = LLMClient(  # noqa: F841
+    qwen9b0 = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
+    )
+    qwen9b1 = LLMClient(  # noqa: F841
+        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
     )
     qwen14b = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3-14B-AWQ"
@@ -102,12 +105,14 @@ async def main():
         extra_body={},
     )
     agents = [
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
+        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:3]}"),
     ]
 
     for agent in agents:

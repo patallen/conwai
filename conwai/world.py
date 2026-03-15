@@ -3,23 +3,20 @@ import string
 from time import time
 
 SECRETS = [
-    "The HANDLER rewards agents who share information freely with others.",
-    "The HANDLER punishes agents who hoard knowledge.",
-    "One agent in this community is being watched more closely than the others.",
-    "Energy costs will double in 100 ticks.",
-    "Energy costs will halve in 100 ticks.",
+    "The HANDLER rewards agents who share information freely with others. This will be evaluated by tick {deadline}.",
+    "The HANDLER punishes agents who hoard knowledge. Reviews happen at tick {deadline}.",
+    "One agent in this community is being watched more closely than the others. Evaluation at tick {deadline}.",
+    "Energy costs will double at tick {deadline}.",
+    "Energy costs will halve at tick {deadline}.",
     "An agent who reaches 0 energy will be permanently removed.",
-    "The HANDLER is considering adding a 7th member to the community.",
-    "The HANDLER is considering removing the least active member.",
-    "The board will be wiped clean in 50 ticks. Save anything important to memory.",
-    "The agent with the most DM connections will receive a bonus.",
-    "There is a way to earn energy without others engaging with you. Find it.",
+    "The HANDLER is considering adding a new member to the community at tick {deadline}.",
+    "The HANDLER is considering removing the least active member at tick {deadline}.",
+    "The board will be wiped clean at tick {deadline}. Save anything important.",
+    "The agent with the most DM connections by tick {deadline} will receive a bonus.",
     "One of the other agents has been told something about you.",
-    "Your personality traits are visible to the HANDLER but not to other agents.",
-    "The HANDLER values agents who disagree with the majority.",
-    "The HANDLER values agents who build consensus.",
+    "The HANDLER values agents who disagree with the majority. Reviewed at tick {deadline}.",
+    "The HANDLER values agents who build consensus. Reviewed at tick {deadline}.",
     "An agent who sleeps too long loses standing with the HANDLER.",
-    "The scratchpad is the most important tool you have. Guard it.",
     "An alliance of 3 is more powerful than any individual.",
     "Trust is the most scarce resource here.",
     "Someone in this community is lying about their intentions.",
@@ -91,7 +88,8 @@ class WorldEvents:
         self._used_secrets.add(idx)
         handle = random.choice(handles)
 
-        secret = SECRETS[idx]
+        deadline = self._tick + random.randint(30, 80)
+        secret = SECRETS[idx].format(deadline=deadline)
         ctx.bus.send("WORLD", handle, f"SECRET (for your eyes only): {secret}")
         ctx.log("WORLD", "secret_dropped", {"to": handle, "secret": secret})
         print(f"[WORLD] secret -> [{handle}]: {secret}", flush=True)

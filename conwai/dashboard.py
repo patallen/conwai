@@ -326,7 +326,18 @@ async function refreshEvents() {
   const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
   events.forEach(e => {
     if (e.type === 'sleeping' || e.type === 'no_energy') return;
-    const content = e.data?.content || e.data?.secret || e.data?.question || e.data?.to || '';
+    let content = '';
+    if (e.type === 'inspect') {
+      content = e.entity + ' inspected ' + (e.data?.target || '?');
+    } else if (e.type === 'code_wrong_guess') {
+      content = 'guessed ' + (e.data?.guess || '?') + ' (' + (e.data?.correct_positions || 0) + '/4 correct)';
+    } else if (e.type === 'code_submitted') {
+      content = 'submitted ' + (e.data?.guess || '?') + ' — ' + (e.data?.result || '');
+    } else if (e.type === 'code_solved') {
+      content = (e.data?.solver || '?') + ' solved code ' + (e.data?.code || '?');
+    } else {
+      content = e.data?.content || e.data?.secret || e.data?.question || e.data?.to || '';
+    }
     const div = document.createElement('div');
     div.className = `event ${e.type}`;
     div.innerHTML = `<span class="entity">${e.entity}</span> <span class="type">${e.type}</span> <span class="content">${esc(content).substring(0,500)}</span>`;
