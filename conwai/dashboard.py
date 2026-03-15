@@ -36,7 +36,7 @@ def read_agents() -> list[dict]:
             p = d / f
             agent[f.replace(".md", "")] = p.read_text() if p.exists() else ""
         ep = d / "energy"
-        agent["energy"] = int(ep.read_text().strip()) if ep.exists() else None
+        agent["energy"] = int(float(ep.read_text().strip())) if ep.exists() else None
         agents.append(agent)
     return agents
 
@@ -102,7 +102,6 @@ def api_stats():
         elif e["type"] == "sleeping":
             agents[entity]["sleeping"] += 1
 
-    # add file-based info
     for handle, info in agents.items():
         d = AGENTS_DIR / handle
         if d.exists():
@@ -268,8 +267,8 @@ async function openAgent(handle) {
     <h3>recent DMs</h3>
     <div class="modal-section">${a.dms.length ? a.dms.map(e => {
       const dir = e.entity === a.handle ? 'dm-out' : 'dm-in';
-      const arrow = e.entity === a.handle ? '-> ' + e.data.to : '<- ' + e.entity;
-      return '<span class="' + dir + '">' + esc(e.entity) + ' ' + arrow + '</span>: ' + esc(e.data.content);
+      const label = e.entity === a.handle ? '-> ' + e.data.to : '<- ' + e.entity;
+      return '<span class="' + dir + '">' + label + '</span>: ' + esc(e.data.content);
     }).join('\\n') : '(none)'}</div>
   `;
   document.getElementById('modal-overlay').classList.add('active');

@@ -53,7 +53,9 @@ class WorldEvents:
         self._used_secrets: set[int] = set()
         self._used_questions: set[int] = set()
         self._active_code: str | None = None
-        self._code_fragments: dict[str, tuple[int, str]] = {}  # handle -> (position, char)
+        self._code_fragments: dict[
+            str, tuple[int, str]
+        ] = {}  # handle -> (position, char)
         self._code_started_tick: int = 0
         self._code_started_time: float = 0
 
@@ -69,8 +71,11 @@ class WorldEvents:
         if self._tick % self.question_interval == 0:
             self._ask_question(ctx)
 
-        if self._tick % self.code_interval == 0 and not self._active_code:
-            self._start_code_challenge(ctx)
+        if not self._active_code:
+            first = self._tick == 10
+            recurring = self._tick > 10 and self._tick % self.code_interval == 0
+            if first or recurring:
+                self._start_code_challenge(ctx)
 
     def _drop_secret(self, ctx):
         handles = list(ctx.agent_map.keys())

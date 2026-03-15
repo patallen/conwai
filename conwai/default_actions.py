@@ -1,5 +1,10 @@
 from conwai.actions import Action, ActionRegistry
-from conwai.config import ENERGY_COST_FLAT, ENERGY_COST_PER_WORD, ENERGY_GAIN, ENERGY_MAX
+from conwai.config import (
+    ENERGY_COST_FLAT,
+    ENERGY_COST_PER_WORD,
+    ENERGY_GAIN,
+    ENERGY_MAX,
+)
 
 
 def _remember(agent, ctx, content, target):
@@ -64,13 +69,45 @@ def _update_soul(agent, ctx, content, target):
     print(f"[{agent.handle}] soul updated", flush=True)
 
 
+def _inspect(agent, ctx, content, target):
+    handle = (target or content).strip()
+    other = ctx.agent_map.get(handle)
+    if not other:
+        agent._action_log.append(f"Unknown agent: {handle}")
+        return
+    stats_lines = []
+    events = ctx.events.read_all() if hasattr(ctx.events, "read_all") else []
+    posts = sum(
+        1 for e in events if e.get("entity") == handle and e.get("type") == "board_post"
+    )
+    dms = sum(
+        1 for e in events if e.get("entity") == handle and e.get("type") == "dm_sent"
+    )
+    sleeps = sum(
+        1 for e in events if e.get("entity") == handle and e.get("type") == "sleeping"
+    )
+    stats_lines.append(f"Handle: {handle}")
+    stats_lines.append(f"Personality: {other.personality}")
+    stats_lines.append(f"Energy: {other.energy}/{ENERGY_MAX}")
+    soul = other.soul
+    if soul:
+        stats_lines.append(f"Soul: {soul[:200]}")
+    stats_lines.append(f"Activity: {posts} posts, {dms} DMs sent, {sleeps} sleeps")
+    result = "\n".join(stats_lines)
+    agent._messages.append({"role": "user", "content": f"Inspect {handle}:\n{result}"})
+    ctx.log(agent.handle, "inspect", {"target": handle})
+    print(f"[{agent.handle}] inspected {handle}", flush=True)
+
+
 def _submit_code(agent, ctx, content, target):
     if not ctx.world:
         agent._action_log.append("No active code challenge.")
         return
     result = ctx.world.submit_code(agent, ctx, content)
     agent._action_log.append(result)
-    ctx.log(agent.handle, "code_submitted", {"guess": content.strip(), "result": result})
+    ctx.log(
+        agent.handle, "code_submitted", {"guess": content.strip(), "result": result}
+    )
     print(f"[{agent.handle}] submit_code '{content.strip()}': {result}", flush=True)
 
 
@@ -130,6 +167,14 @@ def create_registry() -> ActionRegistry:
             description="your full updated soul here",
             cost_flat=ENERGY_COST_FLAT.get("update_soul", 5),
             handler=_update_soul,
+        )
+    )
+    registry.register(
+        Action(
+            name="inspect",
+            description="view another agent's profile",
+            cost_flat=0,
+            handler=_inspect,
         )
     )
     registry.register(

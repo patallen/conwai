@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 
 from openai import AsyncOpenAI
@@ -20,6 +21,7 @@ class LLMClient:
         response = await self._client.chat.completions.create(
             model=self.model,
             messages=messages,
+            temperature=0.7,
             extra_body=self.extra_body,
         )
         usage = response.usage
@@ -27,4 +29,42 @@ class LLMClient:
             response.choices[0].message.content,
             usage.prompt_tokens,
             usage.completion_tokens,
+        )
+
+
+@dataclass
+class AnthropicLLMClient:
+    model: str = "claude-sonnet-4-20250514"
+    api_key: str = field(
+        default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY", "")
+    )
+    max_tokens: int = 300
+    _client: object = field(default=None, repr=False)
+
+    def __post_init__(self):
+        from anthropic import AsyncAnthropic
+
+        self._client = AsyncAnthropic(api_key=self.api_key)
+
+    async def call(self, messages: list[dict]) -> tuple[str, int, int]:
+        system = ""
+        chat_messages = []
+        for m in messages:
+            if m["role"] == "system":
+                system = m["content"]
+            else:
+                chat_messages.append({"role": m["role"], "content": m["content"]})
+
+        response = await self._client.messages.create(
+            model=self.model,
+            system=system,
+            messages=chat_messages,
+            max_tokens=self.max_tokens,
+            temperature=0.7,
+        )
+        text = response.content[0].text
+        return (
+            text,
+            response.usage.input_tokens,
+            response.usage.output_tokens,
         )

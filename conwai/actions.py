@@ -17,7 +17,7 @@ class Action:
         return self.cost_flat
 
     def prompt_line(self) -> str:
-        if self.name in ("send_message",):
+        if self.name in ("send_message", "inspect"):
             return f"[ACTION: {self.name} to=HANDLE] {self.description} [/ACTION]"
         if self.name in ("recall",):
             return f"[ACTION: {self.name}] [/ACTION] or [ACTION: {self.name} query=KEYWORD] [/ACTION]"
@@ -58,7 +58,9 @@ class ActionRegistry:
     def prompt_lines(self) -> list[str]:
         return [a.prompt_line() for a in self._actions.values()]
 
-    def execute(self, agent, ctx, action_name: str, content: str, target: str | None) -> None:
+    def execute(
+        self, agent, ctx, action_name: str, content: str, target: str | None
+    ) -> None:
         action = self._actions.get(action_name)
         if not action:
             return
@@ -73,9 +75,14 @@ class ActionRegistry:
             )
             return
         agent.energy -= cost
-        agent._action_log.append(
-            f"{action_name}: {cost} energy spent ({len(content.split())} words), {agent.energy} remaining"
-        )
+        if cost > 0:
+            agent._action_log.append(
+                f"{action_name}: {cost} energy spent, {agent.energy} remaining"
+            )
+        else:
+            agent._action_log.append(
+                f"{action_name}: free, {agent.energy} energy remaining"
+            )
         if action.handler:
             action.handler(agent, ctx, content, target)
 

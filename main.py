@@ -1,4 +1,5 @@
 import asyncio
+import os
 from pathlib import Path
 
 from conwai.agent import Agent
@@ -83,24 +84,30 @@ async def main():
     ctx = Context()
 
     registry = create_registry()
-    qwen9b = LLMClient(
+    qwen9b = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
     )
-    qwen14b = LLMClient(
+    qwen14b = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3-14B-AWQ"
     )
-    qwen14b_think = LLMClient(
+    qwen14b_think = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1",
         model="/mnt/models/Qwen3-14B-AWQ",
         extra_body={"chat_template_kwargs": {"enable_thinking": True}},
     )
+    flash = LLMClient(
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        model="gemini-2.5-flash-lite",
+        api_key=os.environ.get("GOOGLE_AI_API_KEY", ""),
+        extra_body={},
+    )
     agents = [
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
-        Agent(core=qwen14b, actions=registry, handle=f"q14-{uuid4().hex[:6]}"),
-        Agent(core=qwen14b, actions=registry, handle=f"q14-{uuid4().hex[:6]}"),
-        Agent(core=qwen14b_think, actions=registry, handle=f"q14t-{uuid4().hex[:5]}"),
+        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
+        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
+        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
+        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
+        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
+        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
     ]
 
     for agent in agents:

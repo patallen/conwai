@@ -17,3 +17,14 @@ class EventLog:
         }
         self._file.write(json.dumps(event) + "\n")
         self._file.flush()
+
+    def read_all(self) -> list[dict]:
+        if not self.path.exists():
+            return []
+        events = []
+        for line in self.path.read_text().strip().splitlines():
+            try:
+                events.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+        return events

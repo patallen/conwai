@@ -2,7 +2,7 @@
   "energy_max": 1000,
   "energy_cost_per_word": {
     "post_to_board": 1,
-    "send_message": 0.5,
+    "send_message": 0,
     "remember": 0.5
   },
   "energy_cost_flat": {

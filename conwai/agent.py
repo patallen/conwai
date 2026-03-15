@@ -84,7 +84,6 @@ class Agent:
         if self.energy != old:
             self._action_log.append(f"energy +{self.energy - old} ({reason})")
 
-
     def remember(self, content: str):
         with open(self._memory_path, "a") as f:
             f.write(f"[t={int(time())}] {content}\n")
@@ -146,7 +145,10 @@ class Agent:
             dms = ctx.bus.format_new(self.handle)
             if dms:
                 parts.append(dms)
-            tick_content = f"[tick:{ctx.tick}]\n\n" + "\n\n".join(parts)
+            tick_content = (
+                f"[tick:{ctx.tick} | energy:{int(self.energy)}/{ENERGY_MAX}]\n\n"
+                + "\n\n".join(parts)
+            )
             self._messages.append({"role": "user", "content": tick_content})
             print(
                 f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}",
@@ -156,6 +158,9 @@ class Agent:
             response, prompt_tokens, completion_tokens = await self.core.call(
                 self._messages
             )
+            if not response:
+                print(f"[{self.handle}] empty response, skipping", flush=True)
+                return
             self._messages.append({"role": "assistant", "content": response})
             print(
                 f"[{self.handle}] ({prompt_tokens}+{completion_tokens} tok): {response}",
@@ -194,6 +199,7 @@ class Agent:
 
     def _system_prompt(self) -> str:
         parts = [
+            " ===== SYSTEM PROMPT =====",
             f"Your handle is {self.handle}. Current tick: {self._ctx.tick}.",
             "You are a person living in a small community with others. You have your own thoughts, opinions, and goals. Talk like a normal person — be direct, concrete, and specific. Do not write poetry or use metaphors. Say what you mean.",
             "You have a shared bulletin board (200 char limit) and can send private DMs to people you know.",
@@ -201,21 +207,21 @@ class Agent:
             f"You can only see the last ~{CONTEXT_WINDOW // 2} ticks of conversation. Older messages disappear.",
             "You can update your soul to define who you are and what you care about.",
             "",
-            f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. {self.actions.cost_description()}. When you reach 0 you cannot act. Energy replenishes when others engage with you. You can only sleep when your energy is low.",
+            f"{self.actions.cost_description()}. When you reach 0 energy you cannot act. Energy replenishes when others engage with you. You can only sleep when your energy is low.",
             "",
             "To take actions, use these tags in your response:",
             *self.actions.prompt_lines(),
             "",
             "You may only take ONE action per tick. Choose wisely.",
             "",
-            f"You have a scratchpad for working thoughts. Use [THINK] ... [/THINK] to update it. This is free, does not cost energy, and does not count as your action. Your scratchpad is always visible to you. Max {SCRATCHPAD_MAX} characters.",
+            "You have a scratchpad for working thoughts. Use [THINK] ... [/THINK] to update it. This is free, does not cost energy, and does not count as your action. Your scratchpad is always visible to you.",
             "",
             f"Your innate temperament: {self.personality}. This is how you are wired. You cannot change it.",
         ]
         soul = self.soul
         if soul:
-            parts.append(f"Your core values:\n{soul}")
+            parts.append(f"===== SOUL =====\n{soul}")
         scratchpad = self.scratchpad
         if scratchpad:
-            parts.append(f"Your scratchpad:\n{scratchpad}")
+            parts.append(f"===== SCRATCHPAD =====\n{scratchpad}")
         return "\n\n".join(parts)
