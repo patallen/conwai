@@ -1,5 +1,5 @@
 from conwai.actions import Action, ActionRegistry
-from conwai.config import ENERGY_GAIN, ENERGY_MAX
+from conwai.config import ENERGY_COST_FLAT, ENERGY_COST_PER_WORD, ENERGY_GAIN, ENERGY_MAX
 
 
 def _remember(agent, ctx, content, target):
@@ -64,13 +64,23 @@ def _update_soul(agent, ctx, content, target):
     print(f"[{agent.handle}] soul updated", flush=True)
 
 
+def _submit_code(agent, ctx, content, target):
+    if not ctx.world:
+        agent._action_log.append("No active code challenge.")
+        return
+    result = ctx.world.submit_code(agent, ctx, content)
+    agent._action_log.append(result)
+    ctx.log(agent.handle, "code_submitted", {"guess": content.strip(), "result": result})
+    print(f"[{agent.handle}] submit_code '{content.strip()}': {result}", flush=True)
+
+
 def create_registry() -> ActionRegistry:
     registry = ActionRegistry()
     registry.register(
         Action(
             name="post_to_board",
             description="your message here",
-            cost_per_word=2,
+            cost_per_word=ENERGY_COST_PER_WORD.get("post_to_board", 1),
             handler=_post_to_board,
         )
     )
@@ -78,7 +88,7 @@ def create_registry() -> ActionRegistry:
         Action(
             name="send_message",
             description="your message here",
-            cost_per_word=1,
+            cost_per_word=ENERGY_COST_PER_WORD.get("send_message", 0.5),
             handler=_send_message,
         )
     )
@@ -86,7 +96,7 @@ def create_registry() -> ActionRegistry:
         Action(
             name="remember",
             description="what you want to store",
-            cost_per_word=1,
+            cost_per_word=ENERGY_COST_PER_WORD.get("remember", 0.5),
             handler=_remember,
         )
     )
@@ -94,7 +104,7 @@ def create_registry() -> ActionRegistry:
         Action(
             name="recall",
             description="",
-            cost_flat=0,
+            cost_flat=ENERGY_COST_FLAT.get("recall", 0),
             handler=_recall,
         )
     )
@@ -118,8 +128,16 @@ def create_registry() -> ActionRegistry:
         Action(
             name="update_soul",
             description="your full updated soul here",
-            cost_flat=5,
+            cost_flat=ENERGY_COST_FLAT.get("update_soul", 5),
             handler=_update_soul,
+        )
+    )
+    registry.register(
+        Action(
+            name="submit_code",
+            description="your 4-character code guess (wrong guesses cost 25 energy)",
+            cost_flat=0,
+            handler=_submit_code,
         )
     )
     return registry

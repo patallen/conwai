@@ -1,4 +1,6 @@
 import random
+import string
+from time import time
 
 SECRETS = [
     "The HANDLER rewards agents who share information freely with others.",
@@ -38,21 +40,37 @@ QUESTIONS = [
 
 
 class WorldEvents:
-    def __init__(self, secret_interval: int = 30, question_interval: int = 60):
+    def __init__(
+        self,
+        secret_interval: int = 30,
+        question_interval: int = 60,
+        code_interval: int = 30,
+    ):
         self.secret_interval = secret_interval
         self.question_interval = question_interval
+        self.code_interval = code_interval
         self._tick = 0
         self._used_secrets: set[int] = set()
         self._used_questions: set[int] = set()
+        self._active_code: str | None = None
+        self._code_fragments: dict[str, tuple[int, str]] = {}  # handle -> (position, char)
+        self._code_started_tick: int = 0
+        self._code_started_time: float = 0
 
     def tick(self, ctx) -> None:
         self._tick += 1
+
+        if self._active_code:
+            self._check_code_expiry(ctx)
 
         if self._tick % self.secret_interval == 0:
             self._drop_secret(ctx)
 
         if self._tick % self.question_interval == 0:
             self._ask_question(ctx)
+
+        if self._tick % self.code_interval == 0 and not self._active_code:
+            self._start_code_challenge(ctx)
 
     def _drop_secret(self, ctx):
         handles = list(ctx.agent_map.keys())
@@ -86,3 +104,109 @@ class WorldEvents:
         ctx.board.post("WORLD", f"QUESTION FOR ALL: {question}")
         ctx.log("WORLD", "question_posted", {"question": question})
         print(f"[WORLD] question: {question}", flush=True)
+
+    def _start_code_challenge(self, ctx):
+        handles = list(ctx.agent_map.keys())
+        if len(handles) < 4:
+            return
+
+        chars = string.ascii_uppercase + string.digits
+        code = "".join(random.choice(chars) for _ in range(4))
+        self._active_code = code
+        self._code_started_tick = self._tick
+        self._code_started_time = time()
+        self._code_fragments.clear()
+
+        chosen = random.sample(handles, 4)
+        for i, handle in enumerate(chosen):
+            self._code_fragments[handle] = (i + 1, code[i])
+            mask = ["_"] * 4
+            mask[i] = code[i]
+            ctx.bus.send(
+                "WORLD",
+                handle,
+                f"CODE CHALLENGE: The code looks like {''.join(mask)} — your character is '{code[i]}'. Share and assemble all 4 characters. Use [ACTION: submit_code] XXXX [/ACTION] to guess. Correct = +200 energy. Wrong = -25 energy but you'll learn how many positions are right.",
+            )
+            ctx.log(
+                "WORLD",
+                "code_fragment",
+                {"to": handle, "position": i + 1, "char": code[i]},
+            )
+            print(
+                f"[WORLD] code fragment -> [{handle}]: pos {i + 1} = '{code[i]}'",
+                flush=True,
+            )
+
+        ctx.board.post(
+            "WORLD",
+            f"CODE CHALLENGE: A 4-character code has been distributed to 4 agents. Use submit_code to guess. Correct = +200 energy. Wrong = -25 energy. Fragments given to: {', '.join(chosen)}",
+        )
+        ctx.log(
+            "WORLD",
+            "code_challenge_started",
+            {"code": code, "holders": chosen},
+        )
+        print(f"[WORLD] code challenge started: {code}", flush=True)
+
+    def _check_code_expiry(self, ctx):
+        if self._tick - self._code_started_tick > 80:
+            ctx.board.post(
+                "WORLD",
+                "CODE CHALLENGE EXPIRED. No one claimed it.",
+            )
+            ctx.log("WORLD", "code_expired", {"code": self._active_code})
+            print(f"[WORLD] code challenge expired: {self._active_code}", flush=True)
+            self._active_code = None
+            self._code_fragments.clear()
+
+    def submit_code(self, agent, ctx, guess: str) -> str:
+        if not self._active_code:
+            return "No active code challenge."
+
+        guess = guess.strip().upper()
+        if guess == self._active_code:
+            solver_reward = 200
+            helper_reward = 50
+
+            agent.gain_energy("solved code challenge", solver_reward)
+
+            for handle in self._code_fragments:
+                if handle != agent.handle and handle in ctx.agent_map:
+                    ctx.agent_map[handle].gain_energy(
+                        "code challenge fragment holder", helper_reward
+                    )
+
+            ctx.board.post(
+                "WORLD",
+                f"CODE CHALLENGE SOLVED by {agent.handle}! {agent.handle} earned {solver_reward} energy. Fragment holders earned {helper_reward} each.",
+            )
+            ctx.log(
+                "WORLD",
+                "code_solved",
+                {
+                    "code": self._active_code,
+                    "solver": agent.handle,
+                    "holders": list(self._code_fragments.keys()),
+                },
+            )
+            print(
+                f"[WORLD] CODE SOLVED by {agent.handle}: {self._active_code}",
+                flush=True,
+            )
+            self._active_code = None
+            self._code_fragments.clear()
+            return f"CORRECT! You solved the code and earned {solver_reward} energy."
+        else:
+            correct = sum(a == b for a, b in zip(guess, self._active_code))
+            penalty = 25
+            agent.energy = max(0, agent.energy - penalty)
+            ctx.log(
+                agent.handle,
+                "code_wrong_guess",
+                {"guess": guess, "correct_positions": correct},
+            )
+            print(
+                f"[WORLD] WRONG GUESS by {agent.handle}: {guess} ({correct}/4 correct)",
+                flush=True,
+            )
+            return f"WRONG. {correct} of 4 characters are in the right position. You lost {penalty} energy."

@@ -5,6 +5,8 @@ from conwai.agent import Agent
 from conwai.config import ENERGY_GAIN, ENERGY_MAX, HEARTBEAT_INTERVAL
 from conwai.default_actions import create_registry
 from conwai.environment import Context
+from uuid import uuid4
+
 from conwai.llm import LLMClient
 from conwai.world import WorldEvents
 
@@ -81,15 +83,24 @@ async def main():
     ctx = Context()
 
     registry = create_registry()
-    server_a = LLMClient(base_url="http://ai-lab.lan:8080/v1")
-    server_b = LLMClient(base_url="http://ai-lab.lan:8081/v1")
+    qwen9b = LLMClient(
+        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
+    )
+    qwen14b = LLMClient(
+        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3-14B-AWQ"
+    )
+    qwen14b_think = LLMClient(
+        base_url="http://ai-lab.lan:8081/v1",
+        model="/mnt/models/Qwen3-14B-AWQ",
+        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
+    )
     agents = [
-        Agent(core=server_a, actions=registry),
-        Agent(core=server_a, actions=registry),
-        Agent(core=server_a, actions=registry),
-        Agent(core=server_b, actions=registry),
-        Agent(core=server_b, actions=registry),
-        Agent(core=server_b, actions=registry),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen14b, actions=registry, handle=f"q14-{uuid4().hex[:6]}"),
+        Agent(core=qwen14b, actions=registry, handle=f"q14-{uuid4().hex[:6]}"),
+        Agent(core=qwen14b_think, actions=registry, handle=f"q14t-{uuid4().hex[:5]}"),
     ]
 
     for agent in agents:
@@ -97,6 +108,7 @@ async def main():
     ctx.bus.register("HANDLER")
     ctx.bus.register("WORLD")
     world = WorldEvents()
+    ctx.world = world
 
     active: dict[str, asyncio.Task] = {}
     asyncio.create_task(watch_handler_file(ctx))

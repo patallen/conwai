@@ -35,6 +35,8 @@ def read_agents() -> list[dict]:
         for f in ["personality.md", "soul.md", "scratchpad.md", "memory.md"]:
             p = d / f
             agent[f.replace(".md", "")] = p.read_text() if p.exists() else ""
+        ep = d / "energy"
+        agent["energy"] = int(ep.read_text().strip()) if ep.exists() else None
         agents.append(agent)
     return agents
 
@@ -112,6 +114,30 @@ def api_stats():
     return list(agents.values())
 
 
+@app.get("/api/agent/{handle}")
+def api_agent_detail(handle: str):
+    agents = read_agents()
+    agent = next((a for a in agents if a["handle"] == handle), None)
+    if not agent:
+        return {"error": "not found"}
+    events = read_events()
+    agent["board_posts"] = [
+        e for e in events if e["entity"] == handle and e["type"] == "board_post"
+    ][-20:]
+    agent["dms"] = [
+        e
+        for e in events
+        if e["type"] == "dm_sent"
+        and (e["entity"] == handle or e["data"].get("to") == handle)
+    ][-30:]
+    agent["soul_updates"] = [
+        e for e in events if e["entity"] == handle and e["type"] == "soul_updated"
+    ][-5:]
+    stats = api_stats()
+    agent["stats"] = next((s for s in stats if s["handle"] == handle), {})
+    return agent
+
+
 @app.get("/", response_class=HTMLResponse)
 def index():
     return """<!DOCTYPE html>
@@ -126,15 +152,17 @@ h1 { color: #7aa2f7; margin-bottom: 12px; font-size: 18px; }
 h2 { color: #9ece6a; margin: 12px 0 6px; font-size: 14px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .panel { background: #1a1b26; border: 1px solid #292e42; border-radius: 4px; padding: 10px; max-height: 500px; overflow-y: auto; }
-.agent-card { background: #16161e; border: 1px solid #292e42; border-radius: 4px; padding: 8px; margin-bottom: 6px; }
+.agent-card { background: #16161e; border: 1px solid #292e42; border-radius: 4px; padding: 8px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.2s; }
+.agent-card:hover { border-color: #7aa2f7; }
 .agent-handle { color: #bb9af7; font-weight: bold; }
 .agent-personality { color: #e0af68; font-size: 11px; }
 .energy-bar { background: #292e42; border-radius: 2px; height: 6px; margin: 4px 0; }
 .energy-fill { background: #9ece6a; height: 100%; border-radius: 2px; transition: width 0.3s; }
 .energy-fill.low { background: #f7768e; }
 .energy-fill.mid { background: #e0af68; }
-.scratchpad { color: #565f89; font-size: 11px; margin-top: 4px; white-space: pre-wrap; max-height: 80px; overflow: hidden; }
+.scratchpad { color: #565f89; font-size: 11px; margin-top: 4px; white-space: pre-wrap; max-height: 60px; overflow: hidden; }
 .soul { color: #7dcfff; font-size: 11px; font-style: italic; }
+.memory-count { color: #565f89; font-size: 11px; }
 .event { padding: 3px 0; border-bottom: 1px solid #16161e; }
 .event .entity { color: #bb9af7; }
 .event .type { color: #565f89; }
@@ -154,9 +182,20 @@ h2 { color: #9ece6a; margin: 12px 0 6px; font-size: 14px; }
 .dm-msg .from { color: #bb9af7; }
 .handler { color: #f7768e; font-weight: bold; }
 .world { color: #ff9e64; font-weight: bold; }
-.tabs { display: flex; gap: 8px; margin-bottom: 8px; }
-.tab { padding: 4px 10px; background: #16161e; border: 1px solid #292e42; border-radius: 3px; cursor: pointer; color: #565f89; }
-.tab.active { color: #7aa2f7; border-color: #7aa2f7; }
+
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; }
+.modal-overlay.active { display: flex; align-items: start; justify-content: center; padding-top: 40px; }
+.modal { background: #1a1b26; border: 1px solid #7aa2f7; border-radius: 6px; width: 700px; max-height: 85vh; overflow-y: auto; padding: 16px; }
+.modal-close { float: right; color: #565f89; cursor: pointer; font-size: 18px; }
+.modal-close:hover { color: #f7768e; }
+.modal h2 { color: #bb9af7; font-size: 16px; margin-bottom: 4px; }
+.modal h3 { color: #9ece6a; font-size: 13px; margin: 12px 0 4px; }
+.modal-section { background: #16161e; border: 1px solid #292e42; border-radius: 4px; padding: 8px; margin: 6px 0; white-space: pre-wrap; font-size: 12px; max-height: 200px; overflow-y: auto; }
+.modal-stats { display: flex; gap: 16px; margin: 8px 0; font-size: 12px; }
+.modal-stats span { color: #565f89; }
+.modal-stats .val { color: #d4d4d4; }
+.modal .dm-in { color: #7aa2f7; }
+.modal .dm-out { color: #9ece6a; }
 </style>
 </head>
 <body>
@@ -179,6 +218,9 @@ h2 { color: #9ece6a; margin: 12px 0 6px; font-size: 14px; }
     <div id="events" class="panel"></div>
   </div>
 </div>
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
 <script>
 let lastEventIdx = 0;
 
@@ -194,6 +236,45 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+async function openAgent(handle) {
+  const a = await (await fetch(`/api/agent/${handle}`)).json();
+  if (a.error) return;
+  const s = a.stats || {};
+  const memLines = a.memory ? a.memory.trim().split('\\n').filter(l => l) : [];
+  const modal = document.getElementById('modal');
+  modal.innerHTML = `
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+    <h2>${a.handle}</h2>
+    <div style="color:#e0af68;font-size:12px;margin:2px 0">${esc(a.personality)}</div>
+    <div style="color:#9ece6a;font-size:12px;margin:2px 0">energy: ${a.energy != null ? a.energy + '/1000' : 'unknown'}</div>
+    <div class="modal-stats">
+      <span>posts: <span class="val">${s.posts||0}</span></span>
+      <span>dms sent: <span class="val">${s.dms_sent||0}</span></span>
+      <span>dms recv: <span class="val">${s.dms_received||0}</span></span>
+      <span>remembers: <span class="val">${s.remembers||0}</span></span>
+      <span>sleeps: <span class="val">${s.sleeping||0}</span></span>
+    </div>
+    ${a.soul ? `<h3>soul</h3><div class="modal-section" style="color:#7dcfff">${esc(a.soul)}</div>` : '<h3>soul</h3><div class="modal-section" style="color:#565f89">(empty)</div>'}
+    <h3>scratchpad</h3>
+    <div class="modal-section" style="color:#a9b1d6">${a.scratchpad ? esc(a.scratchpad) : '(empty)'}</div>
+    <h3>memory (${memLines.length} entries)</h3>
+    <div class="modal-section" style="color:#e0af68">${memLines.length ? memLines.map(l => esc(l)).join('\\n') : '(empty)'}</div>
+    <h3>recent board posts</h3>
+    <div class="modal-section">${a.board_posts.length ? a.board_posts.map(e => esc(e.data.content)).join('\\n\\n') : '(none)'}</div>
+    <h3>recent DMs</h3>
+    <div class="modal-section">${a.dms.length ? a.dms.map(e => {
+      const dir = e.entity === a.handle ? 'dm-out' : 'dm-in';
+      const arrow = e.entity === a.handle ? '-> ' + e.data.to : '<- ' + e.entity;
+      return '<span class="' + dir + '">' + esc(e.entity) + ' ' + arrow + '</span>: ' + esc(e.data.content);
+    }).join('\\n') : '(none)'}</div>
+  `;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
 async function refreshAgents() {
   const agents = await (await fetch('/api/agents')).json();
   const stats = await (await fetch('/api/stats')).json();
@@ -202,12 +283,16 @@ async function refreshAgents() {
 
   document.getElementById('agents').innerHTML = agents.map(a => {
     const s = statsMap[a.handle] || {};
-    return `<div class="agent-card">
-      <span class="agent-handle">${a.handle}</span>
-      <span class="agent-personality">${esc(a.personality)}</span>
-      <div style="font-size:11px;color:#565f89">posts:${s.posts||0} dms:${s.dms_sent||0} recv:${s.dms_received||0} sleep:${s.sleeping||0}</div>
+    const memLines = a.memory ? a.memory.trim().split('\\n').filter(l => l).length : 0;
+    const energy = a.energy != null ? a.energy : '?';
+    const pct = a.energy != null ? Math.round(a.energy / 10) : 0;
+    const ecls = energyClass(pct);
+    return `<div class="agent-card" onclick="openAgent('${a.handle}')">
+      <div><span class="agent-handle">${a.handle}</span> <span class="agent-personality">${esc(a.personality)}</span></div>
+      <div class="energy-bar"><div class="energy-fill ${ecls}" style="width:${pct}%"></div></div>
+      <div style="font-size:11px;color:#565f89">energy:${energy} posts:${s.posts||0} dms:${s.dms_sent||0} recv:${s.dms_received||0} mem:${memLines} sleep:${s.sleeping||0}</div>
       ${a.soul ? `<div class="soul">${esc(a.soul).substring(0,120)}</div>` : ''}
-      ${a.scratchpad ? `<div class="scratchpad">${esc(a.scratchpad).substring(0,200)}</div>` : ''}
+      ${a.scratchpad ? `<div class="scratchpad">${esc(a.scratchpad).substring(0,300)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -216,7 +301,7 @@ async function refreshBoard() {
   const posts = await (await fetch('/api/board')).json();
   document.getElementById('board').innerHTML = posts.map(p => {
     const cls = p.entity === 'HANDLER' ? 'handler' : p.entity === 'WORLD' ? 'world' : 'handle';
-    return `<div class="board-post"><span class="${cls}">${p.entity}</span>: ${esc(p.data.content).substring(0,200)}</div>`;
+    return `<div class="board-post"><span class="${cls}">${p.entity}</span>: ${esc(p.data.content).substring(0,500)}</div>`;
   }).join('');
   const el = document.getElementById('board');
   el.scrollTop = el.scrollHeight;
@@ -229,7 +314,7 @@ async function refreshConversations() {
     const msgs = convos[k].slice(-8);
     return `<div class="dm-pair">
       <div class="dm-pair-header">${k} (${convos[k].length} msgs)</div>
-      ${msgs.map(m => `<div class="dm-msg"><span class="from">${m.entity}</span>: ${esc(m.data.content).substring(0,150)}</div>`).join('')}
+      ${msgs.map(m => `<div class="dm-msg"><span class="from">${m.entity}</span>: ${esc(m.data.content).substring(0,500)}</div>`).join('')}
     </div>`;
   }).join('');
 }
@@ -245,7 +330,7 @@ async function refreshEvents() {
     const content = e.data?.content || e.data?.secret || e.data?.question || e.data?.to || '';
     const div = document.createElement('div');
     div.className = `event ${e.type}`;
-    div.innerHTML = `<span class="entity">${e.entity}</span> <span class="type">${e.type}</span> <span class="content">${esc(content).substring(0,150)}</span>`;
+    div.innerHTML = `<span class="entity">${e.entity}</span> <span class="type">${e.type}</span> <span class="content">${esc(content).substring(0,500)}</span>`;
     el.appendChild(div);
   });
   if (wasAtBottom) el.scrollTop = el.scrollHeight;
@@ -255,6 +340,7 @@ async function refresh() {
   await Promise.all([refreshAgents(), refreshBoard(), refreshConversations(), refreshEvents()]);
 }
 
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 refresh();
 setInterval(refresh, 2000);
 </script>

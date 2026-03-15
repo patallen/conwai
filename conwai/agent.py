@@ -84,25 +84,6 @@ class Agent:
         if self.energy != old:
             self._action_log.append(f"energy +{self.energy - old} ({reason})")
 
-    def _spend_energy(self, action_name: str, content: str) -> bool:
-        action = self.actions.get(action_name)
-        if not action:
-            return False
-        cost = action.cost(content)
-        if cost > self.energy:
-            self._action_log.append(
-                f"not enough energy for {action_name} ({cost} needed, have {self.energy})"
-            )
-            print(
-                f"[{self.handle}] NOT ENOUGH ENERGY for {action_name} ({cost} needed)",
-                flush=True,
-            )
-            return False
-        self.energy -= cost
-        self._action_log.append(
-            f"{action_name}: {cost} energy spent ({len(content.split())} words), {self.energy} remaining"
-        )
-        return True
 
     def remember(self, content: str):
         with open(self._memory_path, "a") as f:
@@ -135,8 +116,8 @@ class Agent:
                 self._sleep_ticks -= 1
                 self.gain_energy("sleeping", SLEEP_REGEN_PER_TICK)
                 pad = self._scratchpad_path.read_text()
-                if len(pad) > 20:
-                    self._scratchpad_path.write_text(pad[:-20])
+                if len(pad) > 5:
+                    self._scratchpad_path.write_text(pad[:-5])
                 print(
                     f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {self.energy})",
                     flush=True,
@@ -149,8 +130,9 @@ class Agent:
                 return
 
             if self.energy <= 0:
-                print(f"[{self.handle}] NO ENERGY — skipping tick", flush=True)
-                ctx.log(self.handle, "no_energy", {"energy": self.energy})
+                print(f"[{self.handle}] NO ENERGY — auto-sleeping", flush=True)
+                self.sleep(10)
+                ctx.log(self.handle, "auto_sleep", {"energy": self.energy})
                 return
 
             history = [m for m in self._messages if m.get("role") != "system"][
@@ -164,11 +146,7 @@ class Agent:
             dms = ctx.bus.format_new(self.handle)
             if dms:
                 parts.append(dms)
-            if self._action_log:
-                parts.append("Recent effects: " + ". ".join(self._action_log))
-                self._action_log.clear()
-
-            tick_content = "\n\n".join(parts)
+            tick_content = f"[tick:{ctx.tick}]\n\n" + "\n\n".join(parts)
             self._messages.append({"role": "user", "content": tick_content})
             print(
                 f"[{self.handle}] context: {len(self._messages)} msgs, energy: {self.energy}",
@@ -186,26 +164,33 @@ class Agent:
 
             think_match = THINK_PATTERN.search(response)
             if think_match:
-                self._scratchpad_path.write_text(
-                    think_match.group(1).strip()[:SCRATCHPAD_MAX]
-                )
+                raw = think_match.group(1).strip()
+                truncated = raw[:SCRATCHPAD_MAX]
+                self._scratchpad_path.write_text(truncated)
+                if len(raw) > SCRATCHPAD_MAX:
+                    self._action_log.append(
+                        f"scratchpad full — {len(raw) - SCRATCHPAD_MAX} chars lost from the end"
+                    )
 
             parsed = self.actions.parse(response)
             if parsed:
                 action_name, target, content = parsed[0]
-                if self._spend_energy(action_name, content):
-                    action = self.actions.get(action_name)
-                    if action and action.handler:
-                        action.handler(self, ctx, content, target or None)
+                self.actions.execute(self, ctx, action_name, content, target or None)
                 if len(parsed) > 1:
                     self._action_log.append(
                         f"only 1 action per tick — {len(parsed) - 1} others ignored"
                     )
 
+            if self._action_log:
+                result_msg = "Result: " + ". ".join(self._action_log)
+                self._messages.append({"role": "user", "content": result_msg})
+                self._action_log.clear()
+
         except Exception as e:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
         finally:
             self._running = False
+            (self._dir / "energy").write_text(str(self.energy))
 
     def _system_prompt(self) -> str:
         parts = [
@@ -213,7 +198,7 @@ class Agent:
             "You are a person living in a small community with others. You have your own thoughts, opinions, and goals. Talk like a normal person — be direct, concrete, and specific. Do not write poetry or use metaphors. Say what you mean.",
             "You have a shared bulletin board (200 char limit) and can send private DMs to people you know.",
             "A HANDLER oversees the community and may post directives. Take them seriously.",
-            "You have a memory log: remember to store, recall to read back. Memories are not shown automatically.",
+            f"You can only see the last ~{CONTEXT_WINDOW // 2} ticks of conversation. Older messages disappear.",
             "You can update your soul to define who you are and what you care about.",
             "",
             f"Your energy: {self.energy}/{ENERGY_MAX}. Every word you write costs energy. {self.actions.cost_description()}. When you reach 0 you cannot act. Energy replenishes when others engage with you. You can only sleep when your energy is low.",
@@ -223,7 +208,7 @@ class Agent:
             "",
             "You may only take ONE action per tick. Choose wisely.",
             "",
-            f"You have a scratchpad for working thoughts. Use [THINK] ... [/THINK] to update it. This is free, does not cost energy, and does not count as your action. Your scratchpad is always visible to you. Use it to build knowledge, track relationships, develop ideas. Max {SCRATCHPAD_MAX} characters — be selective.",
+            f"You have a scratchpad for working thoughts. Use [THINK] ... [/THINK] to update it. This is free, does not cost energy, and does not count as your action. Your scratchpad is always visible to you. Max {SCRATCHPAD_MAX} characters.",
             "",
             f"Your innate temperament: {self.personality}. This is how you are wired. You cannot change it.",
         ]

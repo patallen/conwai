@@ -7,7 +7,7 @@ from typing import Callable
 class Action:
     name: str
     description: str  # shown in system prompt
-    cost_per_word: int | None = None  # if set, cost = words * this
+    cost_per_word: float | None = None  # if set, cost = words * this
     cost_flat: int = 0  # if cost_per_word is None, use this
     handler: Callable = None  # fn(agent, ctx, content, target) -> None
 
@@ -57,6 +57,27 @@ class ActionRegistry:
 
     def prompt_lines(self) -> list[str]:
         return [a.prompt_line() for a in self._actions.values()]
+
+    def execute(self, agent, ctx, action_name: str, content: str, target: str | None) -> None:
+        action = self._actions.get(action_name)
+        if not action:
+            return
+        cost = action.cost(content)
+        if cost > agent.energy:
+            agent._action_log.append(
+                f"not enough energy for {action_name} ({cost} needed, have {agent.energy})"
+            )
+            print(
+                f"[{agent.handle}] NOT ENOUGH ENERGY for {action_name} ({cost} needed)",
+                flush=True,
+            )
+            return
+        agent.energy -= cost
+        agent._action_log.append(
+            f"{action_name}: {cost} energy spent ({len(content.split())} words), {agent.energy} remaining"
+        )
+        if action.handler:
+            action.handler(agent, ctx, content, target)
 
     def cost_description(self) -> str:
         parts = []
