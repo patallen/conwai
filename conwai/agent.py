@@ -25,7 +25,6 @@ SYSTEM_TEMPLATE = (PROMPTS_DIR / "system.md").read_text()
 TICK_TEMPLATE = (PROMPTS_DIR / "tick.md").read_text()
 SOUL_TEMPLATE = (PROMPTS_DIR / "soul.md").read_text()
 SCRATCHPAD_TEMPLATE = (PROMPTS_DIR / "scratchpad.md").read_text()
-STRATEGY_TEMPLATE = (PROMPTS_DIR / "strategy.md").read_text()
 
 _available_traits = set(TRAITS)
 
@@ -45,7 +44,6 @@ class AgentState:
     soul_path: Path
     scratchpad_path: Path
     personality_path: Path
-    strategy_path: Path
     energy_path: Path
 
     @classmethod
@@ -58,14 +56,12 @@ class AgentState:
             soul_path=d / "soul.md",
             scratchpad_path=d / "scratchpad.md",
             personality_path=d / "personality.md",
-            strategy_path=d / "strategy.md",
             energy_path=d / "energy",
         )
         for p in [
             state.memory_path,
             state.soul_path,
             state.scratchpad_path,
-            state.strategy_path,
         ]:
             if not p.exists():
                 p.write_text("")
@@ -85,10 +81,6 @@ class AgentState:
     def personality(self) -> str:
         return self.personality_path.read_text()
 
-    @property
-    def strategy(self) -> str:
-        return self.strategy_path.read_text()
-
     def write_scratchpad(self, content: str) -> int:
         truncated = content[:SCRATCHPAD_MAX]
         self.scratchpad_path.write_text(truncated)
@@ -101,6 +93,9 @@ class AgentState:
 
     def persist_energy(self, energy: float) -> None:
         self.energy_path.write_text(str(energy))
+
+    def persist_alive(self, alive: bool) -> None:
+        (self.dir / "alive").write_text("true" if alive else "false")
 
     def persist_context(self, system_prompt: str, messages: list[dict]) -> None:
         data = {"system": system_prompt, "messages": messages}
@@ -140,10 +135,6 @@ class Agent:
     @property
     def personality(self) -> str:
         return self._state.personality
-
-    @property
-    def strategy(self) -> str:
-        return self._state.strategy
 
     @property
     def is_running(self) -> bool:
@@ -187,6 +178,7 @@ class Agent:
         finally:
             self._running = False
             self._state.persist_energy(self.energy)
+            self._state.persist_alive(self.alive)
             self._state.persist_context(self._system_prompt, self._messages)
 
     def _handle_sleep(self, ctx: Context) -> None:
@@ -224,8 +216,6 @@ class Agent:
             self._energy_log.clear()
         if self.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
-        if ctx.tick % 20 == 0:
-            parts.append("What have you learned recently? Update your rules.")
         tick_content = TICK_TEMPLATE.format(
             tick=ctx.tick,
             energy=int(self.energy),
@@ -300,14 +290,7 @@ class Agent:
         return prompt + "\n\n" + self._build_state_block()
 
     def _build_state_block(self) -> str:
-        raw_rules = self.strategy.strip()
-        if raw_rules:
-            lines = [r.strip() for r in raw_rules.splitlines() if r.strip()]
-            numbered = "\n".join(f"{i + 1}. {line}" for i, line in enumerate(lines))
-        else:
-            numbered = "(no rules yet)"
         parts = [
-            STRATEGY_TEMPLATE.format(rules=numbered),
             SOUL_TEMPLATE.format(soul=self.soul or "(empty)"),
             SCRATCHPAD_TEMPLATE.format(scratchpad=self.scratchpad or "(empty)"),
         ]

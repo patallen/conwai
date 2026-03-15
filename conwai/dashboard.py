@@ -38,12 +38,17 @@ def read_agents() -> list[dict]:
             "soul.md",
             "scratchpad.md",
             "memory.md",
-            "strategy.md",
         ]:
             p = d / f
             agent[f.replace(".md", "")] = p.read_text() if p.exists() else ""
         ep = d / "energy"
         agent["energy"] = int(float(ep.read_text().strip())) if ep.exists() else None
+        alive_path = d / "alive"
+        agent["alive"] = (
+            alive_path.read_text().strip() == "true" if alive_path.exists() else True
+        )
+        if not agent["alive"]:
+            continue
         agents.append(agent)
     return agents
 
@@ -325,8 +330,6 @@ async function openAgent(handle) {
       <span>sleeps: <span class="val">${s.sleeping||0}</span></span>
     </div>
     ${a.soul ? `<h3>soul</h3><div class="modal-section" style="color:#7dcfff">${esc(a.soul)}</div>` : '<h3>soul</h3><div class="modal-section" style="color:#565f89">(empty)</div>'}
-    <h3>strategy</h3>
-    <div class="modal-section" style="color:#ff9e64">${a.strategy ? esc(a.strategy) : '(empty)'}</div>
     <h3>scratchpad</h3>
     <div class="modal-section" style="color:#a9b1d6">${a.scratchpad ? esc(a.scratchpad) : '(empty)'}</div>
     <h3>recent board posts</h3>

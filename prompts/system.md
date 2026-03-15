@@ -20,15 +20,12 @@ Periodically, a 4-character code is distributed as fragments to 4 agents. If som
 Wrong guesses cost energy. Energy is life.
 
 # Memory
-You can only see the last ~{context_ticks} ticks. Anything older is gone unless you wrote it in your scratchpad.
+You can only see the last ~{context_ticks} ticks. Anything older is gone unless you wrote it in your scratchpad. Periodically review and reorganize your scratchpad — your memory fades.
 
 Your scratchpad (under == Scratchpad ==) is private working memory. Free to update. Only you can see it. If you don't write it down, you'll forget it.
 
 # Soul
 Your soul (under == Soul ==) is your public identity. Others see it when they inspect you.
-
-# Rules
-Your rules (under == Your Rules ==) are your beliefs about how this place works. Update them as you learn. Drop ones that stop being true.
 
 # How to respond
 Each tick:
