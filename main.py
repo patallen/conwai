@@ -95,19 +95,19 @@ async def main():
         model="/mnt/models/Qwen3-14B-AWQ",
         extra_body={"chat_template_kwargs": {"enable_thinking": True}},
     )
-    flash = LLMClient(
+    flash = LLMClient(  # noqa: F841
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
         model="gemini-2.5-flash-lite",
         api_key=os.environ.get("GOOGLE_AI_API_KEY", ""),
         extra_body={},
     )
     agents = [
-        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
-        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
-        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
-        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
-        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
-        Agent(core=flash, actions=registry, handle=f"gem-{uuid4().hex[:5]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
+        Agent(core=qwen9b, actions=registry, handle=f"q9-{uuid4().hex[:6]}"),
     ]
 
     for agent in agents:

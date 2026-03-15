@@ -6,8 +6,8 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-EVENTS_PATH = Path("events.jsonl")
-AGENTS_DIR = Path("agents")
+EVENTS_PATH = Path("data/events.jsonl")
+AGENTS_DIR = Path("data/agents")
 
 
 def read_events(since: int = 0) -> list[dict]:

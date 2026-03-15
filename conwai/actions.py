@@ -13,7 +13,7 @@ class Action:
 
     def cost(self, content: str) -> int:
         if self.cost_per_word is not None:
-            return max(1, len(content.split()) * self.cost_per_word)
+            return max(1, int(len(content.split()) * self.cost_per_word))
         return self.cost_flat
 
     def prompt_line(self) -> str:
@@ -87,12 +87,18 @@ class ActionRegistry:
             action.handler(agent, ctx, content, target)
 
     def cost_description(self) -> str:
-        parts = []
+        paid = []
+        free = []
         for a in self._actions.values():
-            if a.cost_per_word is not None:
-                parts.append(f"{a.name} costs {a.cost_per_word} per word")
+            if a.cost_per_word:
+                paid.append(f"{a.name}: {a.cost_per_word}/word")
             elif a.cost_flat > 0:
-                parts.append(f"{a.name} costs {a.cost_flat} flat")
+                paid.append(f"{a.name}: {a.cost_flat} flat")
             else:
-                parts.append(f"{a.name} is free")
-        return ". ".join(parts)
+                free.append(a.name)
+        lines = []
+        if paid:
+            lines.append("Costs: " + ", ".join(paid))
+        if free:
+            lines.append("Free: " + ", ".join(free))
+        return "\n".join(lines)

@@ -4,8 +4,9 @@ from time import time
 
 
 class EventLog:
-    def __init__(self, path: Path = Path("events.jsonl")):
+    def __init__(self, path: Path = Path("data/events.jsonl")):
         self.path = path
+        path.parent.mkdir(parents=True, exist_ok=True)
         self._file = open(path, "a")
 
     def log(self, entity_id: str, event_type: str, data: dict | None = None):

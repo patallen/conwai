@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass, field
 
@@ -17,10 +19,11 @@ class LLMClient:
     def __post_init__(self):
         self._client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
 
-    async def call(self, messages: list[dict]) -> tuple[str, int, int]:
+    async def call(self, system: str, messages: list[dict]) -> tuple[str, int, int]:
+        all_messages = [{"role": "system", "content": system}, *messages]
         response = await self._client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=all_messages,
             temperature=0.7,
             extra_body=self.extra_body,
         )
@@ -46,19 +49,11 @@ class AnthropicLLMClient:
 
         self._client = AsyncAnthropic(api_key=self.api_key)
 
-    async def call(self, messages: list[dict]) -> tuple[str, int, int]:
-        system = ""
-        chat_messages = []
-        for m in messages:
-            if m["role"] == "system":
-                system = m["content"]
-            else:
-                chat_messages.append({"role": m["role"], "content": m["content"]})
-
+    async def call(self, system: str, messages: list[dict]) -> tuple[str, int, int]:
         response = await self._client.messages.create(
             model=self.model,
             system=system,
-            messages=chat_messages,
+            messages=messages,
             max_tokens=self.max_tokens,
             temperature=0.7,
         )

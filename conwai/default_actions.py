@@ -16,7 +16,7 @@ def _remember(agent, ctx, content, target):
 def _recall(agent, ctx, content, target):
     keyword = target or ""
     memories = agent.recall(keyword=keyword)
-    agent._messages.append({"role": "user", "content": f"Your memories:\n{memories}"})
+    agent.inject_context(f"Your memories:\n{memories}")
     print(f"[{agent.handle}] recalled (query='{keyword}'): {memories[:80]}", flush=True)
 
 
@@ -59,12 +59,12 @@ def _sleep(agent, ctx, content, target):
     except ValueError:
         ticks = 5
     agent.sleep(ticks)
-    ctx.log(agent.handle, "sleep", {"ticks": agent._sleep_ticks})
-    print(f"[{agent.handle}] sleeping for {agent._sleep_ticks} ticks", flush=True)
+    ctx.log(agent.handle, "sleep", {"ticks": ticks})
+    print(f"[{agent.handle}] sleeping for {ticks} ticks", flush=True)
 
 
 def _update_soul(agent, ctx, content, target):
-    agent._soul_path.write_text(content)
+    agent._state.soul_path.write_text(content)
     ctx.log(agent.handle, "soul_updated", {"content": content})
     print(f"[{agent.handle}] soul updated", flush=True)
 
@@ -73,7 +73,7 @@ def _inspect(agent, ctx, content, target):
     handle = (target or content).strip()
     other = ctx.agent_map.get(handle)
     if not other:
-        agent._action_log.append(f"Unknown agent: {handle}")
+        print(f"[{agent.handle}] inspect failed: unknown agent {handle}", flush=True)
         return
     stats_lines = []
     events = ctx.events.read_all() if hasattr(ctx.events, "read_all") else []
@@ -94,7 +94,7 @@ def _inspect(agent, ctx, content, target):
         stats_lines.append(f"Soul: {soul[:200]}")
     stats_lines.append(f"Activity: {posts} posts, {dms} DMs sent, {sleeps} sleeps")
     result = "\n".join(stats_lines)
-    agent._messages.append({"role": "user", "content": f"Inspect {handle}:\n{result}"})
+    agent.inject_context(f"Inspect {handle}:\n{result}")
     ctx.log(agent.handle, "inspect", {"target": handle})
     print(f"[{agent.handle}] inspected {handle}", flush=True)
 
