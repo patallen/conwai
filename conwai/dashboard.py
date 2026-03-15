@@ -131,6 +131,14 @@ async def api_handler(request: Request):
     return {"ok": True, "message": msg}
 
 
+@app.get("/api/agent/{handle}/context")
+def api_agent_context(handle: str):
+    ctx_path = AGENTS_DIR / handle / "context.json"
+    if not ctx_path.exists():
+        return {"error": "no context available"}
+    return json.loads(ctx_path.read_text())
+
+
 @app.get("/api/agent/{handle}")
 def api_agent_detail(handle: str):
     agents = read_agents()
@@ -269,11 +277,40 @@ function closeModal() {
   document.getElementById('modal-overlay').classList.remove('active');
 }
 
+async function showContext(handle) {
+  const el = document.getElementById('agent-context');
+  el.textContent = 'loading...';
+  const ctx = await (await fetch(`/api/agent/${handle}/context`)).json();
+  if (ctx.error) { el.textContent = ctx.error; return; }
+  let html = '<div style="background:#0a0a0a;border:1px solid #292e42;border-radius:4px;padding:12px;font-size:12px">';
+  html += '<div style="color:#9ece6a;border-bottom:1px solid #292e42;padding-bottom:8px;margin-bottom:8px"><strong>SYSTEM PROMPT</strong></div>';
+  html += '<div style="color:#a9b1d6;white-space:pre-wrap;margin-bottom:16px">' + esc(ctx.system) + '</div>';
+  html += '<div style="color:#9ece6a;border-bottom:1px solid #292e42;padding-bottom:8px;margin-bottom:8px"><strong>MESSAGES (' + ctx.messages.length + ')</strong></div>';
+  ctx.messages.forEach(m => {
+    let border = '1px solid #16161e';
+    let bg = '#16161e';
+    let roleColor = '#565f89';
+    let roleLabel = m.role;
+    if (m.role === 'user') { roleColor = '#7aa2f7'; bg = '#1a1b2e'; }
+    else if (m.role === 'assistant') { roleColor = '#bb9af7'; bg = '#1e1a2e'; }
+    else if (m.role === 'tool') { roleColor = '#e0af68'; bg = '#1e1b1a'; roleLabel = 'tool (' + (m.name || '?') + ')'; }
+    html += '<div style="background:' + bg + ';border:' + border + ';border-radius:4px;padding:8px;margin-bottom:6px">';
+    html += '<div style="color:' + roleColor + ';font-weight:bold;margin-bottom:4px">' + roleLabel + '</div>';
+    let content = m.content || '';
+    if (m.tool_calls) {
+      content += m.tool_calls.map(tc => '\\n[tool_call] ' + tc.function.name + '(' + tc.function.arguments + ')').join('');
+    }
+    html += '<div style="color:#d4d4d4;white-space:pre-wrap">' + esc(content) + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 async function openAgent(handle) {
   const a = await (await fetch(`/api/agent/${handle}`)).json();
   if (a.error) return;
   const s = a.stats || {};
-  const memLines = a.memory ? a.memory.trim().split('\\n').filter(l => l) : [];
   const modal = document.getElementById('modal');
   modal.innerHTML = `
     <span class="modal-close" onclick="closeModal()">&times;</span>
@@ -292,8 +329,6 @@ async function openAgent(handle) {
     <div class="modal-section" style="color:#ff9e64">${a.strategy ? esc(a.strategy) : '(empty)'}</div>
     <h3>scratchpad</h3>
     <div class="modal-section" style="color:#a9b1d6">${a.scratchpad ? esc(a.scratchpad) : '(empty)'}</div>
-    <h3>memory (${memLines.length} entries)</h3>
-    <div class="modal-section" style="color:#e0af68">${memLines.length ? memLines.map(l => esc(l)).join('\\n') : '(empty)'}</div>
     <h3>recent board posts</h3>
     <div class="modal-section">${a.board_posts.length ? a.board_posts.map(e => esc(e.data.content)).join('\\n\\n') : '(none)'}</div>
     <h3>recent DMs</h3>
@@ -302,6 +337,8 @@ async function openAgent(handle) {
       const label = e.entity === a.handle ? '-> ' + e.data.to : '<- ' + e.entity;
       return '<span class="' + dir + '">' + label + '</span>: ' + esc(e.data.content);
     }).join('\\n') : '(none)'}</div>
+    <h3>context <button onclick="showContext('${a.handle}')" style="background:#292e42;border:1px solid #565f89;border-radius:3px;color:#7aa2f7;cursor:pointer;font-family:monospace;font-size:11px;padding:2px 8px">load</button></h3>
+    <div id="agent-context" class="modal-section" style="max-height:400px">(click load to view)</div>
   `;
   document.getElementById('modal-overlay').classList.add('active');
 }
@@ -314,14 +351,12 @@ async function refreshAgents() {
 
   document.getElementById('agents').innerHTML = agents.map(a => {
     const s = statsMap[a.handle] || {};
-    const memLines = a.memory ? a.memory.trim().split('\\n').filter(l => l).length : 0;
     const energy = a.energy != null ? a.energy : '?';
     const pct = a.energy != null ? Math.round(a.energy / 10) : 0;
     const ecls = energyClass(pct);
     return `<div class="agent-card" onclick="openAgent('${a.handle}')">
       <div><span class="agent-handle">${a.handle}</span> <span class="agent-personality">${esc(a.personality)}</span></div>
       <div class="energy-bar"><div class="energy-fill ${ecls}" style="width:${pct}%"></div></div>
-      <div style="font-size:11px;color:#565f89">energy:${energy} posts:${s.posts||0} dms:${s.dms_sent||0} recv:${s.dms_received||0} mem:${memLines} sleep:${s.sleeping||0}</div>
       ${a.soul ? `<div class="soul">${esc(a.soul).substring(0,120)}</div>` : ''}
       ${a.scratchpad ? `<div class="scratchpad">${esc(a.scratchpad).substring(0,300)}</div>` : ''}
     </div>`;

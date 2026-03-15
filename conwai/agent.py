@@ -100,6 +100,10 @@ class AgentState:
     def persist_energy(self, energy: float) -> None:
         self.energy_path.write_text(str(energy))
 
+    def persist_context(self, system_prompt: str, messages: list[dict]) -> None:
+        data = {"system": system_prompt, "messages": messages}
+        (self.dir / "context.json").write_text(json.dumps(data, indent=2))
+
 
 @dataclass
 class Agent:
@@ -108,11 +112,13 @@ class Agent:
     actions: ActionRegistry = field(default=None, repr=False)
     data_dir: Path = field(default_factory=lambda: Path("data/agents"))
     energy: float = ENERGY_MAX
+    context_window: int = CONTEXT_WINDOW
 
     _state: AgentState = field(default=None, init=False, repr=False)
     _running: bool = field(default=False, init=False, repr=False)
     _messages: list[dict] = field(default_factory=list, init=False, repr=False)
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
+    _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
     _sleep_ticks: int = field(default=0, init=False, repr=False)
     _system_prompt: str = field(default="", init=False, repr=False)
     wrong_guesses: int = field(default=0, init=False, repr=False)
@@ -149,7 +155,7 @@ class Agent:
         self.energy = min(ENERGY_MAX, self.energy + amount)
         gained = self.energy - old
         if gained > 0:
-            self._action_log.append(f"energy +{int(gained)} ({reason})")
+            self._energy_log.append(f"energy +{int(gained)} ({reason})")
 
     def inject_context(self, content: str) -> None:
         self._messages.append({"role": "user", "content": content})
@@ -178,6 +184,7 @@ class Agent:
         finally:
             self._running = False
             self._state.persist_energy(self.energy)
+            self._state.persist_context(self._system_prompt, self._messages)
 
     def _handle_sleep(self, ctx: Context) -> None:
         self._sleep_ticks -= 1
@@ -194,25 +201,29 @@ class Agent:
         )
 
     def _rebuild_context(self, ctx: Context) -> None:
-        self._messages = self._messages[-CONTEXT_WINDOW:]
+        turn_count = 0
+        cut = 0
+        for i in range(len(self._messages) - 1, -1, -1):
+            if self._messages[i]["role"] == "user":
+                turn_count += 1
+                if turn_count > self.context_window:
+                    cut = i
+                    break
+        self._messages = self._messages[cut:]
         self._system_prompt = self._build_system_prompt()
 
         parts = [ctx.board.format_new(self.handle)]
         dms = ctx.bus.format_new(self.handle)
         if dms:
             parts.append(dms)
-        if self._action_log:
-            parts.append("Energy changes: " + ". ".join(self._action_log))
-            self._action_log.clear()
-        tick_content = (
-            TICK_TEMPLATE.format(
-                tick=ctx.tick,
-                energy=int(self.energy),
-                energy_max=ENERGY_MAX,
-                content="\n\n".join(parts),
-            )
-            + "\n\n"
-            + self._build_state_block()
+        if self._energy_log:
+            parts.append("Energy changes: " + ". ".join(self._energy_log))
+            self._energy_log.clear()
+        tick_content = TICK_TEMPLATE.format(
+            tick=ctx.tick,
+            energy=int(self.energy),
+            energy_max=ENERGY_MAX,
+            content="\n\n".join(parts),
         )
         self._messages.append({"role": "user", "content": tick_content})
         print(
@@ -258,17 +269,23 @@ class Agent:
             self.actions.execute(self, ctx, tc.name, tc.args)
             result = ". ".join(self._action_log) if self._action_log else "ok"
             self._messages.append(
-                {"role": "tool", "tool_call_id": tc.id, "content": result}
+                {
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "name": tc.name,
+                    "content": result,
+                }
             )
             self._action_log.clear()
 
     def _build_system_prompt(self) -> str:
-        return SYSTEM_TEMPLATE.format(
+        prompt = SYSTEM_TEMPLATE.format(
             handle=self.handle,
-            context_ticks=CONTEXT_WINDOW // 2,
+            context_ticks=self.context_window // 2,
             cost_description=self.actions.cost_description(),
             personality=self.personality,
         )
+        return prompt + "\n\n" + self._build_state_block()
 
     def _build_state_block(self) -> str:
         raw_rules = self.strategy.strip()

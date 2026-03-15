@@ -106,12 +106,42 @@ async def main():
         extra_body={},
     )
     agents = [
-        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:4]}"),
-        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:4]}"),
-        Agent(core=qwen9b0, actions=registry, handle=f"{uuid4().hex[:4]}"),
-        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:4]}"),
-        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:4]}"),
-        Agent(core=qwen9b1, actions=registry, handle=f"{uuid4().hex[:4]}"),
+        Agent(
+            core=qwen9b1,
+            actions=registry,
+            context_window=5,
+            handle=f"{uuid4().hex[:3]}.05",
+        ),
+        Agent(
+            core=qwen9b0,
+            actions=registry,
+            context_window=10,
+            handle=f"{uuid4().hex[:3]}.10",
+        ),
+        Agent(
+            core=qwen9b0,
+            actions=registry,
+            context_window=20,
+            handle=f"{uuid4().hex[:3]}.20",
+        ),
+        Agent(
+            core=qwen9b0,
+            actions=registry,
+            context_window=30,
+            handle=f"{uuid4().hex[:3]}.30",
+        ),
+        Agent(
+            core=qwen9b1,
+            actions=registry,
+            context_window=40,
+            handle=f"{uuid4().hex[:3]}.40",
+        ),
+        Agent(
+            core=qwen9b1,
+            actions=registry,
+            context_window=50,
+            handle=f"{uuid4().hex[:3]}.50",
+        ),
     ]
 
     for agent in agents:
