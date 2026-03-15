@@ -11,11 +11,11 @@ from conwai.actions import ActionRegistry
 from conwai.config import (
     CONTEXT_WINDOW,
     ENERGY_MAX,
-    SCRATCHPAD_MAX,
     SLEEP_REGEN_PER_TICK,
     TRAITS,
 )
 from conwai.llm import LLMClient, LLMResponse
+from conwai.repository import AgentRepository
 
 if TYPE_CHECKING:
     from conwai.environment import Context
@@ -37,69 +37,7 @@ def assign_traits(n: int = 2) -> list[str]:
     return chosen
 
 
-@dataclass
-class AgentState:
-    dir: Path
-    memory_path: Path
-    soul_path: Path
-    scratchpad_path: Path
-    personality_path: Path
-    energy_path: Path
-
-    @classmethod
-    def init(cls, data_dir: Path, handle: str) -> AgentState:
-        d = data_dir / handle
-        d.mkdir(parents=True, exist_ok=True)
-        state = cls(
-            dir=d,
-            memory_path=d / "memory.md",
-            soul_path=d / "soul.md",
-            scratchpad_path=d / "scratchpad.md",
-            personality_path=d / "personality.md",
-            energy_path=d / "energy",
-        )
-        for p in [
-            state.memory_path,
-            state.soul_path,
-            state.scratchpad_path,
-        ]:
-            if not p.exists():
-                p.write_text("")
-        if not state.personality_path.exists():
-            state.personality_path.write_text(", ".join(assign_traits()))
-        return state
-
-    @property
-    def soul(self) -> str:
-        return self.soul_path.read_text()
-
-    @property
-    def scratchpad(self) -> str:
-        return self.scratchpad_path.read_text()
-
-    @property
-    def personality(self) -> str:
-        return self.personality_path.read_text()
-
-    def write_scratchpad(self, content: str) -> int:
-        truncated = content[:SCRATCHPAD_MAX]
-        self.scratchpad_path.write_text(truncated)
-        return max(0, len(content) - SCRATCHPAD_MAX)
-
-    def decay_scratchpad(self, chars: int = 5) -> None:
-        pad = self.scratchpad
-        if len(pad) > chars:
-            self.scratchpad_path.write_text(pad[:-chars])
-
-    def persist_energy(self, energy: float) -> None:
-        self.energy_path.write_text(str(energy))
-
-    def persist_alive(self, alive: bool) -> None:
-        (self.dir / "alive").write_text("true" if alive else "false")
-
-    def persist_context(self, system_prompt: str, messages: list[dict]) -> None:
-        data = {"system": system_prompt, "messages": messages}
-        (self.dir / "context.json").write_text(json.dumps(data, indent=2))
+MAX_REASONING = 200
 
 
 @dataclass
@@ -107,11 +45,10 @@ class Agent:
     handle: str = field(default_factory=lambda: uuid4().hex[:8])
     core: LLMClient = field(default_factory=LLMClient)
     actions: ActionRegistry = field(default=None, repr=False)
-    data_dir: Path = field(default_factory=lambda: Path("data/agents"))
+    repo: AgentRepository = field(default=None, repr=False)
     energy: float = ENERGY_MAX
     context_window: int = CONTEXT_WINDOW
 
-    _state: AgentState = field(default=None, init=False, repr=False)
     _running: bool = field(default=False, init=False, repr=False)
     _messages: list[dict] = field(default_factory=list, init=False, repr=False)
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
@@ -122,19 +59,20 @@ class Agent:
     code_fragment: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
-        self._state = AgentState.init(self.data_dir, self.handle)
+        if self.repo:
+            self.repo.init(self)
 
     @property
     def soul(self) -> str:
-        return self._state.soul
+        return self.repo.load_soul(self.handle) if self.repo else ""
 
     @property
     def scratchpad(self) -> str:
-        return self._state.scratchpad
+        return self.repo.load_scratchpad(self.handle) if self.repo else ""
 
     @property
     def personality(self) -> str:
-        return self._state.personality
+        return self.repo.load_personality(self.handle) if self.repo else ""
 
     @property
     def is_running(self) -> bool:
@@ -177,14 +115,14 @@ class Agent:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
         finally:
             self._running = False
-            self._state.persist_energy(self.energy)
-            self._state.persist_alive(self.alive)
-            self._state.persist_context(self._system_prompt, self._messages)
+            if self.repo:
+                self.repo.save(self)
 
     def _handle_sleep(self, ctx: Context) -> None:
         self._sleep_ticks -= 1
         self.gain_energy("sleeping", SLEEP_REGEN_PER_TICK)
-        self._state.decay_scratchpad()
+        if self.repo:
+            self.repo.decay_scratchpad(self.handle)
         print(
             f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {int(self.energy)})",
             flush=True,
@@ -237,7 +175,6 @@ class Agent:
             print(f"[{self.handle}] empty response, skipping", flush=True)
             return None
 
-        MAX_REASONING = 200
         assistant_msg: dict = {"role": "assistant"}
         if resp.text:
             if len(resp.text) > MAX_REASONING:

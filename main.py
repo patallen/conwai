@@ -9,6 +9,7 @@ from conwai.environment import Context
 from uuid import uuid4
 
 from conwai.llm import LLMClient
+from conwai.repository import AgentRepository
 from conwai.world import WorldEvents
 
 HANDLER_FILE = Path("handler_input.txt")
@@ -109,14 +110,27 @@ async def main():
         api_key=os.environ.get("GOOGLE_AI_API_KEY", ""),
         extra_body={},
     )
+    repo = AgentRepository()
     agents = []
     for i in range(8):
         agents.append(
-            Agent(core=qwen4b0, context_window=10, actions=registry, handle=f"Q0.{i}")
+            Agent(
+                core=qwen4b0,
+                context_window=10,
+                actions=registry,
+                repo=repo,
+                handle=f"Q0.{i}",
+            )
         )
     for i in range(8):
         agents.append(
-            Agent(core=qwen4b1, context_window=10, actions=registry, handle=f"Q1.{i}")
+            Agent(
+                core=qwen4b1,
+                context_window=10,
+                actions=registry,
+                repo=repo,
+                handle=f"Q1.{i}",
+            )
         )
 
     #     agents = [
@@ -163,7 +177,9 @@ async def main():
     asyncio.create_task(watch_handler_file(ctx))
 
     def make_agent(core: LLMClient, prefix: str) -> Agent:
-        agent = Agent(core=core, actions=registry, handle=f"{prefix}{uuid4().hex[:3]}")
+        agent = Agent(
+            core=core, actions=registry, repo=repo, handle=f"{prefix}{uuid4().hex[:3]}"
+        )
         ctx.register_agent(agent)
         return agent
 
