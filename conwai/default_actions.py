@@ -140,11 +140,10 @@ def _compact(agent, ctx, args):
     if not summary:
         agent._action_log.append("compact requires a summary")
         return
-    # Wipe messages and store summary for injection into system prompt
-    agent.messages = []
-    agent.memory = summary
+    # Wipe all messages and replace with the agent's summary as the seed
+    agent.messages = [{"role": "user", "content": f"[compacted memory]\n{summary}"}]
     agent._compact_needed = False
-    ctx.log(agent.handle, "compact", {"summary": summary, "length": len(summary)})
+    ctx.log(agent.handle, "compact", {"summary": summary[:200]})
     print(f"[{agent.handle}] compacted memory ({len(summary)} chars)", flush=True)
 
 

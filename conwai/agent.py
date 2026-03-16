@@ -227,7 +227,4 @@ class Agent:
         return prompt + "\n\n" + self._build_state_block()
 
     def _build_state_block(self) -> str:
-        parts = [SOUL_TEMPLATE.format(soul=self.soul or "(empty)")]
-        if self.memory:
-            parts.append(f"== Compacted Memory (your previous memories, preserved) ==\n{self.memory}")
-        return "\n\n".join(parts)
+        return SOUL_TEMPLATE.format(soul=self.soul or "(empty)")
