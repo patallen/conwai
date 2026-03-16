@@ -61,6 +61,7 @@ class Agent:
     _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
     _sleep_ticks: int = field(default=0, init=False, repr=False)
     _compact_needed: bool = field(default=False, init=False, repr=False)
+    _dm_sent_this_tick: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
         if not self.personality:
@@ -90,6 +91,7 @@ class Agent:
 
     async def tick(self, ctx: Context) -> None:
         self._running = True
+        self._dm_sent_this_tick = False
         try:
             if self._sleep_ticks > 0:
                 self._handle_sleep(ctx)
@@ -111,6 +113,10 @@ class Agent:
                 return
             self._process_tool_calls(llm_response, ctx)
 
+            # Two-pass compaction
+            if self._compact_needed:
+                await self._do_compaction(ctx)
+
         except Exception as e:
             print(f"[{self.handle}] ERROR: {e}", flush=True)
         finally:
@@ -129,6 +135,84 @@ class Agent:
             "sleeping",
             {"ticks_left": self._sleep_ticks, "energy": self.coins},
         )
+
+    _COMPACTION_PERSONA = (
+        "You are a meticulous archivist. Your job is to preserve important information "
+        "with thoroughness and precision. You never rush. You never skip details that matter. "
+        "You write clearly and concisely but never sacrifice completeness for brevity."
+    )
+
+    async def _do_compaction(self, ctx: Context) -> None:
+        """Two-pass compaction: plan what to keep, then write the summary."""
+        print(f"[{self.handle}] compaction pass 1: planning", flush=True)
+
+        compact_system = self._COMPACTION_PERSONA + "\n\n" + self.system_prompt
+
+        # Pass 1: Ask the agent to plan what to keep
+        self.messages.append({
+            "role": "user",
+            "content": (
+                "COMPACTION REQUIRED. Before writing your summary, review your history and list:\n"
+                "1. Your current STATUS (coins, situation)\n"
+                "2. Every agent you know — what happened between you, do you trust them, any debts or deals\n"
+                "3. Important events that still affect you\n"
+                "4. Current goals or unfinished business\n\n"
+                "Write this out now. Be thorough — anything you forget will be lost forever."
+            ),
+        })
+        plan_response = await self.core.call(
+            compact_system,
+            self.messages,
+            tools=self.actions.tool_definitions(),
+        )
+        if not plan_response:
+            return
+        # Add the response to messages
+        assistant_msg: dict = {"role": "assistant"}
+        if plan_response.text:
+            assistant_msg["content"] = plan_response.text
+        self.messages.append(assistant_msg)
+        print(
+            f"[{self.handle}] ({plan_response.prompt_tokens}+{plan_response.completion_tokens} tok): {plan_response.text[:200] if plan_response.text else '(no text)'}",
+            flush=True,
+        )
+        # Process any tool calls from pass 1 (agent might call compact early)
+        if plan_response.tool_calls:
+            import json
+            assistant_msg["tool_calls"] = [
+                {"id": tc.id, "type": "function", "function": {"name": tc.name, "arguments": json.dumps(tc.args)}}
+                for tc in plan_response.tool_calls
+            ]
+            for tc in plan_response.tool_calls:
+                self.actions.execute(self, ctx, tc.name, tc.args)
+                result = ". ".join(self._action_log) if self._action_log else "ok"
+                self.messages.append({"role": "tool", "tool_call_id": tc.id, "name": tc.name, "content": result})
+                self._action_log.clear()
+            if not self._compact_needed:
+                return  # compact succeeded in pass 1
+
+        # Pass 2: Ask for the summary as text, then programmatically compact
+        print(f"[{self.handle}] compaction pass 2: writing summary", flush=True)
+        self.messages.append({
+            "role": "user",
+            "content": (
+                "Good. Now write your compressed memory. Target: 5000-6000 characters — "
+                "this is a MINIMUM as much as a maximum. Write enough detail to reconstruct your situation. "
+                "Structure: STATUS (2-3 lines), AGENTS (2-4 sentences each — what happened between you, trust level, deals), "
+                "HISTORY (key events with enough detail to understand them), ACTIVE (current goals). "
+                "Write ONLY the summary, nothing else."
+            ),
+        })
+        compact_response = await self.core.call(
+            compact_system,
+            self.messages,
+            tools=None,  # No tools — force text-only output
+        )
+        if compact_response and compact_response.text:
+            summary = compact_response.text.strip()
+            from conwai.default_actions import _compact
+            _compact(self, ctx, {"summary": summary})
+            print(f"[{self.handle}] compaction complete ({len(summary)} chars)", flush=True)
 
     def _context_chars(self) -> int:
         return sum(len(m.get("content", "")) for m in self.messages)
@@ -157,9 +241,7 @@ class Agent:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         if self._compact_needed:
             parts.append(
-                "WARNING: Your memory is almost full. You must call compact() this turn. Refer to system prompt for "
-                "instructions. Compress to 5000-6000 characters. Carefully and thoroughly think though what you will "
-                "save in plain text before calling compact()."
+                "WARNING: Your memory is almost full. Compaction will begin after you act this tick."
             )
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),

@@ -56,7 +56,7 @@ class LLMClient:
             for tc in msg.tool_calls:
                 try:
                     args = json.loads(tc.function.arguments)
-                except json.JSONDecodeError, TypeError:
+                except (json.JSONDecodeError, TypeError):
                     args = {}
                 tool_calls.append(ToolCall(id=tc.id, name=tc.function.name, args=args))
 

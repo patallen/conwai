@@ -147,7 +147,7 @@ class WorldEvents:
 
         ctx.board.post(
             "WORLD",
-            f"CODE CHALLENGE: A 4-char code (A-Z, 0-9) has been split among 4 holders: {', '.join(chosen)}. Only holders have fragments. Guessing without all 4 characters is risky. Wrong = -25 coins.",
+            f"CODE CHALLENGE: A 4-char code (A-Z, 0-9) has been split among 4 holders: {', '.join(chosen)}. Only holders have fragments. Guessing without all 4 characters is risky. Wrong = -50 coins.",
         )
         ctx.log(
             "WORLD",
@@ -215,7 +215,7 @@ class WorldEvents:
             return f"CORRECT! You solved the code and earned {solver_reward} coins."
         else:
             correct = sum(a == b for a, b in zip(guess, self._active_code))
-            penalty = 25
+            penalty = 50
             agent.coins = max(0, agent.coins - penalty)
             ctx.log(
                 agent.handle,

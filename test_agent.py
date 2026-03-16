@@ -70,7 +70,7 @@ async def run(args):
             line = await asyncio.get_event_loop().run_in_executor(
                 None, lambda: input("> ")
             )
-        except EOFError, KeyboardInterrupt:
+        except (EOFError, KeyboardInterrupt):
             break
 
         line = line.strip()

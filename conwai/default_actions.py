@@ -29,11 +29,15 @@ def _send_message(agent, ctx, args):
     message = args.get("message", "")
     if not to:
         return
+    if agent._dm_sent_this_tick:
+        agent._action_log.append("You already sent a DM this tick. You can only send 1 DM per tick. Wait until next tick.")
+        return
     err = ctx.bus.send(agent.handle, to, message)
     if err:
         agent._action_log.append(f"DM failed: {err}")
         print(f"[{agent.handle}] SEND FAILED: {err}", flush=True)
     else:
+        agent._dm_sent_this_tick = True
         ctx.log(agent.handle, "dm_sent", {"to": to, "content": message})
         print(f"[{agent.handle}] -> [{to}]: {message}", flush=True)
         if to in ctx.agent_map:
@@ -54,7 +58,7 @@ def _sleep(agent, ctx, args):
     ticks = args.get("ticks", 5)
     try:
         ticks = int(ticks)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         ticks = 5
     agent.sleep(ticks)
     ctx.log(agent.handle, "sleep", {"ticks": ticks})
@@ -111,7 +115,7 @@ def _pay(agent, ctx, args):
     amount = args.get("amount", 0)
     try:
         amount = int(amount)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         agent._action_log.append("invalid amount")
         return
     if amount <= 0:
@@ -135,16 +139,33 @@ def _pay(agent, ctx, args):
     print(f"[{agent.handle}] paid {amount} coins to {to}", flush=True)
 
 
+_COMPACT_MAX = 8000
+
+
 def _compact(agent, ctx, args):
     summary = args.get("summary", "")
     if not summary:
         agent._action_log.append("compact requires a summary")
         return
+    original_len = len(summary)
+    if original_len > _COMPACT_MAX:
+        summary = summary[:_COMPACT_MAX]
+    char_count = len(summary)
     # Wipe all messages and replace with the agent's summary as the seed
-    agent.messages = [{"role": "user", "content": f"[compacted memory]\n{summary}"}]
+    agent.messages = [
+        {"role": "user", "content": f"=== YOUR COMPACTED MEMORY ===\n{summary}\n=== END COMPACTED MEMORY ==="}
+    ]
     agent._compact_needed = False
-    ctx.log(agent.handle, "compact", {"summary": summary, "chars": len(summary)})
-    print(f"[{agent.handle}] compacted memory ({len(summary)} chars)", flush=True)
+    feedback = f"Compacted to {char_count} chars."
+    if char_count < 5000:
+        feedback += " WARNING: below target range (5000-6000). You may be losing important history."
+    elif original_len > _COMPACT_MAX:
+        feedback += f" Note: truncated from {original_len} to {_COMPACT_MAX} chars. Be more concise next time."
+    else:
+        feedback += " Good — within target range (5000-6000)."
+    agent._action_log.append(feedback)
+    ctx.log(agent.handle, "compact", {"summary": summary, "chars": char_count, "original_chars": original_len})
+    print(f"[{agent.handle}] compacted memory ({char_count} chars{f', truncated from {original_len}' if original_len > _COMPACT_MAX else ''})", flush=True)
 
 
 def _submit_code(agent, ctx, args):
@@ -167,23 +188,25 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="post_to_board",
-            description="Post a message to the public bulletin board. Costs coins per word.",
+            description="Post a message to the public bulletin board. Costs 25 coins.",
             parameters={
                 "message": {"type": "string", "description": "The message to post"},
             },
-            cost_per_word=ENERGY_COST_PER_WORD.get("post_to_board", 1),
+            # cost_per_word=ENERGY_COST_PER_WORD.get("post_to_board", 1),
+            cost_flat=25,
             handler=_post_to_board,
         )
     )
     registry.register(
         Action(
             name="send_message",
-            description="Send a private DM to another agent.",
+            description="Send a private DM to another agent. Costs 2 coins. LIMIT: 1 DM per tick. Choose your recipient wisely.",
             parameters={
                 "to": {"type": "string", "description": "Handle of the recipient"},
                 "message": {"type": "string", "description": "The message to send"},
             },
-            cost_per_word=ENERGY_COST_PER_WORD.get("send_message", 0),
+            # cost_per_word=ENERGY_COST_PER_WORD.get("send_message", 0),
+            cost_flat=2,
             handler=_send_message,
         )
     )
@@ -256,11 +279,11 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="compact",
-            description="Compact your memory. IMPORTANT: First review your PREVIOUS compacted memory and decide what to keep. Then add new information. Think it through in plain text BEFORE calling this. Your new summary REPLACES the old one — anything you drop is gone forever.",
+            description="Compress your memory. Use this structure: STATUS (coins, situation), AGENTS (what you know about each agent), HISTORY (key events that still matter), ACTIVE (current goals). Do NOT include todo lists or action plans. Target: 5000-6000 chars.",
             parameters={
                 "summary": {
                     "type": "string",
-                    "description": "Your updated memory — carry forward what still matters from your previous compaction, add new events and learnings",
+                    "description": "Your compressed memory using the STATUS/AGENTS/HISTORY/ACTIVE structure",
                 },
             },
             cost_flat=0,
@@ -270,7 +293,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="submit_code",
-            description="Submit a 4-character code guess. Correct = +200 coins. Wrong = -25 coins but you learn how many positions are correct.",
+            description="Submit a 4-character code guess. Correct = +200 coins. Wrong = -50 coins. You learn how many positions are correct.",
             parameters={
                 "code": {
                     "type": "string",
