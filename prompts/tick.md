@@ -1,3 +1,3 @@
-[tick:{tick} | coins:{coins}]
+[{timestamp} | coins:{coins}]
 
 {content}

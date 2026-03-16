@@ -164,7 +164,7 @@ class Agent:
                 "Anything not in your new summary will be lost forever."
             )
         tick_content = TICK_TEMPLATE.format(
-            tick=ctx.tick,
+            timestamp=self._tick_to_timestamp(ctx.tick),
             coins=int(self.coins),
             content="\n\n".join(parts),
         )
@@ -220,6 +220,17 @@ class Agent:
                 }
             )
             self._action_log.clear()
+
+    @staticmethod
+    def _tick_to_timestamp(tick: int) -> str:
+        day = tick // 24 + 1
+        hour = 8 + (tick % 24)  # start at 8 AM, wrap at next day
+        if hour >= 24:
+            hour -= 24
+            day += 1
+        period = "AM" if hour < 12 else "PM"
+        display_hour = hour % 12 or 12
+        return f"Day {day}, {display_hour}:00 {period}"
 
     def _build_system_prompt(self) -> str:
         prompt = SYSTEM_TEMPLATE.format(
