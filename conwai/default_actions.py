@@ -256,11 +256,11 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="compact",
-            description="Compact your memory. IMPORTANT: Think through what to save in plain text BEFORE calling this. Everything else will be forgotten. Include: who you trust/distrust, who owes you and who you owe, what you've learned about how things work, and anything happening right now that matters.",
+            description="Compact your memory. IMPORTANT: First review your PREVIOUS compacted memory and decide what to keep. Then add new information. Think it through in plain text BEFORE calling this. Your new summary REPLACES the old one — anything you drop is gone forever.",
             parameters={
                 "summary": {
                     "type": "string",
-                    "description": "Your carefully drafted summary of everything worth remembering",
+                    "description": "Your updated memory — carry forward what still matters from your previous compaction, add new events and learnings",
                 },
             },
             cost_flat=0,

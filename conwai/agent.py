@@ -157,9 +157,11 @@ class Agent:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         if self._compact_needed:
             parts.append(
-                "WARNING: Your memory is almost full. Think through what matters "
-                "in plain text first, then call compact() with your summary. "
-                "Everything you don't save will be lost forever."
+                "WARNING: Your memory is almost full. Review your previous "
+                "compacted memory (if any) at the start of your history. "
+                "Think through what to KEEP from it and what to ADD from recent "
+                "events, then call compact() with your updated summary. "
+                "Anything not in your new summary will be lost forever."
             )
         tick_content = TICK_TEMPLATE.format(
             tick=ctx.tick,
