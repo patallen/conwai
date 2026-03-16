@@ -256,11 +256,11 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="compact",
-            description="Compact your memory. Write a summary of everything important — relationships, debts, plans, facts. Everything else will be forgotten.",
+            description="Compact your memory. IMPORTANT: Think through what to save in plain text BEFORE calling this. Everything else will be forgotten. Include: who you trust/distrust, who owes you and who you owe, what you've learned about how things work, and anything happening right now that matters.",
             parameters={
                 "summary": {
                     "type": "string",
-                    "description": "Your summary of everything worth remembering",
+                    "description": "Your carefully drafted summary of everything worth remembering",
                 },
             },
             cost_flat=0,
