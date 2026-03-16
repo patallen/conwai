@@ -167,7 +167,7 @@ class Agent:
         )
         self.messages.append({"role": "user", "content": tick_content})
         print(
-            f"[{self.handle}] context: {len(self.messages)} msgs ({turn_count} turns), coins: {self.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}",
+            f"[{self.handle}] context: {len(self.messages)} msgs ({self._context_chars()} chars), coins: {self.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}",
             flush=True,
         )
 
