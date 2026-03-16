@@ -1,0 +1,58 @@
+:root {
+  --bg-primary: #0f1117;
+  --bg-surface: rgba(124, 58, 237, 0.08);
+  --bg-surface-hover: rgba(124, 58, 237, 0.12);
+  --border: rgba(124, 58, 237, 0.15);
+  --border-hover: rgba(124, 58, 237, 0.3);
+  --text-primary: #e2e8f0;
+  --text-secondary: #64748b;
+  --accent: #a78bfa;
+  --accent-interactive: #818cf8;
+  --energy-healthy: #34d399;
+  --energy-warning: #facc15;
+  --energy-critical: #ef4444;
+  --font-ui: -apple-system, system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.4);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

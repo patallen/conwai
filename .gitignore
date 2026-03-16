@@ -18,3 +18,7 @@ data/events.jsonl
 handler_input.txt
 .superpowers/
 .worktrees/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

@@ -61,6 +61,13 @@ async def watch_handler_file(ctx: Context):
                             f"[HANDLER] set {handle} energy to {ctx.agent_map[handle].energy}",
                             flush=True,
                         )
+                elif line.startswith("!secret "):
+                    parts = line.split(" ", 2)
+                    if len(parts) >= 3 and parts[1] in ctx.agent_map:
+                        handle, content = parts[1], parts[2]
+                        ctx.bus.send("WORLD", handle, content)
+                        ctx.log("WORLD", "secret_dropped", {"to": handle, "content": content})
+                        print(f"[HANDLER] dropped secret to {handle}: {content}", flush=True)
                 elif line.startswith("@"):
                     parts = line.split(" ", 1)
                     handle = parts[0][1:]
@@ -149,6 +156,7 @@ async def main():
 
     while True:
         ctx.tick += 1
+        Path("data/tick").write_text(str(ctx.tick))
         world.tick(ctx)
 
         for i, agent in enumerate(agents):
