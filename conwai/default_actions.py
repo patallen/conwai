@@ -143,7 +143,7 @@ def _compact(agent, ctx, args):
     # Wipe all messages and replace with the agent's summary as the seed
     agent.messages = [{"role": "user", "content": f"[compacted memory]\n{summary}"}]
     agent._compact_needed = False
-    ctx.log(agent.handle, "compact", {"summary": summary[:200]})
+    ctx.log(agent.handle, "compact", {"summary": summary, "chars": len(summary)})
     print(f"[{agent.handle}] compacted memory ({len(summary)} chars)", flush=True)
 
 
