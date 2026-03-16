@@ -130,25 +130,20 @@ class Agent:
             {"ticks_left": self._sleep_ticks, "energy": self.coins},
         )
 
-    def _rebuild_context(self, ctx: Context) -> None:
-        # Count turns (user messages) in context
-        turn_count = sum(1 for m in self.messages if m["role"] == "user")
+    def _context_chars(self) -> int:
+        return sum(len(m.get("content", "")) for m in self.messages)
 
-        # Check if compaction is needed (at 80% of context window)
-        compact_threshold = int(self.context_window * 0.8)
-        if turn_count >= compact_threshold and not self._compact_needed:
+    def _rebuild_context(self, ctx: Context) -> None:
+        char_count = self._context_chars()
+
+        # Warn at 60% of context window, hard trim at 100%
+        warn_threshold = int(self.context_window * 0.6)
+        if char_count >= warn_threshold and not self._compact_needed:
             self._compact_needed = True
 
-        # Hard trim if over window (safety net if agent didn't compact)
-        cut = 0
-        tc = 0
-        for i in range(len(self.messages) - 1, -1, -1):
-            if self.messages[i]["role"] == "user":
-                tc += 1
-                if tc > self.context_window:
-                    cut = i
-                    break
-        self.messages = self.messages[cut:]
+        # Hard trim: drop oldest messages until under limit
+        while self._context_chars() > self.context_window and len(self.messages) > 1:
+            self.messages.pop(0)
         self.system_prompt = self._build_system_prompt()
 
         parts = [ctx.board.format_new(self.handle)]
@@ -226,7 +221,6 @@ class Agent:
     def _build_system_prompt(self) -> str:
         prompt = SYSTEM_TEMPLATE.format(
             handle=self.handle,
-            context_ticks=self.context_window // 2,
             personality=self.personality,
         )
         return prompt + "\n\n" + self._build_state_block()

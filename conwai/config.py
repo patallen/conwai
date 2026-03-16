@@ -93,8 +93,8 @@ TRAITS = [
 # Sleep
 SLEEP_REGEN_PER_TICK = CFG.get("sleep_regen_per_tick", 10)
 
-# Short-term memory
-CONTEXT_WINDOW = CFG.get("context_window", 10)
+# Context window (chars)
+CONTEXT_WINDOW = CFG.get("context_window", 16000)
 
 # Scratchpad
 MEMORY_MAX = CFG.get("memory_max", CFG.get("scratchpad_max", 1000))

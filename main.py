@@ -124,7 +124,7 @@ async def main():
         try:
             agent = repo.create(
                 Agent(
-                    core=core, context_window=10, actions=registry, handle=handle
+                    core=core, context_window=16000, actions=registry, handle=handle
                 )
             )
             agents.append(agent)
@@ -142,7 +142,7 @@ async def main():
 
     def make_agent(core: LLMClient, prefix: str) -> Agent:
         agent = repo.create(
-            Agent(core=core, context_window=10, actions=registry, handle=f"{prefix}0")
+            Agent(core=core, context_window=16000, actions=registry, handle=f"{prefix}0")
         )
         ctx.register_agent(agent)
         return agent
