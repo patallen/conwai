@@ -52,23 +52,23 @@ class ActionRegistry:
         if not action:
             return
         cost = action.cost(args)
-        if cost > agent.energy:
+        if cost > agent.coins:
             agent._action_log.append(
-                f"not enough energy for {name} ({cost} needed, have {int(agent.energy)})"
+                f"not enough coins for {name} ({cost} needed, have {int(agent.coins)})"
             )
             print(
                 f"[{agent.handle}] NOT ENOUGH ENERGY for {name} ({cost} needed)",
                 flush=True,
             )
             return
-        agent.energy -= cost
+        agent.coins -= cost
         if cost > 0:
             agent._action_log.append(
-                f"{name}: {cost} energy spent, {int(agent.energy)} remaining"
+                f"{name}: {cost} coins spent, {int(agent.coins)} remaining"
             )
         else:
             agent._action_log.append(
-                f"{name}: free, {int(agent.energy)} energy remaining"
+                f"{name}: free, {int(agent.coins)} coins remaining"
             )
         if action.handler:
             action.handler(agent, ctx, args)

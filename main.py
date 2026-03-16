@@ -31,8 +31,8 @@ async def watch_handler_file(ctx: Context):
                     parts = line.split()
                     if len(parts) >= 3 and parts[1] in ctx.agent_map:
                         handle, amount = parts[1], int(parts[2])
-                        ctx.agent_map[handle].energy = max(
-                            0, ctx.agent_map[handle].energy - amount
+                        ctx.agent_map[handle].coins = max(
+                            0, ctx.agent_map[handle].coins - amount
                         )
                         ctx.log(
                             "HANDLER",
@@ -40,25 +40,25 @@ async def watch_handler_file(ctx: Context):
                             {
                                 "handle": handle,
                                 "amount": amount,
-                                "remaining": ctx.agent_map[handle].energy,
+                                "remaining": ctx.agent_map[handle].coins,
                             },
                         )
                         print(
-                            f"[HANDLER] drained {handle} by {amount}, now {ctx.agent_map[handle].energy}",
+                            f"[HANDLER] drained {handle} by {amount}, now {ctx.agent_map[handle].coins}",
                             flush=True,
                         )
                 elif line.startswith("!set_energy "):
                     parts = line.split()
                     if len(parts) >= 3 and parts[1] in ctx.agent_map:
                         handle, amount = parts[1], int(parts[2])
-                        ctx.agent_map[handle].energy = min(ENERGY_MAX, max(0, amount))
+                        ctx.agent_map[handle].coins = min(ENERGY_MAX, max(0, amount))
                         ctx.log(
                             "HANDLER",
                             "set_energy",
-                            {"handle": handle, "energy": ctx.agent_map[handle].energy},
+                            {"handle": handle, "energy": ctx.agent_map[handle].coins},
                         )
                         print(
-                            f"[HANDLER] set {handle} energy to {ctx.agent_map[handle].energy}",
+                            f"[HANDLER] set {handle} energy to {ctx.agent_map[handle].coins}",
                             flush=True,
                         )
                 elif line.startswith("!secret "):
@@ -76,7 +76,7 @@ async def watch_handler_file(ctx: Context):
                     ctx.log("HANDLER", "dm_sent", {"to": handle, "content": msg})
                     print(f"[HANDLER] -> [{handle}]: {msg}", flush=True)
                     if handle in ctx.agent_map:
-                        ctx.agent_map[handle].gain_energy(
+                        ctx.agent_map[handle].gain_coins(
                             "HANDLER attention", ENERGY_GAIN["dm_received"]
                         )
                 else:
@@ -118,26 +118,19 @@ async def main():
     )
     repo = AgentRepository()
     agents = []
-    for i in range(8):
-        agents.append(
-            repo.create(
+    for i in range(1, 12):
+        core = qwen4b0 if i <= 6 else qwen4b1
+        handle = f"Q{0 if i <= 6 else 1}.{i if i <= 6 else i - 6}"
+        try:
+            agent = repo.create(
                 Agent(
-                    core=qwen4b0, context_window=10, actions=registry, handle=f"Q0.{i}"
+                    core=core, context_window=10, actions=registry, handle=handle
                 )
             )
-        )
-
-    for i in range(8):
-        agents.append(
-            repo.create(
-                Agent(
-                    core=qwen4b1, context_window=10, actions=registry, handle=f"Q1.{i}"
-                )
-            )
-        )
-
-    for agent in agents:
-        ctx.register_agent(agent)
+            agents.append(agent)
+            ctx.register_agent(agent)
+        except ValueError:
+            agents.append(repo.load(handle=handle))
 
     ctx.bus.register("HANDLER")
     ctx.bus.register("WORLD")

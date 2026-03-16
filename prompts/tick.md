@@ -1,3 +1,3 @@
-[tick:{tick} | energy:{energy}]
+[tick:{tick} | coins:{coins}]
 
 {content}

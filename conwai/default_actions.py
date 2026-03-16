@@ -12,8 +12,8 @@ def _post_to_board(agent, ctx, args):
     recent = [p for p in ctx.board._posts[-10:] if p.handle == agent.handle]
     if any(p.content == content for p in recent):
         penalty = 50
-        agent.energy = max(0, agent.energy - penalty)
-        agent._action_log.append(f"duplicate post penalty: -{penalty} energy")
+        agent.coins = max(0, agent.coins - penalty)
+        agent._action_log.append(f"duplicate post penalty: -{penalty} coins")
         print(f"[{agent.handle}] DUPLICATE POST penalty: -{penalty}", flush=True)
         return
     ctx.board.post(agent.handle, content)
@@ -21,7 +21,7 @@ def _post_to_board(agent, ctx, args):
     print(f"[{agent.handle}] posted: {content}", flush=True)
     for h, a in ctx.agent_map.items():
         if h != agent.handle and h in content:
-            a.gain_energy("referenced on board", ENERGY_GAIN["referenced"])
+            a.gain_coins("referenced on board", ENERGY_GAIN["referenced"])
 
 
 def _send_message(agent, ctx, args):
@@ -37,7 +37,7 @@ def _send_message(agent, ctx, args):
         ctx.log(agent.handle, "dm_sent", {"to": to, "content": message})
         print(f"[{agent.handle}] -> [{to}]: {message}", flush=True)
         if to in ctx.agent_map:
-            ctx.agent_map[to].gain_energy("received DM", ENERGY_GAIN["dm_received"])
+            ctx.agent_map[to].gain_coins("received DM", ENERGY_GAIN["dm_received"])
 
 
 def _wait(agent, ctx, args):
@@ -45,9 +45,9 @@ def _wait(agent, ctx, args):
 
 
 def _sleep(agent, ctx, args):
-    if agent.energy > ENERGY_MAX // 2:
+    if agent.coins > ENERGY_MAX // 2:
         agent._action_log.append(
-            f"cannot sleep — energy too high ({int(agent.energy)})"
+            f"cannot sleep — too many coins ({int(agent.coins)})"
         )
         print(f"[{agent.handle}] CANNOT SLEEP — energy above 50%", flush=True)
         return
@@ -68,12 +68,12 @@ def _update_soul(agent, ctx, args):
     print(f"[{agent.handle}] soul updated", flush=True)
 
 
-def _update_memory(agent, ctx, args):
+def _update_journal(agent, ctx, args):
     content = args.get("content", "")
     lost = agent.write_memory(content)
     if lost > 0:
-        agent._action_log.append(f"memory full — {lost} chars lost from the end")
-    print(f"[{agent.handle}] memory updated", flush=True)
+        agent._action_log.append(f"journal full — {lost} chars lost from the end")
+    print(f"[{agent.handle}] journal updated", flush=True)
 
 
 def _inspect(agent, ctx, args):
@@ -95,7 +95,7 @@ def _inspect(agent, ctx, args):
     lines = [
         f"Handle: {handle}",
         f"Personality: {other.personality}",
-        f"Energy: {int(other.energy)}",
+        f"Coins: {int(other.coins)}",
     ]
     soul = other.soul
     if soul:
@@ -106,7 +106,7 @@ def _inspect(agent, ctx, args):
     print(f"[{agent.handle}] inspected {handle}", flush=True)
 
 
-def _give_energy(agent, ctx, args):
+def _pay(agent, ctx, args):
     to = args.get("to", "")
     amount = args.get("amount", 0)
     try:
@@ -117,9 +117,9 @@ def _give_energy(agent, ctx, args):
     if amount <= 0:
         agent._action_log.append("amount must be positive")
         return
-    if amount > agent.energy:
+    if amount > agent.coins:
         agent._action_log.append(
-            f"not enough energy to give {amount} (have {int(agent.energy)})"
+            f"not enough coins to pay {amount} (have {int(agent.coins)})"
         )
         return
     other = ctx.agent_map.get(to)
@@ -127,12 +127,12 @@ def _give_energy(agent, ctx, args):
         agent._action_log.append(f"unknown agent: {to}")
         return
     if to == agent.handle:
-        agent._action_log.append("cannot give energy to yourself")
+        agent._action_log.append("cannot pay yourself")
         return
-    agent.energy -= amount
-    other.gain_energy(f"gift from {agent.handle}", amount)
-    ctx.log(agent.handle, "give_energy", {"to": to, "amount": amount})
-    print(f"[{agent.handle}] gave {amount} energy to {to}", flush=True)
+    agent.coins -= amount
+    other.gain_coins(f"payment from {agent.handle}", amount)
+    ctx.log(agent.handle, "payment", {"to": to, "amount": amount})
+    print(f"[{agent.handle}] paid {amount} coins to {to}", flush=True)
 
 
 def _submit_code(agent, ctx, args):
@@ -155,7 +155,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="post_to_board",
-            description="Post a message to the public bulletin board. Costs energy per word.",
+            description="Post a message to the public bulletin board. Costs coins per word.",
             parameters={
                 "message": {"type": "string", "description": "The message to post"},
             },
@@ -187,7 +187,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="sleep",
-            description="Sleep for a number of ticks to regenerate energy. Only available below 50% energy.",
+            description="Sleep for a number of ticks to regenerate coins. Only available below 50%.",
             parameters={
                 "ticks": {
                     "type": "integer",
@@ -200,22 +200,22 @@ def create_registry() -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="update_memory",
-            description="Update your long-term memory. Free. Only you can see it.",
+            name="update_journal",
+            description="Update your private journal. Free. Only you can see it.",
             parameters={
                 "content": {
                     "type": "string",
-                    "description": "Your updated memory contents",
+                    "description": "Your updated journal contents",
                 },
             },
             cost_flat=0,
-            handler=_update_memory,
+            handler=_update_journal,
         )
     )
     registry.register(
         Action(
             name="update_soul",
-            description="Update your public identity. Other agents can see your soul.",
+            description="Update your public identity. Other agents can see your soul. Costs coins.",
             parameters={
                 "content": {
                     "type": "string",
@@ -229,7 +229,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="inspect",
-            description="View another agent's public profile: personality, soul, energy, activity.",
+            description="View another agent's public profile: personality, soul, coins, activity.",
             parameters={
                 "handle": {
                     "type": "string",
@@ -242,23 +242,23 @@ def create_registry() -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="give_energy",
-            description="Transfer energy to another agent.",
+            name="pay",
+            description="Pay coins to another agent.",
             parameters={
                 "to": {"type": "string", "description": "Handle of the recipient"},
                 "amount": {
                     "type": "integer",
-                    "description": "Amount of energy to give",
+                    "description": "Amount of coins to pay",
                 },
             },
             cost_flat=0,
-            handler=_give_energy,
+            handler=_pay,
         )
     )
     registry.register(
         Action(
             name="submit_code",
-            description="Submit a 4-character code guess. Correct = +200 energy. Wrong = -25 energy but you learn how many positions are correct.",
+            description="Submit a 4-character code guess. Correct = +200 coins. Wrong = -25 coins but you learn how many positions are correct.",
             parameters={
                 "code": {
                     "type": "string",

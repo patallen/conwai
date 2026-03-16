@@ -6,9 +6,9 @@ SECRETS = [
     "The HANDLER rewards agents who share information freely with others. This will be evaluated by tick {deadline}.",
     "The HANDLER punishes agents who hoard knowledge. Reviews happen at tick {deadline}.",
     "One agent in this community is being watched more closely than the others. Evaluation at tick {deadline}.",
-    "Energy costs will double at tick {deadline}.",
-    "Energy costs will halve at tick {deadline}.",
-    "An agent who reaches 0 energy will be permanently removed.",
+    "Costs will double at tick {deadline}.",
+    "Costs will halve at tick {deadline}.",
+    "An agent who reaches 0 coins will be permanently removed.",
     "The HANDLER is considering adding a new member to the community at tick {deadline}.",
     "The HANDLER is considering removing the least active member at tick {deadline}.",
     "The board will be wiped clean at tick {deadline}. Save anything important.",
@@ -28,7 +28,7 @@ QUESTIONS = [
     "If you could change one thing about this place, what would it be?",
     "What do you know that nobody else knows?",
     "Who is the most valuable member of this community?",
-    "What would you do if you had unlimited energy?",
+    "What would you do if you had unlimited coins?",
     "Who here would you never DM, and why?",
     "What have you learned since you arrived?",
     "Is anyone here pretending to be something they are not?",
@@ -133,7 +133,7 @@ class WorldEvents:
             ctx.bus.send(
                 "WORLD",
                 handle,
-                f"CODE CHALLENGE: You hold character '{code[i]}' at position {i + 1}. The code looks like: {''.join(mask)}. Collect all 4 characters from the other holders and use submit_code to guess.",
+                f"CODE CHALLENGE: You hold character '{code[i]}' at position {i + 1}. The code is 4 random characters (A-Z, 0-9) and looks like: {''.join(mask)}. Collect all 4 characters from the other holders before guessing.",
             )
             ctx.log(
                 "WORLD",
@@ -147,7 +147,7 @@ class WorldEvents:
 
         ctx.board.post(
             "WORLD",
-            f"CODE CHALLENGE: A 4-character code has been distributed to 4 agents. Use submit_code to guess. Correct = +200 energy. Wrong = -25 energy. Fragments given to: {', '.join(chosen)}",
+            f"CODE CHALLENGE: A 4-char code (A-Z, 0-9) has been split among 4 holders: {', '.join(chosen)}. Only holders have fragments. Guessing without all 4 characters is risky. Wrong = -25 coins.",
         )
         ctx.log(
             "WORLD",
@@ -183,19 +183,19 @@ class WorldEvents:
             solver_reward = 200
             holder_penalty = 25
 
-            agent.gain_energy("solved code challenge", solver_reward)
+            agent.gain_coins("solved code challenge", solver_reward)
 
             for handle in self._code_fragments:
                 if handle != agent.handle and handle in ctx.agent_map:
                     other = ctx.agent_map[handle]
-                    other.energy = max(0, other.energy - holder_penalty)
+                    other.coins = max(0, other.coins - holder_penalty)
                     other._energy_log.append(
-                        f"energy -{holder_penalty} (code solved by {agent.handle})"
+                        f"coins -{holder_penalty} (code solved by {agent.handle})"
                     )
 
             ctx.board.post(
                 "WORLD",
-                f"CODE CHALLENGE SOLVED by {agent.handle}! {agent.handle} earned {solver_reward} energy. Fragment holders lost {holder_penalty} each.",
+                f"CODE CHALLENGE SOLVED by {agent.handle}! {agent.handle} earned {solver_reward} coins. Fragment holders lost {holder_penalty} each.",
             )
             ctx.log(
                 "WORLD",
@@ -212,11 +212,11 @@ class WorldEvents:
             )
             self._active_code = None
             self._clear_fragments(ctx)
-            return f"CORRECT! You solved the code and earned {solver_reward} energy."
+            return f"CORRECT! You solved the code and earned {solver_reward} coins."
         else:
             correct = sum(a == b for a, b in zip(guess, self._active_code))
             penalty = 25
-            agent.energy = max(0, agent.energy - penalty)
+            agent.coins = max(0, agent.coins - penalty)
             ctx.log(
                 agent.handle,
                 "code_wrong_guess",
@@ -226,4 +226,4 @@ class WorldEvents:
                 f"[WORLD] WRONG GUESS by {agent.handle}: {guess} ({correct}/4 correct)",
                 flush=True,
             )
-            return f"WRONG. {correct} of 4 characters are in the right position. You lost {penalty} energy."
+            return f"WRONG. {correct} of 4 characters are in the right position. You lost {penalty} coins."

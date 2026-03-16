@@ -41,7 +41,7 @@ class AgentRepository:
         alive_path = d / "alive"
         return Agent(
             handle=handle,
-            energy=float(energy_path.read_text().strip())
+            coins=float(energy_path.read_text().strip())
             if energy_path.exists()
             else ENERGY_MAX,
             alive=alive_path.read_text().strip() == "true"
@@ -59,7 +59,7 @@ class AgentRepository:
     def save(self, agent: Agent) -> None:
         d = self._agent_dir(agent.handle)
         d.mkdir(parents=True, exist_ok=True)
-        (d / "energy").write_text(str(agent.energy))
+        (d / "energy").write_text(str(agent.coins))
         (d / "alive").write_text("true" if agent.alive else "false")
         (d / "soul.md").write_text(agent.soul)
         (d / "memory.md").write_text(agent.memory[:MEMORY_MAX])

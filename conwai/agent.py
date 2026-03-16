@@ -45,7 +45,7 @@ class Agent:
     handle: str = field(default_factory=lambda: uuid4().hex[:8])
     core: LLMClient = field(default_factory=LLMClient)
     actions: ActionRegistry = field(default=None, repr=False)
-    energy: float = ENERGY_MAX
+    coins: float = ENERGY_MAX
     context_window: int = CONTEXT_WINDOW
     personality: str = ""
     soul: str = ""
@@ -72,12 +72,12 @@ class Agent:
     def sleep(self, ticks: int) -> None:
         self._sleep_ticks = max(1, min(ticks, 50))
 
-    def gain_energy(self, reason: str, amount: int) -> None:
-        old = self.energy
-        self.energy = self.energy + amount
-        gained = self.energy - old
+    def gain_coins(self, reason: str, amount: int) -> None:
+        old = self.coins
+        self.coins = self.coins + amount
+        gained = self.coins - old
         if gained > 0:
-            self._energy_log.append(f"energy +{int(gained)} ({reason})")
+            self._energy_log.append(f"coins +{int(gained)} ({reason})")
 
     def write_memory(self, content: str) -> int:
         self.memory = content[:MEMORY_MAX]
@@ -94,13 +94,13 @@ class Agent:
                 self._handle_sleep(ctx)
                 return
 
-            if self.energy <= 0:
+            if self.coins <= 0:
                 self.alive = False
                 print(f"[{self.handle}] DEAD — no energy", flush=True)
                 ctx.log(
                     self.handle,
                     "agent_died",
-                    {"reason": "no_energy", "energy": self.energy},
+                    {"reason": "no_energy", "energy": self.coins},
                 )
                 return
 
@@ -117,16 +117,16 @@ class Agent:
 
     def _handle_sleep(self, ctx: Context) -> None:
         self._sleep_ticks -= 1
-        self.gain_energy("sleeping", SLEEP_REGEN_PER_TICK)
+        self.gain_coins("sleeping", SLEEP_REGEN_PER_TICK)
         self.decay_memory()
         print(
-            f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {int(self.energy)})",
+            f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {int(self.coins)})",
             flush=True,
         )
         ctx.log(
             self.handle,
             "sleeping",
-            {"ticks_left": self._sleep_ticks, "energy": self.energy},
+            {"ticks_left": self._sleep_ticks, "energy": self.coins},
         )
 
     def _rebuild_context(self, ctx: Context) -> None:
@@ -146,18 +146,18 @@ class Agent:
         if dms:
             parts.append(dms)
         if self._energy_log:
-            parts.append("Energy changes: " + ". ".join(self._energy_log))
+            parts.append("Coin changes: " + ". ".join(self._energy_log))
             self._energy_log.clear()
         if self.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         tick_content = TICK_TEMPLATE.format(
             tick=ctx.tick,
-            energy=int(self.energy),
+            coins=int(self.coins),
             content="\n\n".join(parts),
         )
         self.messages.append({"role": "user", "content": tick_content})
         print(
-            f"[{self.handle}] context: {len(self.messages)} msgs, energy: {self.energy}",
+            f"[{self.handle}] context: {len(self.messages)} msgs, energy: {self.coins}",
             flush=True,
         )
 
@@ -173,13 +173,7 @@ class Agent:
 
         assistant_msg: dict = {"role": "assistant"}
         if resp.text:
-            if len(resp.text) > MAX_REASONING:
-                assistant_msg["content"] = (
-                    resp.text[:MAX_REASONING]
-                    + "... (truncated — use update_memory to preserve important thoughts)"
-                )
-            else:
-                assistant_msg["content"] = resp.text
+            assistant_msg["content"] = resp.text
         if resp.tool_calls:
             assistant_msg["tool_calls"] = [
                 {
