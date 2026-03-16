@@ -1,6 +1,7 @@
 import asyncio
 import os
 from pathlib import Path
+from uuid import uuid4
 
 from conwai.agent import Agent
 from conwai.config import ENERGY_GAIN, ENERGY_MAX, HEARTBEAT_INTERVAL
@@ -141,8 +142,9 @@ async def main():
     asyncio.create_task(watch_handler_file(ctx))
 
     def make_agent(core: LLMClient, prefix: str) -> Agent:
+        handle = f"{prefix}{uuid4().hex[:3]}"
         agent = repo.create(
-            Agent(core=core, context_window=16000, actions=registry, handle=f"{prefix}0")
+            Agent(core=core, context_window=16000, actions=registry, handle=handle)
         )
         ctx.register_agent(agent)
         return agent
