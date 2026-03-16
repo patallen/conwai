@@ -157,11 +157,9 @@ class Agent:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         if self._compact_needed:
             parts.append(
-                "WARNING: Your memory is almost full. Review your previous "
-                "compacted memory (if any) at the start of your history. "
-                "Think through what to KEEP from it and what to ADD from recent "
-                "events, then call compact() with your updated summary. "
-                "Anything not in your new summary will be lost forever."
+                "WARNING: Your memory is almost full. You must call compact() this turn. Refer to system prompt for "
+                "instructions. Compress to 5000-6000 characters. Carefully and thoroughly think though what you will "
+                "save in plain text before calling compact()."
             )
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),

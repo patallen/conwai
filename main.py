@@ -119,7 +119,7 @@ async def main():
     )
     repo = AgentRepository()
     agents = []
-    for i in range(1, 10):
+    for i in range(1, 11):
         core = qwen9b0 if i <= 5 else qwen9b1
         handle = f"Q{0 if i <= 5 else 1}.{i if i <= 5 else i - 5}"
         try:
