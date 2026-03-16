@@ -119,13 +119,13 @@ async def main():
     )
     repo = AgentRepository()
     agents = []
-    for i in range(1, 12):
-        core = qwen4b0 if i <= 6 else qwen4b1
-        handle = f"Q{0 if i <= 6 else 1}.{i if i <= 6 else i - 6}"
+    for i in range(1, 10):
+        core = qwen9b0 if i <= 5 else qwen9b1
+        handle = f"Q{0 if i <= 5 else 1}.{i if i <= 5 else i - 5}"
         try:
             agent = repo.create(
                 Agent(
-                    core=core, context_window=16000, actions=registry, handle=handle
+                    core=core, context_window=24_000, actions=registry, handle=handle
                 )
             )
             agents.append(agent)
@@ -153,6 +153,16 @@ async def main():
         ctx.tick += 1
         Path("data/tick").write_text(str(ctx.tick))
         world.tick(ctx)
+
+        # Daily tax: 1% of coins every 24 ticks
+        if ctx.tick % 24 == 0:
+            for agent in agents:
+                if agent.alive and agent.coins > 0:
+                    tax = max(1, int(agent.coins * 0.01))
+                    agent.coins -= tax
+                    agent._energy_log.append(f"coins -{tax} (daily tax)")
+            ctx.log("WORLD", "tax", {"tick": ctx.tick})
+            print(f"[WORLD] daily tax collected (tick {ctx.tick})", flush=True)
 
         for i, agent in enumerate(agents):
             if not agent.alive:
