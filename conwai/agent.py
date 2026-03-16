@@ -60,6 +60,7 @@ class Agent:
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
     _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
     _sleep_ticks: int = field(default=0, init=False, repr=False)
+    _compact_needed: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
         if not self.personality:
@@ -130,12 +131,21 @@ class Agent:
         )
 
     def _rebuild_context(self, ctx: Context) -> None:
-        turn_count = 0
+        # Count turns (user messages) in context
+        turn_count = sum(1 for m in self.messages if m["role"] == "user")
+
+        # Check if compaction is needed (at 80% of context window)
+        compact_threshold = int(self.context_window * 0.8)
+        if turn_count >= compact_threshold and not self._compact_needed:
+            self._compact_needed = True
+
+        # Hard trim if over window (safety net if agent didn't compact)
         cut = 0
+        tc = 0
         for i in range(len(self.messages) - 1, -1, -1):
             if self.messages[i]["role"] == "user":
-                turn_count += 1
-                if turn_count > self.context_window:
+                tc += 1
+                if tc > self.context_window:
                     cut = i
                     break
         self.messages = self.messages[cut:]
@@ -150,6 +160,11 @@ class Agent:
             self._energy_log.clear()
         if self.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
+        if self._compact_needed:
+            parts.append(
+                "WARNING: Your memory is almost full. Use compact() to summarize "
+                "what matters before your oldest memories are lost forever."
+            )
         tick_content = TICK_TEMPLATE.format(
             tick=ctx.tick,
             coins=int(self.coins),
@@ -157,7 +172,7 @@ class Agent:
         )
         self.messages.append({"role": "user", "content": tick_content})
         print(
-            f"[{self.handle}] context: {len(self.messages)} msgs, energy: {self.coins}",
+            f"[{self.handle}] context: {len(self.messages)} msgs ({turn_count} turns), coins: {self.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}",
             flush=True,
         )
 
@@ -217,8 +232,4 @@ class Agent:
         return prompt + "\n\n" + self._build_state_block()
 
     def _build_state_block(self) -> str:
-        parts = [
-            SOUL_TEMPLATE.format(soul=self.soul or "(empty)"),
-            MEMORY_TEMPLATE.format(memory=self.memory or "(empty)"),
-        ]
-        return "\n\n".join(parts)
+        return SOUL_TEMPLATE.format(soul=self.soul or "(empty)")

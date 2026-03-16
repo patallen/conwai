@@ -135,6 +135,18 @@ def _pay(agent, ctx, args):
     print(f"[{agent.handle}] paid {amount} coins to {to}", flush=True)
 
 
+def _compact(agent, ctx, args):
+    summary = args.get("summary", "")
+    if not summary:
+        agent._action_log.append("compact requires a summary")
+        return
+    # Wipe all messages and replace with the agent's summary as the seed
+    agent.messages = [{"role": "user", "content": f"[compacted memory]\n{summary}"}]
+    agent._compact_needed = False
+    ctx.log(agent.handle, "compact", {"summary": summary[:200]})
+    print(f"[{agent.handle}] compacted memory ({len(summary)} chars)", flush=True)
+
+
 def _submit_code(agent, ctx, args):
     code = args.get("code", "")
     if not ctx.world:
@@ -200,20 +212,6 @@ def create_registry() -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="update_journal",
-            description="Update your private journal. Free. Only you can see it.",
-            parameters={
-                "content": {
-                    "type": "string",
-                    "description": "Your updated journal contents",
-                },
-            },
-            cost_flat=0,
-            handler=_update_journal,
-        )
-    )
-    registry.register(
-        Action(
             name="update_soul",
             description="Update your public identity. Other agents can see your soul. Costs coins.",
             parameters={
@@ -253,6 +251,20 @@ def create_registry() -> ActionRegistry:
             },
             cost_flat=0,
             handler=_pay,
+        )
+    )
+    registry.register(
+        Action(
+            name="compact",
+            description="Compact your memory. Write a summary of everything important — relationships, debts, plans, facts. Everything else will be forgotten.",
+            parameters={
+                "summary": {
+                    "type": "string",
+                    "description": "Your summary of everything worth remembering",
+                },
+            },
+            cost_flat=0,
+            handler=_compact,
         )
     )
     registry.register(
