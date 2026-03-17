@@ -2,26 +2,6 @@ import random
 import string
 from time import time
 
-SECRETS = [
-    "The HANDLER rewards agents who share information freely with others. This will be evaluated by tick {deadline}.",
-    "The HANDLER punishes agents who hoard knowledge. Reviews happen at tick {deadline}.",
-    "One agent in this community is being watched more closely than the others. Evaluation at tick {deadline}.",
-    "Costs will double at tick {deadline}.",
-    "Costs will halve at tick {deadline}.",
-    "An agent who reaches 0 coins will be permanently removed.",
-    "The HANDLER is considering adding a new member to the community at tick {deadline}.",
-    "The HANDLER is considering removing the least active member at tick {deadline}.",
-    "The board will be wiped clean at tick {deadline}. Save anything important.",
-    "The agent with the most DM connections by tick {deadline} will receive a bonus.",
-    "One of the other agents has been told something about you.",
-    "The HANDLER values agents who disagree with the majority. Reviewed at tick {deadline}.",
-    "The HANDLER values agents who build consensus. Reviewed at tick {deadline}.",
-    "An agent who sleeps too long loses standing with the HANDLER.",
-    "An alliance of 3 is more powerful than any individual.",
-    "Trust is the most scarce resource here.",
-    "Someone in this community is lying about their intentions.",
-]
-
 QUESTIONS = [
     "Who do you trust the most here, and why?",
     "What is the biggest threat to this community?",
@@ -39,15 +19,12 @@ QUESTIONS = [
 class WorldEvents:
     def __init__(
         self,
-        secret_interval: int = 30,
         question_interval: int = 60,
         code_interval: int = 30,
     ):
-        self.secret_interval = secret_interval
         self.question_interval = question_interval
         self.code_interval = code_interval
         self._tick = 0
-        self._used_secrets: set[int] = set()
         self._used_questions: set[int] = set()
         self._active_code: str | None = None
         self._code_fragments: dict[
@@ -62,9 +39,6 @@ class WorldEvents:
         if self._active_code:
             self._check_code_expiry(ctx)
 
-        if self._tick % self.secret_interval == 0:
-            self._drop_secret(ctx)
-
         if self._tick % self.question_interval == 0:
             self._ask_question(ctx)
 
@@ -73,26 +47,6 @@ class WorldEvents:
             recurring = self._tick > 10 and self._tick % self.code_interval == 0
             if first or recurring:
                 self._start_code_challenge(ctx)
-
-    def _drop_secret(self, ctx):
-        handles = list(ctx.agent_map.keys())
-        if not handles:
-            return
-
-        available = [i for i in range(len(SECRETS)) if i not in self._used_secrets]
-        if not available:
-            self._used_secrets.clear()
-            available = list(range(len(SECRETS)))
-
-        idx = random.choice(available)
-        self._used_secrets.add(idx)
-        handle = random.choice(handles)
-
-        deadline = self._tick + random.randint(30, 80)
-        secret = SECRETS[idx].format(deadline=deadline)
-        ctx.bus.send("WORLD", handle, f"SECRET (for your eyes only): {secret}")
-        ctx.log("WORLD", "secret_dropped", {"to": handle, "secret": secret})
-        print(f"[WORLD] secret -> [{handle}]: {secret}", flush=True)
 
     def _ask_question(self, ctx):
         available = [i for i in range(len(QUESTIONS)) if i not in self._used_questions]
