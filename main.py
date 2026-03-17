@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import os
+import sys
 from pathlib import Path
 from uuid import uuid4
 
@@ -11,6 +13,22 @@ from conwai.app import Context
 from conwai.llm import LLMClient
 from conwai.repository import AgentRepository
 from conwai.world import WorldEvents
+
+log = logging.getLogger("conwai")
+
+
+def setup_logging():
+    fmt = logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S")
+    log.setLevel(logging.INFO)
+
+    console = logging.StreamHandler(sys.stdout)
+    console.setFormatter(fmt)
+    log.addHandler(console)
+
+    Path("data").mkdir(exist_ok=True)
+    fh = logging.FileHandler("data/sim.log")
+    fh.setFormatter(fmt)
+    log.addHandler(fh)
 
 HANDLER_FILE = Path("handler_input.txt")
 
@@ -44,10 +62,7 @@ async def watch_handler_file(ctx: Context):
                                 "remaining": ctx.agent_map[handle].coins,
                             },
                         )
-                        print(
-                            f"[HANDLER] drained {handle} by {amount}, now {ctx.agent_map[handle].coins}",
-                            flush=True,
-                        )
+                        log.info(f"[HANDLER] drained {handle} by {amount}, now {ctx.agent_map[handle].coins}")
                 elif line.startswith("!set_energy "):
                     parts = line.split()
                     if len(parts) >= 3 and parts[1] in ctx.agent_map:
@@ -58,24 +73,21 @@ async def watch_handler_file(ctx: Context):
                             "set_energy",
                             {"handle": handle, "energy": ctx.agent_map[handle].coins},
                         )
-                        print(
-                            f"[HANDLER] set {handle} energy to {ctx.agent_map[handle].coins}",
-                            flush=True,
-                        )
+                        log.info(f"[HANDLER] set {handle} energy to {ctx.agent_map[handle].coins}")
                 elif line.startswith("!secret "):
                     parts = line.split(" ", 2)
                     if len(parts) >= 3 and parts[1] in ctx.agent_map:
                         handle, content = parts[1], parts[2]
                         ctx.bus.send("WORLD", handle, content)
                         ctx.log("WORLD", "secret_dropped", {"to": handle, "content": content})
-                        print(f"[HANDLER] dropped secret to {handle}: {content}", flush=True)
+                        log.info(f"[HANDLER] dropped secret to {handle}: {content}")
                 elif line.startswith("@"):
                     parts = line.split(" ", 1)
                     handle = parts[0][1:]
                     msg = parts[1] if len(parts) > 1 else ""
                     ctx.bus.send("HANDLER", handle, msg)
                     ctx.log("HANDLER", "dm_sent", {"to": handle, "content": msg})
-                    print(f"[HANDLER] -> [{handle}]: {msg}", flush=True)
+                    log.info(f"[HANDLER] -> [{handle}]: {msg}")
                     if handle in ctx.agent_map:
                         ctx.agent_map[handle].gain_coins(
                             "HANDLER attention", ENERGY_GAIN["dm_received"]
@@ -83,12 +95,13 @@ async def watch_handler_file(ctx: Context):
                 else:
                     ctx.board.post("HANDLER", line)
                     ctx.log("HANDLER", "board_post", {"content": line})
-                    print(f"[HANDLER]: {line}", flush=True)
+                    log.info(f"[HANDLER]: {line}")
             last_size = current_size
         await asyncio.sleep(0.5)
 
 
 async def main():
+    setup_logging()
     ctx = Context()
 
     registry = create_registry()
@@ -162,7 +175,7 @@ async def main():
                     agent.coins -= tax
                     agent._energy_log.append(f"coins -{tax} (daily tax)")
             ctx.log("WORLD", "tax", {"tick": ctx.tick})
-            print(f"[WORLD] daily tax collected (tick {ctx.tick})", flush=True)
+            log.info(f"[WORLD] daily tax collected (tick {ctx.tick})")
 
         for i, agent in enumerate(agents):
             if not agent.alive:
@@ -173,7 +186,7 @@ async def main():
                     "WORLD",
                     f"{agent.handle} has died. A new member is joining.",
                 )
-                print(f"[WORLD] {agent.handle} DIED", flush=True)
+                log.info(f"[WORLD] {agent.handle} DIED")
                 replacement = make_agent(agent.core, agent.handle[0])
                 agents[i] = replacement
                 ctx.board.post("WORLD", f"New member {replacement.handle} has joined.")
@@ -182,10 +195,7 @@ async def main():
                     "agent_spawned",
                     {"handle": replacement.handle, "replaced": agent.handle},
                 )
-                print(
-                    f"[WORLD] {replacement.handle} spawned (replacing {agent.handle})",
-                    flush=True,
-                )
+                log.info(f"[WORLD] {replacement.handle} spawned (replacing {agent.handle})")
                 continue
 
             task = active.get(agent.handle)
@@ -198,7 +208,7 @@ async def main():
                     repo.save(a)
                     elapsed = time.monotonic() - start
                     ticks_spanned = (ctx.tick - t)
-                    print(f"[{a.handle}] tick {t} took {elapsed:.1f}s, spanned {ticks_spanned} world ticks", flush=True)
+                    log.info(f"[{a.handle}] tick {t} took {elapsed:.1f}s, spanned {ticks_spanned} world ticks")
 
                 active[agent.handle] = asyncio.create_task(tick_and_save())
 

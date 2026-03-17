@@ -1,6 +1,9 @@
+import logging
 import random
 
 from conwai.actions import Action, ActionRegistry
+
+log = logging.getLogger("conwai")
 from conwai.config import (
     ENERGY_COST_FLAT,
     ENERGY_COST_PER_WORD,
@@ -16,11 +19,11 @@ def _post_to_board(agent, ctx, args):
         penalty = 50
         agent.coins = max(0, agent.coins - penalty)
         agent._action_log.append(f"duplicate post penalty: -{penalty} coins")
-        print(f"[{agent.handle}] DUPLICATE POST penalty: -{penalty}", flush=True)
+        log.info(f"[{agent.handle}] DUPLICATE POST penalty: -{penalty}")
         return
     ctx.board.post(agent.handle, content)
     ctx.log(agent.handle, "board_post", {"content": content})
-    print(f"[{agent.handle}] posted: {content}", flush=True)
+    log.info(f"[{agent.handle}] posted: {content}")
     for h, a in ctx.agent_map.items():
         if h != agent.handle and h in content:
             a.gain_coins("referenced on board", ENERGY_GAIN["referenced"])
@@ -37,18 +40,18 @@ def _send_message(agent, ctx, args):
     err = ctx.bus.send(agent.handle, to, message)
     if err:
         agent._action_log.append(f"DM failed: {err}")
-        print(f"[{agent.handle}] SEND FAILED: {err}", flush=True)
+        log.info(f"[{agent.handle}] SEND FAILED: {err}")
     else:
         agent._dm_sent_this_tick = True
         agent.record_dm(ctx.tick, f"you → {to}: {message}")
         ctx.log(agent.handle, "dm_sent", {"to": to, "content": message})
-        print(f"[{agent.handle}] -> [{to}]: {message}", flush=True)
+        log.info(f"[{agent.handle}] -> [{to}]: {message}")
         if to in ctx.agent_map:
             ctx.agent_map[to].gain_coins("received DM", ENERGY_GAIN["dm_received"])
 
 
 def _wait(agent, ctx, args):
-    print(f"[{agent.handle}] waiting", flush=True)
+    log.info(f"[{agent.handle}] waiting")
 
 
 def _sleep(agent, ctx, args):
@@ -56,7 +59,7 @@ def _sleep(agent, ctx, args):
         agent._action_log.append(
             f"cannot sleep — too many coins ({int(agent.coins)})"
         )
-        print(f"[{agent.handle}] CANNOT SLEEP — energy above 50%", flush=True)
+        log.info(f"[{agent.handle}] CANNOT SLEEP — energy above 50%")
         return
     ticks = args.get("ticks", 5)
     try:
@@ -65,14 +68,14 @@ def _sleep(agent, ctx, args):
         ticks = 5
     agent.sleep(ticks)
     ctx.log(agent.handle, "sleep", {"ticks": ticks})
-    print(f"[{agent.handle}] sleeping for {ticks} ticks", flush=True)
+    log.info(f"[{agent.handle}] sleeping for {ticks} ticks")
 
 
 def _update_soul(agent, ctx, args):
     content = args.get("content", "")
     agent.soul = content
     ctx.log(agent.handle, "soul_updated", {"content": content})
-    print(f"[{agent.handle}] soul updated", flush=True)
+    log.info(f"[{agent.handle}] soul updated")
 
 
 def _update_journal(agent, ctx, args):
@@ -80,25 +83,17 @@ def _update_journal(agent, ctx, args):
     lost = agent.write_memory(content)
     if lost > 0:
         agent._action_log.append(f"journal full — {lost} chars lost from the end")
-    print(f"[{agent.handle}] journal updated", flush=True)
+    log.info(f"[{agent.handle}] journal updated")
 
 
 def _inspect(agent, ctx, args):
     handle = args.get("handle", "")
     other = ctx.agent_map.get(handle)
     if not other:
-        print(f"[{agent.handle}] inspect failed: unknown agent {handle}", flush=True)
+        log.info(f"[{agent.handle}] inspect failed: unknown agent {handle}")
         return
-    events = ctx.events.read_all() if hasattr(ctx.events, "read_all") else []
-    posts = sum(
-        1 for e in events if e.get("entity") == handle and e.get("type") == "board_post"
-    )
-    dms = sum(
-        1 for e in events if e.get("entity") == handle and e.get("type") == "dm_sent"
-    )
-    sleeps = sum(
-        1 for e in events if e.get("entity") == handle and e.get("type") == "sleeping"
-    )
+    posts = ctx.events.count_by_entity_type(handle, "board_post")
+    dms = ctx.events.count_by_entity_type(handle, "dm_sent")
     forage_labels = {1: "poor", 2: "below average", 3: "decent", 4: "excellent"}
     lines = [
         f"Handle: {handle}",
@@ -111,10 +106,10 @@ def _inspect(agent, ctx, args):
     soul = other.soul
     if soul:
         lines.append(f"Soul: {soul[:200]}")
-    lines.append(f"Activity: {posts} posts, {dms} DMs sent, {sleeps} sleeps")
+    lines.append(f"Activity: {posts} posts, {dms} DMs sent")
     agent._action_log.append(f"Inspect {handle}:\n" + "\n".join(lines))
     ctx.log(agent.handle, "inspect", {"target": handle})
-    print(f"[{agent.handle}] inspected {handle}", flush=True)
+    log.info(f"[{agent.handle}] inspected {handle}")
 
 
 def _pay(agent, ctx, args):
@@ -146,7 +141,7 @@ def _pay(agent, ctx, args):
     agent.record_ledger(ctx.tick, f"paid {amount} coins to {to}")
     other.record_ledger(ctx.tick, f"received {amount} coins from {agent.handle}")
     ctx.log(agent.handle, "payment", {"to": to, "amount": amount})
-    print(f"[{agent.handle}] paid {amount} coins to {to}", flush=True)
+    log.info(f"[{agent.handle}] paid {amount} coins to {to}")
 
 
 def _forage(agent, ctx, args):
@@ -158,7 +153,7 @@ def _forage(agent, ctx, args):
         agent._action_log.append(f"foraged {amount} food (inventory now {agent.food}). Foraging takes your full attention — no other actions this tick.")
     agent._foraging = True
     ctx.log(agent.handle, "forage", {"amount": amount, "food": agent.food})
-    print(f"[{agent.handle}] foraged {amount} food (inventory: {agent.food})", flush=True)
+    log.info(f"[{agent.handle}] foraged {amount} food (inventory: {agent.food})")
 
 
 def _give_food(agent, ctx, args):
@@ -189,7 +184,7 @@ def _give_food(agent, ctx, args):
     agent.record_ledger(ctx.tick, f"gave {amount} food to {to}")
     other.record_ledger(ctx.tick, f"received {amount} food from {agent.handle}")
     ctx.log(agent.handle, "give_food", {"to": to, "amount": amount})
-    print(f"[{agent.handle}] gave {amount} food to {to}", flush=True)
+    log.info(f"[{agent.handle}] gave {amount} food to {to}")
 
 
 _COMPACT_MAX = 2000
@@ -218,7 +213,7 @@ def _compact(agent, ctx, args):
         feedback += " Good — within target range (5000-6000)."
     agent._action_log.append(feedback)
     ctx.log(agent.handle, "compact", {"summary": summary, "chars": char_count, "original_chars": original_len})
-    print(f"[{agent.handle}] compacted memory ({char_count} chars{f', truncated from {original_len}' if original_len > _COMPACT_MAX else ''})", flush=True)
+    log.info(f"[{agent.handle}] compacted memory ({char_count} chars{f', truncated from {original_len}' if original_len > _COMPACT_MAX else ''})")
 
 
 def _submit_code(agent, ctx, args):
@@ -233,7 +228,7 @@ def _submit_code(agent, ctx, args):
         "code_submitted",
         {"guess": code.strip(), "result": result},
     )
-    print(f"[{agent.handle}] submit_code '{code.strip()}': {result}", flush=True)
+    log.info(f"[{agent.handle}] submit_code '{code.strip()}': {result}")
 
 
 def create_registry() -> ActionRegistry:

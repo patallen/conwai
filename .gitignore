@@ -18,6 +18,10 @@ wheels/
 # Runtime data
 data/agents/
 data/events.jsonl
+data/events.db
+data/events.db-wal
+data/events.db-shm
+data/sim.log
 data/tick
 handler_input.txt
 .superpowers/

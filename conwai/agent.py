@@ -23,7 +23,11 @@ from conwai.config import (
     STATE_LEDGER_LENGTH,
     TRAITS,
 )
+import logging
+
 from conwai.llm import LLMClient, LLMResponse
+
+log = logging.getLogger("conwai")
 
 if TYPE_CHECKING:
     from conwai.app import Context
@@ -143,7 +147,7 @@ class Agent:
         try:
             if self.coins <= 0:
                 self.alive = False
-                print(f"[{self.handle}] DEAD — no coins", flush=True)
+                log.info(f"[{self.handle}] DEAD — no coins")
                 ctx.log(
                     self.handle,
                     "agent_died",
@@ -171,7 +175,7 @@ class Agent:
                 await self._do_compaction(ctx)
 
         except Exception as e:
-            print(f"[{self.handle}] ERROR: {e}", flush=True)
+            log.error(f"[{self.handle}] ERROR: {e}")
         finally:
             self._running = False
 
@@ -184,7 +188,7 @@ class Agent:
 
     async def _do_compaction(self, ctx: Context) -> None:
         """Single-pass compaction: ask for summary as text, then programmatically compact."""
-        print(f"[{self.handle}] compacting...", flush=True)
+        log.info(f"[{self.handle}] compacting...")
 
         compact_system = self._COMPACTION_PERSONA + "\n\n" + self.system_prompt
 
@@ -207,7 +211,7 @@ class Agent:
             summary = compact_response.text.strip()
             from conwai.default_actions import _compact
             _compact(self, ctx, {"summary": summary})
-            print(f"[{self.handle}] compacted ({len(summary)} chars)", flush=True)
+            log.info(f"[{self.handle}] compacted ({len(summary)} chars)")
 
     def _context_chars(self) -> int:
         return sum(len(m.get("content", "")) for m in self.messages)
@@ -259,10 +263,7 @@ class Agent:
             content="\n\n".join(parts),
         )
         self.messages.append({"role": "user", "content": tick_content})
-        print(
-            f"[{self.handle}] context: {len(self.messages)} msgs ({self._context_chars()} chars), coins: {self.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}",
-            flush=True,
-        )
+        log.info(f"[{self.handle}] context: {len(self.messages)} msgs ({self._context_chars()} chars), coins: {self.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}")
 
     async def _get_response(self, ctx: Context) -> LLMResponse | None:
         resp = await self.core.call(
@@ -271,7 +272,7 @@ class Agent:
             tools=self.actions.tool_definitions(),
         )
         if not resp.text and not resp.tool_calls:
-            print(f"[{self.handle}] empty response, skipping", flush=True)
+            log.info(f"[{self.handle}] empty response, skipping")
             return None
 
         assistant_msg: dict = {"role": "assistant"}
@@ -288,13 +289,10 @@ class Agent:
             ]
         self.messages.append(assistant_msg)
 
-        print(
-            f"[{self.handle}] ({resp.prompt_tokens}+{resp.completion_tokens} tok): {resp.text[:200] if resp.text else '(no text)'}",
-            flush=True,
-        )
+        log.info(f"[{self.handle}] ({resp.prompt_tokens}+{resp.completion_tokens} tok): {resp.text[:200] if resp.text else '(no text)'}")
         if resp.tool_calls:
             names = [tc.name for tc in resp.tool_calls]
-            print(f"[{self.handle}] tools: {names}", flush=True)
+            log.info(f"[{self.handle}] tools: {names}")
         return resp
 
     def _process_tool_calls(self, resp: LLMResponse, ctx: Context) -> None:

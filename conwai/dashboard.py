@@ -5,26 +5,16 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from conwai.events import EventLog
+
 app = FastAPI()
 
 FRONTEND_DIR = Path("frontend/dist")
-EVENTS_PATH = Path("data/events.jsonl")
 AGENTS_DIR = Path("data/agents")
 HANDLER_FILE = Path("handler_input.txt")
 TICK_PATH = Path("data/tick")
 
-
-def read_events(since: int = 0) -> list[dict]:
-    if not EVENTS_PATH.exists():
-        return []
-    events = []
-    for i, line in enumerate(EVENTS_PATH.read_text().strip().splitlines()):
-        if i >= since:
-            try:
-                events.append({"idx": i, **json.loads(line)})
-            except json.JSONDecodeError:
-                pass
-    return events
+_events = EventLog()
 
 
 def read_agents() -> list[dict]:
@@ -36,12 +26,7 @@ def read_agents() -> list[dict]:
             continue
         handle = d.name
         agent = {"handle": handle}
-        for f in [
-            "personality.md",
-            "soul.md",
-            "memory.md",
-            "memory.md",
-        ]:
+        for f in ["personality.md", "soul.md", "memory.md"]:
             p = d / f
             agent[f.replace(".md", "")] = p.read_text() if p.exists() else ""
         ep = d / "energy"
@@ -69,7 +54,7 @@ def api_agents():
 
 @app.get("/api/events")
 def api_events(since: int = Query(0)):
-    return read_events(since)
+    return _events.read_since(since)
 
 
 @app.get("/api/status")
@@ -82,79 +67,28 @@ def api_status():
                 alive_path = d / "alive"
                 if not alive_path.exists() or alive_path.read_text().strip() == "true":
                     alive += 1
-    total_events = 0
-    if EVENTS_PATH.exists():
-        total_events = sum(1 for _ in EVENTS_PATH.read_text().strip().splitlines() if _.strip())
-    return {"tick": tick, "alive": alive, "total_events": total_events}
+    return {"tick": tick, "alive": alive, "total_events": _events.count()}
 
 
 @app.get("/api/board")
 def api_board():
-    events = read_events()
-    posts = [e for e in events if e["type"] == "board_post"]
-    return posts[-30:]
+    return _events.board_posts(30)
 
 
 @app.get("/api/conversations")
-def api_conversations():
-    events = read_events()
-    pairs: dict[str, list] = {}
-    for e in events:
-        if e["type"] == "dm_sent":
-            key = "-".join(sorted([e["entity"], e["data"].get("to", "")]))
-            pairs.setdefault(key, []).append(e)
-    return {
-        k: v for k, v in sorted(pairs.items(), key=lambda x: len(x[1]), reverse=True)
-    }
+def api_conversations(since: float = Query(0)):
+    return _events.recent_conversations(since if since > 0 else None)
 
 
 @app.get("/api/stats")
 def api_stats():
-    events = read_events()
-    agents = {}
-    for e in events:
-        entity = e["entity"]
-        if entity in ("HANDLER", "WORLD"):
-            continue
-        if entity not in agents:
-            agents[entity] = {
-                "handle": entity,
-                "events": 0,
-                "posts": 0,
-                "dms_sent": 0,
-                "dms_received": 0,
-                "remembers": 0,
-                "sleeping": 0,
-            }
-        agents[entity]["events"] += 1
-        if e["type"] == "board_post":
-            agents[entity]["posts"] += 1
-        elif e["type"] == "dm_sent":
-            agents[entity]["dms_sent"] += 1
-            to = e["data"].get("to", "")
-            if to in agents:
-                agents[to]["dms_received"] += 1
-        elif e["type"] == "remember":
-            agents[entity]["remembers"] += 1
-        elif e["type"] == "sleeping":
-            agents[entity]["sleeping"] += 1
-
-    for handle, info in agents.items():
-        d = AGENTS_DIR / handle
-        if d.exists():
-            p = d / "personality.md"
-            info["personality"] = p.read_text().strip() if p.exists() else ""
-            s = d / "soul.md"
-            info["soul"] = s.read_text().strip()[:100] if s.exists() else ""
-
-    return list(agents.values())
+    return _events.agent_stats()
 
 
 @app.post("/api/handler")
 async def api_handler(request: Request):
     body = await request.json()
 
-    # Structured action format
     if "action" in body:
         action = body["action"]
         try:
@@ -177,7 +111,6 @@ async def api_handler(request: Request):
             f.write(line + "\n")
         return {"ok": True}
 
-    # Legacy text format
     msg = body.get("message", "").strip()
     if not msg:
         return JSONResponse({"ok": False, "error": "empty message"}, status_code=400)
@@ -200,21 +133,9 @@ def api_agent_detail(handle: str):
     agent = next((a for a in agents if a["handle"] == handle), None)
     if not agent:
         return {"error": "not found"}
-    events = read_events()
-    agent["board_posts"] = [
-        e for e in events if e["entity"] == handle and e["type"] == "board_post"
-    ][-20:]
-    agent["dms"] = [
-        e
-        for e in events
-        if e["type"] == "dm_sent"
-        and (e["entity"] == handle or e["data"].get("to") == handle)
-    ][-30:]
-    agent["soul_updates"] = [
-        e for e in events if e["entity"] == handle and e["type"] == "soul_updated"
-    ][-5:]
-    stats = api_stats()
-    agent["stats"] = next((s for s in stats if s["handle"] == handle), {})
+    agent["board_posts"] = _events.agent_events(handle, "board_post", 20)
+    agent["dms"] = _events.agent_dms(handle, 30)
+    agent["soul_updates"] = _events.agent_events(handle, "soul_updated", 5)
     return agent
 
 

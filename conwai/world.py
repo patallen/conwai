@@ -1,6 +1,9 @@
+import logging
 import random
 import string
 from time import time
+
+log = logging.getLogger("conwai")
 
 QUESTIONS = [
     "Who do you trust the most here, and why?",
@@ -60,7 +63,7 @@ class WorldEvents:
         question = QUESTIONS[idx]
         ctx.board.post("WORLD", f"QUESTION FOR ALL: {question}")
         ctx.log("WORLD", "question_posted", {"question": question})
-        print(f"[WORLD] question: {question}", flush=True)
+        log.info(f"[WORLD] question: {question}")
 
     def _start_code_challenge(self, ctx):
         handles = list(ctx.agent_map.keys())
@@ -108,7 +111,7 @@ class WorldEvents:
             "code_challenge_started",
             {"code": code, "holders": chosen},
         )
-        print(f"[WORLD] code challenge started: {code}", flush=True)
+        log.info(f"[WORLD] code challenge started: {code}")
 
     def _clear_fragments(self, ctx):
         for handle in self._code_fragments:
@@ -124,7 +127,7 @@ class WorldEvents:
                 "CODE CHALLENGE EXPIRED. No one claimed it.",
             )
             ctx.log("WORLD", "code_expired", {"code": self._active_code})
-            print(f"[WORLD] code challenge expired: {self._active_code}", flush=True)
+            log.info(f"[WORLD] code challenge expired: {self._active_code}")
             self._active_code = None
             self._clear_fragments(ctx)
 

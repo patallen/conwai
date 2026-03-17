@@ -2,7 +2,7 @@ import { useMemo, useCallback, useRef, useEffect, useState } from 'react'
 import ForceGraph2D, { type ForceGraphMethods, type NodeObject, type LinkObject } from 'react-force-graph-2d'
 import { useSimulation, useUIState, useUIDispatch } from '../../api/hooks'
 import { getAgentColor } from '../../api/colors'
-import type { Agent, SimEvent } from '../../api/types'
+import type { Agent } from '../../api/types'
 
 const RECENCY_WINDOW_S = 10
 const EDGE_FADE_S = 60
@@ -37,8 +37,18 @@ export function SocialGraph() {
   const conversationsRef = useRef(conversations)
   conversationsRef.current = conversations
 
-  const eventsRef = useRef<SimEvent[]>(events)
-  eventsRef.current = events
+  // Pre-compute recently active agents once per poll, not per frame
+  const recentlyActiveRef = useRef<Set<string>>(new Set())
+  recentlyActiveRef.current = useMemo(() => {
+    const now = Date.now() / 1000
+    const active = new Set<string>()
+    for (const e of events) {
+      if (e.entity && (now - e.t) < RECENCY_WINDOW_S) {
+        active.add(e.entity)
+      }
+    }
+    return active
+  }, [events])
 
   const maxEnergyRef = useRef(1)
   maxEnergyRef.current = agents.reduce((max, a) => Math.max(max, a.energy ?? 0), 1)
@@ -91,6 +101,7 @@ export function SocialGraph() {
   // paintLink decides which edges to actually draw based on conversationsRef.
   const agentKeys = agents.map(a => a.handle).sort().join(',')
   const fadingKeys = Array.from(fadingAgents.keys()).sort().join(',')
+  const convoKeys = Object.keys(conversations).sort().join(',')
 
   const graphData = useMemo(() => {
     const handleSet = new Set(agents.map(a => a.handle))
@@ -101,17 +112,18 @@ export function SocialGraph() {
       color: getAgentColor(handle),
     }))
 
-    // Create all possible pairs so links never need to be added later
+    // Only create links for pairs with actual conversations
     const links: GLink[] = []
-    for (let i = 0; i < allHandles.length; i++) {
-      for (let j = i + 1; j < allHandles.length; j++) {
-        links.push({ source: allHandles[i], target: allHandles[j] })
+    for (const key of Object.keys(conversations)) {
+      const [a, b] = key.split('-')
+      if (a && b) {
+        links.push({ source: a, target: b })
       }
     }
 
     return { nodes, links }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentKeys, fadingKeys])
+  }, [agentKeys, fadingKeys, convoKeys])
 
   // Configure forces when graph data first populates
   const forcesConfigured = useRef(false)
@@ -177,11 +189,7 @@ export function SocialGraph() {
       ctx.globalAlpha = Math.max(0, 1 - elapsed / 3000)
     }
 
-    // Compute recency at draw time
-    const now = Date.now() / 1000
-    const recentlyActive = eventsRef.current.some(
-      e => e.entity === node.id && (now - e.t) < RECENCY_WINDOW_S
-    )
+    const recentlyActive = recentlyActiveRef.current.has(node.id as string)
 
     // Glow effect for active nodes
     if (recentlyActive) {
@@ -260,11 +268,7 @@ export function SocialGraph() {
           const tgt = link.target as GNode
           const srcId = typeof src === 'string' ? src : src.id as string
           const tgtId = typeof tgt === 'string' ? tgt : tgt.id as string
-          const key = [srcId, tgtId].sort().join('-')
-          const msgs = conversationsRef.current[key]
-          if (!msgs?.length) return 0
-          const age = Date.now() / 1000 - msgs[msgs.length - 1].t
-          return age < RECENCY_WINDOW_S ? 3 : 0
+          return (recentlyActiveRef.current.has(srcId) || recentlyActiveRef.current.has(tgtId)) ? 3 : 0
         }}
         linkDirectionalParticleSpeed={0.01}
         linkDirectionalParticleColor={() => 'rgba(167, 139, 250, 0.6)'}
