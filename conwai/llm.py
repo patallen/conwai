@@ -35,6 +35,8 @@ class LLMClient:
     def __post_init__(self):
         self._client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
 
+    max_tokens: int | None = 8192
+
     async def call(
         self, system: str, messages: list[dict], tools: list[dict] | None = None
     ) -> LLMResponse:
@@ -45,6 +47,8 @@ class LLMClient:
             "temperature": 0.7,
             "extra_body": self.extra_body,
         }
+        if self.max_tokens:
+            kwargs["max_tokens"] = self.max_tokens
         if tools:
             kwargs["tools"] = tools
         response = await self._client.chat.completions.create(**kwargs)
