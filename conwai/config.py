@@ -66,8 +66,17 @@ HUNGER_DECAY_PER_TICK = CFG.get("hunger_decay_per_tick", 3)
 HUNGER_AUTO_EAT_THRESHOLD = CFG.get("hunger_auto_eat_threshold", 80)
 HUNGER_EAT_RESTORE = CFG.get("hunger_eat_restore", 15)
 HUNGER_STARVE_COIN_PENALTY = CFG.get("hunger_starve_coin_penalty", 10)
-FOOD_FORAGE_YIELD = CFG.get("food_forage_yield", (0, 4))  # min, max (overridden by agent forage_skill)
-FORAGE_SKILLS = CFG.get("forage_skills", [1, 2, 2, 3, 3, 3, 4, 4])  # max yields, one per agent
+
+# Roles and foraging
+ROLES = ["flour_forager", "water_forager", "baker"]
+FORAGE_SKILL_BY_ROLE = CFG.get("forage_skill_by_role", {
+    "flour_forager": {"flour": 4, "water": 1},
+    "water_forager": {"flour": 1, "water": 4},
+    "baker": {"flour": 1, "water": 1},
+})
+STARTING_BREAD = CFG.get("starting_bread", 5)
+BAKE_COST = CFG.get("bake_cost", {"flour": 1, "water": 1})  # inputs per bake
+BAKE_YIELD = CFG.get("bake_yield", 2)  # bread produced per bake
 
 # State window sizes (shown in system prompt)
 STATE_BOARD_LENGTH = CFG.get("state_board_length", 10)

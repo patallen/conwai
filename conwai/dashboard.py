@@ -31,12 +31,13 @@ def read_agents() -> list[dict]:
             agent[f.replace(".md", "")] = p.read_text() if p.exists() else ""
         ep = d / "energy"
         agent["energy"] = int(float(ep.read_text().strip())) if ep.exists() else None
-        fp = d / "food"
-        agent["food"] = int(fp.read_text().strip()) if fp.exists() else None
+        rp = d / "role"
+        agent["role"] = rp.read_text().strip() if rp.exists() else None
+        for resource in ["flour", "water", "bread"]:
+            rp = d / resource
+            agent[resource] = int(rp.read_text().strip()) if rp.exists() else 0
         hp = d / "hunger"
         agent["hunger"] = int(hp.read_text().strip()) if hp.exists() else None
-        fsp = d / "forage_skill"
-        agent["forage_skill"] = int(fsp.read_text().strip()) if fsp.exists() else None
         alive_path = d / "alive"
         agent["alive"] = (
             alive_path.read_text().strip() == "true" if alive_path.exists() else True

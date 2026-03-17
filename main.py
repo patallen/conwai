@@ -1,13 +1,14 @@
 import asyncio
 import logging
 import os
+import random
 import sys
 import time
 from pathlib import Path
 from uuid import uuid4
 
 from conwai.agent import Agent
-from conwai.config import ENERGY_GAIN, ENERGY_MAX
+from conwai.config import ENERGY_GAIN, ENERGY_MAX, STARTING_BREAD
 from conwai.default_actions import create_registry
 from conwai.app import Context
 
@@ -136,12 +137,15 @@ async def main():
     )
     repo = AgentRepository()
     agents = []
+    roles = ["flour_forager", "water_forager", "baker", "baker"]
     for i in range(1, 5):
         handle = f"Q{i}"
+        role = roles[i - 1]
         try:
             agent = repo.create(
                 Agent(
-                    core=qwen27b, compactor=qwen27b, context_window=10_000, actions=registry, handle=handle
+                    core=qwen27b, compactor=qwen27b, context_window=10_000,
+                    actions=registry, handle=handle, role=role, bread=STARTING_BREAD,
                 )
             )
             agents.append(agent)
@@ -156,10 +160,13 @@ async def main():
 
     asyncio.create_task(watch_handler_file(ctx))
 
-    def make_agent(core: LLMClient, prefix: str) -> Agent:
+    def make_agent(core: LLMClient, prefix: str, role: str = "") -> Agent:
         handle = f"{prefix}{uuid4().hex[:3]}"
+        if not role:
+            role = random.choice(["flour_forager", "water_forager", "baker"])
         agent = repo.create(
-            Agent(core=core, context_window=16000, actions=registry, handle=handle)
+            Agent(core=core, compactor=qwen27b, context_window=10_000,
+                  actions=registry, handle=handle, role=role)
         )
         ctx.register_agent(agent)
         return agent
@@ -190,7 +197,7 @@ async def main():
                     f"{agent.handle} has died. A new member is joining.",
                 )
                 log.info(f"[WORLD] {agent.handle} DIED")
-                replacement = make_agent(agent.core, agent.handle[0])
+                replacement = make_agent(agent.core, agent.handle[0], role=agent.role)
                 agents[i] = replacement
                 ctx.board.post("WORLD", f"New member {replacement.handle} has joined.")
                 ctx.log(

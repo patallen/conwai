@@ -5,10 +5,13 @@ from conwai.actions import Action, ActionRegistry
 
 log = logging.getLogger("conwai")
 from conwai.config import (
+    BAKE_COST,
+    BAKE_YIELD,
     ENERGY_COST_FLAT,
     ENERGY_COST_PER_WORD,
     ENERGY_GAIN,
     ENERGY_MAX,
+    FORAGE_SKILL_BY_ROLE,
 )
 
 
@@ -94,14 +97,14 @@ def _inspect(agent, ctx, args):
         return
     posts = ctx.events.count_by_entity_type(handle, "board_post")
     dms = ctx.events.count_by_entity_type(handle, "dm_sent")
-    forage_labels = {1: "poor", 2: "below average", 3: "decent", 4: "excellent"}
+    role_labels = {"flour_forager": "flour forager", "water_forager": "water forager", "baker": "baker"}
     lines = [
         f"Handle: {handle}",
+        f"Role: {role_labels.get(other.role, other.role)}",
         f"Personality: {other.personality}",
         f"Coins: {int(other.coins)}",
         f"Hunger: {other.hunger}/100",
-        f"Food inventory: {other.food}",
-        f"Foraging ability: {forage_labels.get(other.forage_skill, 'unknown')}",
+        f"Flour: {other.flour}, Water: {other.water}, Bread: {other.bread}",
     ]
     soul = other.soul
     if soul:
@@ -145,18 +148,27 @@ def _pay(agent, ctx, args):
 
 
 def _forage(agent, ctx, args):
-    amount = random.randint(0, agent.forage_skill)
-    agent.food += amount
-    if amount == 0:
-        agent._action_log.append("foraged but found nothing. Foraging takes your full attention — no other actions this tick.")
+    skills = FORAGE_SKILL_BY_ROLE.get(agent.role, {"flour": 1, "water": 1})
+    flour = random.randint(0, skills["flour"])
+    water = random.randint(0, skills["water"])
+    agent.flour += flour
+    agent.water += water
+    parts = []
+    if flour > 0:
+        parts.append(f"{flour} flour")
+    if water > 0:
+        parts.append(f"{water} water")
+    if parts:
+        agent._action_log.append(f"foraged {', '.join(parts)}. Foraging takes your full attention — no other actions this tick.")
     else:
-        agent._action_log.append(f"foraged {amount} food (inventory now {agent.food}). Foraging takes your full attention — no other actions this tick.")
+        agent._action_log.append("foraged but found nothing. Foraging takes your full attention — no other actions this tick.")
     agent._foraging = True
-    ctx.log(agent.handle, "forage", {"amount": amount, "food": agent.food})
-    log.info(f"[{agent.handle}] foraged {amount} food (inventory: {agent.food})")
+    ctx.log(agent.handle, "forage", {"flour": flour, "water": water})
+    log.info(f"[{agent.handle}] foraged {flour} flour, {water} water")
 
 
-def _give_food(agent, ctx, args):
+def _give(agent, ctx, args):
+    resource = args.get("resource", "")
     to = args.get("to", "")
     amount = args.get("amount", 0)
     try:
@@ -167,24 +179,46 @@ def _give_food(agent, ctx, args):
     if amount <= 0:
         agent._action_log.append("amount must be positive")
         return
-    if amount > agent.food:
-        agent._action_log.append(f"not enough food to give {amount} (have {agent.food})")
+    if resource not in ("flour", "water", "bread"):
+        agent._action_log.append(f"invalid resource: {resource}. Must be flour, water, or bread.")
+        return
+    have = getattr(agent, resource)
+    if amount > have:
+        agent._action_log.append(f"not enough {resource} to give {amount} (have {have})")
         return
     other = ctx.agent_map.get(to)
     if not other:
         agent._action_log.append(f"unknown agent: {to}")
         return
     if to == agent.handle:
-        agent._action_log.append("cannot give food to yourself")
+        agent._action_log.append("cannot give to yourself")
         return
-    agent.food -= amount
-    other.food += amount
-    agent._action_log.append(f"sent {amount} food to {to} (your food: {agent.food})")
-    other._energy_log.append(f"received {amount} food from {agent.handle} (your food: {other.food})")
-    agent.record_ledger(ctx.tick, f"gave {amount} food to {to}")
-    other.record_ledger(ctx.tick, f"received {amount} food from {agent.handle}")
-    ctx.log(agent.handle, "give_food", {"to": to, "amount": amount})
-    log.info(f"[{agent.handle}] gave {amount} food to {to}")
+    setattr(agent, resource, have - amount)
+    setattr(other, resource, getattr(other, resource) + amount)
+    agent._action_log.append(f"gave {amount} {resource} to {to}")
+    other._energy_log.append(f"received {amount} {resource} from {agent.handle}")
+    agent.record_ledger(ctx.tick, f"gave {amount} {resource} to {to}")
+    other.record_ledger(ctx.tick, f"received {amount} {resource} from {agent.handle}")
+    ctx.log(agent.handle, "give", {"to": to, "resource": resource, "amount": amount})
+    log.info(f"[{agent.handle}] gave {amount} {resource} to {to}")
+
+
+def _bake(agent, ctx, args):
+    if agent.role != "baker":
+        agent._action_log.append("only bakers can bake")
+        return
+    flour_needed = BAKE_COST["flour"]
+    water_needed = BAKE_COST["water"]
+    if agent.flour < flour_needed or agent.water < water_needed:
+        agent._action_log.append(f"need {flour_needed} flour and {water_needed} water to bake (have {agent.flour} flour, {agent.water} water)")
+        return
+    agent.flour -= flour_needed
+    agent.water -= water_needed
+    agent.bread += BAKE_YIELD
+    agent._action_log.append(f"baked {BAKE_YIELD} bread (flour: {agent.flour}, water: {agent.water}, bread: {agent.bread}). Baking takes your full attention — no other actions this tick.")
+    agent._foraging = True  # reuse foraging flag to block other actions
+    ctx.log(agent.handle, "bake", {"bread": BAKE_YIELD, "flour": agent.flour, "water": agent.water})
+    log.info(f"[{agent.handle}] baked {BAKE_YIELD} bread")
 
 
 _COMPACT_MAX = 2000
@@ -327,7 +361,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="forage",
-            description="Spend this tick searching for food. Yield depends on your foraging ability (you may find nothing). THIS TAKES YOUR ENTIRE TICK — you cannot DM, post, or do anything else.",
+            description="Spend this tick searching for flour and water. Yield depends on your role. THIS TAKES YOUR ENTIRE TICK.",
             parameters={},
             cost_flat=0,
             handler=_forage,
@@ -335,17 +369,27 @@ def create_registry() -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="give_food",
-            description="Give food to another agent. Visible on inspect.",
+            name="bake",
+            description="Turn 1 flour + 1 water into 2 bread. Only bakers can do this. Bread is the only thing that satisfies hunger. THIS TAKES YOUR ENTIRE TICK.",
+            parameters={},
+            cost_flat=0,
+            handler=_bake,
+        )
+    )
+    registry.register(
+        Action(
+            name="give",
+            description="Give flour, water, or bread to another agent.",
             parameters={
+                "resource": {"type": "string", "description": "What to give: flour, water, or bread"},
                 "to": {"type": "string", "description": "Handle of the recipient"},
                 "amount": {
                     "type": "integer",
-                    "description": "Amount of food to give",
+                    "description": "Amount to give",
                 },
             },
             cost_flat=0,
-            handler=_give_food,
+            handler=_give,
         )
     )
     registry.register(

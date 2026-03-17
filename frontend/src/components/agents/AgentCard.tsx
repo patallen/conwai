@@ -68,7 +68,9 @@ export function AgentCard({ agent, events, maxEnergy, selected, onClick }: Agent
         <span style={{ color: 'var(--text-secondary)', fontSize: 11, marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <span>{agent.energy != null ? agent.energy : '?'}c</span>
           <span style={{ color: hungerColor }}>{agent.hunger != null ? agent.hunger : '?'}h</span>
-          <span style={{ color: 'var(--text-secondary)' }}>{agent.food != null ? agent.food : '?'}f</span>
+          <span style={{ color: '#c8a' }}>{agent.flour}F</span>
+          <span style={{ color: '#48c' }}>{agent.water}W</span>
+          <span style={{ color: '#ca4' }}>{agent.bread}B</span>
         </span>
       </div>
       <div style={{ display: 'flex', gap: 2, margin: '4px 0' }}>

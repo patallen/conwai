@@ -53,11 +53,13 @@ export function AgentDetail() {
         }}>
           {agent.handle}
         </span>
-        <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{agent.personality}</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{agent.role} · {agent.personality}</span>
         <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)', fontSize: 12, display: 'flex', gap: 12 }}>
           <span>coins: <span style={{ color: 'var(--text-primary)' }}>{agent.energy ?? '?'}</span></span>
           <span>hunger: <span style={{ color: 'var(--text-primary)' }}>{agent.hunger ?? '?'}/100</span></span>
-          <span>food: <span style={{ color: 'var(--text-primary)' }}>{agent.food ?? '?'}</span></span>
+          <span>flour: <span style={{ color: '#c8a' }}>{agent.flour}</span></span>
+          <span>water: <span style={{ color: '#48c' }}>{agent.water}</span></span>
+          <span>bread: <span style={{ color: '#ca4' }}>{agent.bread}</span></span>
         </span>
         <button
           onClick={() => dispatch({ type: 'OPEN_CONTROL_PANEL', prefill: { action: 'send_dm', to: agent.handle } as any })}

@@ -12,7 +12,6 @@ from conwai.actions import ActionRegistry
 from conwai.config import (
     CONTEXT_WINDOW,
     ENERGY_MAX,
-    FORAGE_SKILLS,
     HUNGER_MAX,
     HUNGER_DECAY_PER_TICK,
     HUNGER_AUTO_EAT_THRESHOLD,
@@ -40,7 +39,6 @@ SOUL_TEMPLATE = (PROMPTS_DIR / "soul.md").read_text()
 MEMORY_TEMPLATE = (PROMPTS_DIR / "memory.md").read_text()
 
 _available_traits = set(TRAITS)
-_available_forage_skills = list(FORAGE_SKILLS)
 
 
 def assign_traits(n: int = 2) -> list[str]:
@@ -49,14 +47,6 @@ def assign_traits(n: int = 2) -> list[str]:
     chosen = random.sample(sorted(_available_traits), n)
     _available_traits.difference_update(chosen)
     return chosen
-
-
-def assign_forage_skill() -> int:
-    global _available_forage_skills
-    if not _available_forage_skills:
-        _available_forage_skills = list(FORAGE_SKILLS)
-    idx = random.randrange(len(_available_forage_skills))
-    return _available_forage_skills.pop(idx)
 
 
 MAX_REASONING = 200
@@ -69,9 +59,11 @@ class Agent:
     compactor: LLMClient | None = field(default=None, repr=False)
     actions: ActionRegistry = field(default=None, repr=False)
     coins: float = ENERGY_MAX
-    food: int = 0  # inventory — foraged, traded, given
-    hunger: int = HUNGER_MAX  # survival stat — ticks down, auto-eats food
-    forage_skill: int = 0  # max forage yield (0 = assign at init)
+    role: str = ""  # flour_forager, water_forager, baker
+    flour: int = 0
+    water: int = 0
+    bread: int = 0
+    hunger: int = HUNGER_MAX
     context_window: int = CONTEXT_WINDOW
     personality: str = ""
     soul: str = ""
@@ -95,8 +87,6 @@ class Agent:
     def __post_init__(self):
         if not self.personality:
             self.personality = ", ".join(assign_traits())
-        if not self.forage_skill:
-            self.forage_skill = assign_forage_skill()
 
     @property
     def is_running(self) -> bool:
@@ -157,14 +147,14 @@ class Agent:
                 )
                 return
 
-            # Hunger ticks down, auto-eat food if available
+            # Hunger ticks down, auto-eat bread if available
             self.hunger = max(0, self.hunger - HUNGER_DECAY_PER_TICK)
-            if self.hunger <= HUNGER_AUTO_EAT_THRESHOLD and self.food > 0:
-                self.food -= 1
+            if self.hunger <= HUNGER_AUTO_EAT_THRESHOLD and self.bread > 0:
+                self.bread -= 1
                 self.hunger = min(HUNGER_MAX, self.hunger + HUNGER_EAT_RESTORE)
             if self.hunger == 0:
                 self.coins = max(0, self.coins - HUNGER_STARVE_COIN_PENALTY)
-                self._energy_log.append(f"coins -{HUNGER_STARVE_COIN_PENALTY} (starving — no food)")
+                self._energy_log.append(f"coins -{HUNGER_STARVE_COIN_PENALTY} (starving — no bread)")
 
             self._rebuild_context(ctx)
             msg_count_before = len(self.messages)
@@ -279,12 +269,14 @@ class Agent:
         if self.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         if self.hunger <= 30:
-            parts.append(f"You are hungry (hunger: {self.hunger}/100, food: {self.food}). If hunger reaches 0 you starve and lose {HUNGER_STARVE_COIN_PENALTY} coins per tick. You eat food automatically but need to forage or trade for more.")
+            parts.append(f"WARNING: You are hungry (hunger: {self.hunger}/100, bread: {self.bread}). If hunger reaches 0 you starve and lose {HUNGER_STARVE_COIN_PENALTY} coins per tick. You eat bread automatically but need to bake or trade for more.")
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),
             coins=int(self.coins),
             hunger=self.hunger,
-            food=self.food,
+            flour=self.flour,
+            water=self.water,
+            bread=self.bread,
             content="\n\n".join(parts),
         )
         self.messages.append({"role": "user", "content": tick_content})
@@ -358,12 +350,17 @@ class Agent:
         return f"Day {day}, {display_hour}:00 {period}"
 
     def _build_system_prompt(self) -> str:
-        forage_labels = {1: "poor", 2: "below average", 3: "decent", 4: "excellent"}
+        from conwai.config import FORAGE_SKILL_BY_ROLE
+        fs = FORAGE_SKILL_BY_ROLE
+        role_descriptions = {
+            "flour_forager": f"You are a flour forager. When you forage you find 0-{fs['flour_forager']['flour']} flour and 0-{fs['flour_forager']['water']} water. You cannot bake.",
+            "water_forager": f"You are a water forager. When you forage you find 0-{fs['water_forager']['flour']} flour and 0-{fs['water_forager']['water']} water. You cannot bake.",
+            "baker": f"You are a baker. You turn 1 flour + 1 water into 2 bread (the only food that satisfies hunger). You forage poorly (0-{fs['baker']['flour']} flour, 0-{fs['baker']['water']} water).",
+        }
         prompt = SYSTEM_TEMPLATE.format(
             handle=self.handle,
             personality=self.personality,
-            forage_ability=forage_labels.get(self.forage_skill, "unknown"),
-            forage_max=self.forage_skill,
+            role_description=role_descriptions.get(self.role, "unknown role"),
         )
         parts = [prompt, self._build_state_block()]
         state = self._format_state_sections()

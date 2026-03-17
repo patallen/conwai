@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from conwai.config import ENERGY_MAX, FORAGE_SKILLS, HUNGER_MAX, MEMORY_MAX
+from conwai.config import ENERGY_MAX, HUNGER_MAX, MEMORY_MAX
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
@@ -26,6 +26,10 @@ class AgentRepository:
     def exists(self, handle: str) -> bool:
         return self._agent_dir(handle).exists()
 
+    def _read(self, d: Path, name: str, default: str = "") -> str:
+        p = d / name
+        return p.read_text().strip() if p.exists() else default
+
     def load(self, handle: str) -> Agent | None:
         from conwai.agent import Agent
 
@@ -37,45 +41,32 @@ class AgentRepository:
             context = json.loads(ctx_path.read_text())
         else:
             context = {"system": "", "messages": []}
-        energy_path = d / "energy"
-        food_path = d / "food"
-        hunger_path = d / "hunger"
-        alive_path = d / "alive"
-        forage_path = d / "forage_skill"
         return Agent(
             handle=handle,
-            coins=float(energy_path.read_text().strip())
-            if energy_path.exists()
-            else ENERGY_MAX,
-            food=int(food_path.read_text().strip())
-            if food_path.exists()
-            else 0,
-            hunger=int(hunger_path.read_text().strip())
-            if hunger_path.exists()
-            else HUNGER_MAX,
-            alive=alive_path.read_text().strip() == "true"
-            if alive_path.exists()
-            else True,
-            forage_skill=int(forage_path.read_text().strip())
-            if forage_path.exists()
-            else 0,
+            coins=float(self._read(d, "energy", str(ENERGY_MAX))),
+            role=self._read(d, "role"),
+            flour=int(self._read(d, "flour", "0")),
+            water=int(self._read(d, "water", "0")),
+            bread=int(self._read(d, "bread", "0")),
+            hunger=int(self._read(d, "hunger", str(HUNGER_MAX))),
+            alive=self._read(d, "alive", "true") == "true",
             system_prompt=context["system"],
             messages=context["messages"],
-            soul=(d / "soul.md").read_text() if (d / "soul.md").exists() else "",
-            memory=(d / "memory.md").read_text() if (d / "memory.md").exists() else "",
-            personality=(d / "personality.md").read_text()
-            if (d / "personality.md").exists()
-            else "",
+            soul=self._read(d, "soul.md"),
+            memory=self._read(d, "memory.md"),
+            personality=self._read(d, "personality.md"),
         )
 
     def save(self, agent: Agent) -> None:
         d = self._agent_dir(agent.handle)
         d.mkdir(parents=True, exist_ok=True)
         (d / "energy").write_text(str(agent.coins))
-        (d / "food").write_text(str(agent.food))
+        (d / "role").write_text(agent.role)
+        (d / "flour").write_text(str(agent.flour))
+        (d / "water").write_text(str(agent.water))
+        (d / "bread").write_text(str(agent.bread))
         (d / "hunger").write_text(str(agent.hunger))
         (d / "alive").write_text("true" if agent.alive else "false")
-        (d / "forage_skill").write_text(str(agent.forage_skill))
         (d / "soul.md").write_text(agent.soul)
         (d / "memory.md").write_text(agent.memory[:MEMORY_MAX])
         (d / "personality.md").write_text(agent.personality)
