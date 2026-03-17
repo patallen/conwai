@@ -2,8 +2,7 @@
 
 start:
 	uv run uvicorn conwai.dashboard:app --host 0.0.0.0 --port 8000 --reload &
-	cd frontend && npm run dev &
-	@sleep 1
+	cd frontend && npm run dev & @sleep 1
 	uv run python main.py
 
 run:
@@ -26,6 +25,7 @@ stop:
 clean:
 	rm -rf data/agents
 	: > data/events.jsonl
+	: > data/sim.log
 	: > handler_input.txt
 
 restart: stop clean
