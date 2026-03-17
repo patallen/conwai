@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import random
 from dataclasses import dataclass, field
@@ -65,6 +66,7 @@ MAX_REASONING = 200
 class Agent:
     handle: str = field(default_factory=lambda: uuid4().hex[:8])
     core: LLMClient = field(default_factory=LLMClient)
+    compactor: LLMClient | None = field(default=None, repr=False)
     actions: ActionRegistry = field(default=None, repr=False)
     coins: float = ENERGY_MAX
     food: int = 0  # inventory — foraged, traded, given
@@ -165,12 +167,14 @@ class Agent:
                 self._energy_log.append(f"coins -{HUNGER_STARVE_COIN_PENALTY} (starving — no food)")
 
             self._rebuild_context(ctx)
+            msg_count_before = len(self.messages)
             llm_response = await self._get_response(ctx)
             if not llm_response:
                 return
             self._process_tool_calls(llm_response, ctx)
 
-            # Two-pass compaction
+            await self._summarize_tick(ctx, msg_count_before)
+
             if self._compact_needed:
                 await self._do_compaction(ctx)
 
@@ -179,6 +183,32 @@ class Agent:
         finally:
             self._running = False
 
+
+    async def _summarize_tick(self, ctx: Context, msg_count_before: int) -> None:
+        """Use the compactor model to condense this tick's messages into a brief summary."""
+        compactor = self.compactor
+        if not compactor:
+            return
+        # Collect the tick input + all assistant/tool messages from this tick
+        tick_messages = self.messages[msg_count_before - 1:]  # include the tick user msg
+        if len(tick_messages) <= 1:
+            return
+        text = "\n".join(
+            m.get("content", "") or ""
+            for m in tick_messages
+            if m.get("content")
+        )
+        resp = await compactor.call(
+            "Summarize what you did this tick as a short memory. Write in first person. 1-3 sentences. Include actions, results, and anything important you learned.",
+            [{"role": "user", "content": text}],
+            tools=None,
+        )
+        if resp and resp.text:
+            summary = resp.text.strip()
+            # Replace tick messages with the summary
+            del self.messages[msg_count_before - 1:]
+            self.messages.append({"role": "user", "content": f"[{self._tick_to_timestamp(ctx.tick)}] {summary}"})
+            log.info(f"[{self.handle}] tick summarized ({len(summary)} chars)")
 
     _COMPACTION_PERSONA = (
         "You are a meticulous archivist. Your job is to preserve important information "
@@ -202,7 +232,7 @@ class Agent:
                 "Anything you don't write here will be lost forever. Be concise but complete."
             ),
         })
-        compact_response = await self.core.call(
+        compact_response = await (self.compactor or self.core).call(
             compact_system,
             self.messages,
             tools=None,
@@ -219,12 +249,11 @@ class Agent:
     def _rebuild_context(self, ctx: Context) -> None:
         char_count = self._context_chars()
 
-        # Warn at 40% of context window, hard trim at 100%
-        warn_threshold = int(self.context_window * 0.4)
-        if char_count >= warn_threshold and not self._compact_needed:
+        # Compact at 60% of context window, hard trim at 100%
+        if char_count >= int(self.context_window * 0.60) and not self._compact_needed:
             self._compact_needed = True
 
-        # Hard trim: drop oldest messages until under limit
+        # Hard trim: drop oldest messages if over limit
         while self._context_chars() > self.context_window and len(self.messages) > 1:
             self.messages.pop(0)
         self.system_prompt = self._build_system_prompt()
@@ -251,10 +280,6 @@ class Agent:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         if self.hunger <= 30:
             parts.append(f"You are hungry (hunger: {self.hunger}/100, food: {self.food}). If hunger reaches 0 you starve and lose {HUNGER_STARVE_COIN_PENALTY} coins per tick. You eat food automatically but need to forage or trade for more.")
-        if self._compact_needed:
-            parts.append(
-                "WARNING: Your memory is almost full. Compaction will begin after you act this tick."
-            )
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),
             coins=int(self.coins),
@@ -290,6 +315,8 @@ class Agent:
         self.messages.append(assistant_msg)
 
         log.info(f"[{self.handle}] ({resp.prompt_tokens}+{resp.completion_tokens} tok): {resp.text[:200] if resp.text else '(no text)'}")
+        if resp.completion_tokens >= 2000:
+            log.warning(f"[{self.handle}] RUNAWAY ({resp.completion_tokens} tok): {resp.text[:500]}")
         if resp.tool_calls:
             names = [tc.name for tc in resp.tool_calls]
             log.info(f"[{self.handle}] tools: {names}")

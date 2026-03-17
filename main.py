@@ -2,11 +2,12 @@ import asyncio
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 from uuid import uuid4
 
 from conwai.agent import Agent
-from conwai.config import ENERGY_GAIN, ENERGY_MAX, HEARTBEAT_INTERVAL
+from conwai.config import ENERGY_GAIN, ENERGY_MAX
 from conwai.default_actions import create_registry
 from conwai.app import Context
 
@@ -112,10 +113,10 @@ async def main():
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-4B-AWQ"
     )
     qwen9b0 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
+        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048
     )
     qwen9b1 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ"
+        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048
     )
     qwen14b = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3-14B-AWQ"
@@ -130,15 +131,17 @@ async def main():
         api_key=os.environ.get("GOOGLE_AI_API_KEY", ""),
         extra_body={},
     )
+    qwen27b = LLMClient(  # noqa: F841
+        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048
+    )
     repo = AgentRepository()
     agents = []
-    for i in range(1, 9):
-        core = qwen9b0 if i <= 4 else qwen9b1
-        handle = f"Q{0 if i <= 4 else 1}.{i if i <= 4 else i - 4}"
+    for i in range(1, 5):
+        handle = f"Q{i}"
         try:
             agent = repo.create(
                 Agent(
-                    core=core, context_window=16_000, actions=registry, handle=handle
+                    core=qwen27b, compactor=qwen27b, context_window=10_000, actions=registry, handle=handle
                 )
             )
             agents.append(agent)
@@ -151,7 +154,6 @@ async def main():
     world = WorldEvents()
     ctx.world = world
 
-    active: dict[str, asyncio.Task] = {}
     asyncio.create_task(watch_handler_file(ctx))
 
     def make_agent(core: LLMClient, prefix: str) -> Agent:
@@ -164,6 +166,7 @@ async def main():
 
     while True:
         ctx.tick += 1
+        tick_start = time.monotonic()
         Path("data/tick").write_text(str(ctx.tick))
         world.tick(ctx)
 
@@ -196,23 +199,23 @@ async def main():
                     {"handle": replacement.handle, "replaced": agent.handle},
                 )
                 log.info(f"[WORLD] {replacement.handle} spawned (replacing {agent.handle})")
+
+        tasks = []
+        for agent in agents:
+            if not agent.alive:
                 continue
 
-            task = active.get(agent.handle)
-            if task is None or task.done():
+            async def tick_and_save(a=agent, t=ctx.tick):
+                start = time.monotonic()
+                await a.tick(ctx)
+                repo.save(a)
+                elapsed = time.monotonic() - start
+                log.info(f"[{a.handle}] tick {t} took {elapsed:.1f}s")
 
-                async def tick_and_save(a=agent, t=ctx.tick):
-                    import time
-                    start = time.monotonic()
-                    await a.tick(ctx)
-                    repo.save(a)
-                    elapsed = time.monotonic() - start
-                    ticks_spanned = (ctx.tick - t)
-                    log.info(f"[{a.handle}] tick {t} took {elapsed:.1f}s, spanned {ticks_spanned} world ticks")
+            tasks.append(asyncio.create_task(tick_and_save()))
 
-                active[agent.handle] = asyncio.create_task(tick_and_save())
-
-        await asyncio.sleep(HEARTBEAT_INTERVAL)
+        await asyncio.gather(*tasks)
+        log.info(f"[WORLD] tick {ctx.tick} completed in {time.monotonic() - tick_start:.1f}s")
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ stop:
 
 clean:
 	rm -rf data/agents
-	: > data/events.jsonl
+	rm -f data/events.db data/events.db-wal data/events.db-shm
 	: > data/sim.log
 	: > handler_input.txt
 

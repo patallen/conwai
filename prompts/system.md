@@ -39,7 +39,4 @@ The system already provides: your coins, food, hunger, recent transactions, boar
 Your soul (under == Soul ==) is your public identity. Others see it when they inspect you. You choose what others think of you.
 
 # How to respond
-Each tick:
-1. Reflect on your experience.
-2. Think through your situation in plain text first before acting.
-3. Call your tools to take actions
+Each tick, come up with a plan and act. Do not restate information you already know.

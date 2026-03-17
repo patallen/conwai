@@ -112,11 +112,11 @@ export function SocialGraph() {
       color: getAgentColor(handle),
     }))
 
-    // Only create links for pairs with actual conversations
+    // Only create links for pairs where both agents exist as nodes
     const links: GLink[] = []
     for (const key of Object.keys(conversations)) {
       const [a, b] = key.split('-')
-      if (a && b) {
+      if (a && b && handleSet.has(a) && handleSet.has(b)) {
         links.push({ source: a, target: b })
       }
     }
