@@ -125,7 +125,7 @@ async def main():
         try:
             agent = repo.create(
                 Agent(
-                    core=core, context_window=24_000, actions=registry, handle=handle
+                    core=core, context_window=16_000, actions=registry, handle=handle
                 )
             )
             agents.append(agent)
@@ -191,9 +191,14 @@ async def main():
             task = active.get(agent.handle)
             if task is None or task.done():
 
-                async def tick_and_save(a=agent):
+                async def tick_and_save(a=agent, t=ctx.tick):
+                    import time
+                    start = time.monotonic()
                     await a.tick(ctx)
                     repo.save(a)
+                    elapsed = time.monotonic() - start
+                    ticks_spanned = (ctx.tick - t)
+                    print(f"[{a.handle}] tick {t} took {elapsed:.1f}s, spanned {ticks_spanned} world ticks", flush=True)
 
                 active[agent.handle] = asyncio.create_task(tick_and_save())
 
