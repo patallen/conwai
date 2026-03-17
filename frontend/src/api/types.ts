@@ -4,6 +4,8 @@ export interface Agent {
   soul: string
   memory: string
   energy: number | null
+  food: number | null
+  hunger: number | null
   alive: boolean
 }
 

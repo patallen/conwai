@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from conwai.config import ENERGY_MAX, MEMORY_MAX
+from conwai.config import ENERGY_MAX, HUNGER_MAX, MEMORY_MAX
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
@@ -38,12 +38,20 @@ class AgentRepository:
         else:
             context = {"system": "", "messages": []}
         energy_path = d / "energy"
+        food_path = d / "food"
+        hunger_path = d / "hunger"
         alive_path = d / "alive"
         return Agent(
             handle=handle,
             coins=float(energy_path.read_text().strip())
             if energy_path.exists()
             else ENERGY_MAX,
+            food=int(food_path.read_text().strip())
+            if food_path.exists()
+            else 0,
+            hunger=int(hunger_path.read_text().strip())
+            if hunger_path.exists()
+            else HUNGER_MAX,
             alive=alive_path.read_text().strip() == "true"
             if alive_path.exists()
             else True,
@@ -60,6 +68,8 @@ class AgentRepository:
         d = self._agent_dir(agent.handle)
         d.mkdir(parents=True, exist_ok=True)
         (d / "energy").write_text(str(agent.coins))
+        (d / "food").write_text(str(agent.food))
+        (d / "hunger").write_text(str(agent.hunger))
         (d / "alive").write_text("true" if agent.alive else "false")
         (d / "soul.md").write_text(agent.soul)
         (d / "memory.md").write_text(agent.memory[:MEMORY_MAX])

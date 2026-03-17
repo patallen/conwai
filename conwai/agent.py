@@ -11,6 +11,11 @@ from conwai.actions import ActionRegistry
 from conwai.config import (
     CONTEXT_WINDOW,
     ENERGY_MAX,
+    HUNGER_MAX,
+    HUNGER_DECAY_PER_TICK,
+    HUNGER_AUTO_EAT_THRESHOLD,
+    HUNGER_EAT_RESTORE,
+    HUNGER_STARVE_COIN_PENALTY,
     MEMORY_MAX,
     SLEEP_REGEN_PER_TICK,
     TRAITS,
@@ -46,6 +51,8 @@ class Agent:
     core: LLMClient = field(default_factory=LLMClient)
     actions: ActionRegistry = field(default=None, repr=False)
     coins: float = ENERGY_MAX
+    food: int = 0  # inventory — foraged, traded, given
+    hunger: int = HUNGER_MAX  # survival stat — ticks down, auto-eats food
     context_window: int = CONTEXT_WINDOW
     personality: str = ""
     soul: str = ""
@@ -62,6 +69,7 @@ class Agent:
     _sleep_ticks: int = field(default=0, init=False, repr=False)
     _compact_needed: bool = field(default=False, init=False, repr=False)
     _dm_sent_this_tick: bool = field(default=False, init=False, repr=False)
+    _foraging: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
         if not self.personality:
@@ -92,6 +100,7 @@ class Agent:
     async def tick(self, ctx: Context) -> None:
         self._running = True
         self._dm_sent_this_tick = False
+        self._foraging = False
         try:
             if self._sleep_ticks > 0:
                 self._handle_sleep(ctx)
@@ -99,13 +108,22 @@ class Agent:
 
             if self.coins <= 0:
                 self.alive = False
-                print(f"[{self.handle}] DEAD — no energy", flush=True)
+                print(f"[{self.handle}] DEAD — no coins", flush=True)
                 ctx.log(
                     self.handle,
                     "agent_died",
-                    {"reason": "no_energy", "energy": self.coins},
+                    {"reason": "no_coins", "coins": self.coins},
                 )
                 return
+
+            # Hunger ticks down, auto-eat food if available
+            self.hunger = max(0, self.hunger - HUNGER_DECAY_PER_TICK)
+            if self.hunger <= HUNGER_AUTO_EAT_THRESHOLD and self.food > 0:
+                self.food -= 1
+                self.hunger = min(HUNGER_MAX, self.hunger + HUNGER_EAT_RESTORE)
+            if self.hunger == 0:
+                self.coins = max(0, self.coins - HUNGER_STARVE_COIN_PENALTY)
+                self._energy_log.append(f"coins -{HUNGER_STARVE_COIN_PENALTY} (starving — no food)")
 
             self._rebuild_context(ctx)
             llm_response = await self._get_response(ctx)
@@ -125,9 +143,16 @@ class Agent:
     def _handle_sleep(self, ctx: Context) -> None:
         self._sleep_ticks -= 1
         self.gain_coins("sleeping", SLEEP_REGEN_PER_TICK)
+        self.hunger = max(0, self.hunger - HUNGER_DECAY_PER_TICK)
+        if self.hunger <= HUNGER_AUTO_EAT_THRESHOLD and self.food > 0:
+            self.food -= 1
+            self.hunger = min(HUNGER_MAX, self.hunger + HUNGER_EAT_RESTORE)
+        if self.hunger == 0:
+            self.coins = max(0, self.coins - HUNGER_STARVE_COIN_PENALTY)
+            self._energy_log.append(f"coins -{HUNGER_STARVE_COIN_PENALTY} (starving in sleep)")
         self.decay_memory()
         print(
-            f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, energy: {int(self.coins)})",
+            f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, coins: {int(self.coins)}, food: {self.food})",
             flush=True,
         )
         ctx.log(
@@ -239,6 +264,8 @@ class Agent:
             self._energy_log.clear()
         if self.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
+        if self.hunger <= 30:
+            parts.append(f"You are hungry (hunger: {self.hunger}/100, food: {self.food}). If hunger reaches 0 you starve and lose {HUNGER_STARVE_COIN_PENALTY} coins per tick. You eat food automatically but need to forage or trade for more.")
         if self._compact_needed:
             parts.append(
                 "WARNING: Your memory is almost full. Compaction will begin after you act this tick."
@@ -246,6 +273,8 @@ class Agent:
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),
             coins=int(self.coins),
+            hunger=self.hunger,
+            food=self.food,
             content="\n\n".join(parts),
         )
         self.messages.append({"role": "user", "content": tick_content})
@@ -289,6 +318,16 @@ class Agent:
 
     def _process_tool_calls(self, resp: LLMResponse, ctx: Context) -> None:
         for tc in resp.tool_calls:
+            if self._foraging and tc.name != "compact":
+                self.messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "name": tc.name,
+                        "content": "You are foraging this tick and cannot take other actions.",
+                    }
+                )
+                continue
             self.actions.execute(self, ctx, tc.name, tc.args)
             result = ". ".join(self._action_log) if self._action_log else "ok"
             self.messages.append(

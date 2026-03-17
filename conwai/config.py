@@ -60,6 +60,14 @@ TRAITS = [
     "patient",
 ]
 
+# Food / Hunger
+HUNGER_MAX = CFG.get("hunger_max", 100)
+HUNGER_DECAY_PER_TICK = CFG.get("hunger_decay_per_tick", 3)
+HUNGER_AUTO_EAT_THRESHOLD = CFG.get("hunger_auto_eat_threshold", 80)
+HUNGER_EAT_RESTORE = CFG.get("hunger_eat_restore", 15)
+HUNGER_STARVE_COIN_PENALTY = CFG.get("hunger_starve_coin_penalty", 10)
+FOOD_FORAGE_YIELD = CFG.get("food_forage_yield", (1, 4))  # min, max
+
 # Sleep
 SLEEP_REGEN_PER_TICK = CFG.get("sleep_regen_per_tick", 10)
 

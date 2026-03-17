@@ -1,9 +1,12 @@
+import random
+
 from conwai.actions import Action, ActionRegistry
 from conwai.config import (
     ENERGY_COST_FLAT,
     ENERGY_COST_PER_WORD,
     ENERGY_GAIN,
     ENERGY_MAX,
+    FOOD_FORAGE_YIELD,
 )
 
 
@@ -100,6 +103,8 @@ def _inspect(agent, ctx, args):
         f"Handle: {handle}",
         f"Personality: {other.personality}",
         f"Coins: {int(other.coins)}",
+        f"Hunger: {other.hunger}/100",
+        f"Food inventory: {other.food}",
     ]
     soul = other.soul
     if soul:
@@ -137,6 +142,42 @@ def _pay(agent, ctx, args):
     other.gain_coins(f"payment from {agent.handle}", amount)
     ctx.log(agent.handle, "payment", {"to": to, "amount": amount})
     print(f"[{agent.handle}] paid {amount} coins to {to}", flush=True)
+
+
+def _forage(agent, ctx, args):
+    amount = random.randint(*FOOD_FORAGE_YIELD)
+    agent.food += amount
+    agent._action_log.append(f"foraged {amount} food (inventory now {agent.food}). Foraging takes your full attention — no other actions this tick.")
+    agent._foraging = True
+    ctx.log(agent.handle, "forage", {"amount": amount, "food": agent.food})
+    print(f"[{agent.handle}] foraged {amount} food (inventory: {agent.food})", flush=True)
+
+
+def _give_food(agent, ctx, args):
+    to = args.get("to", "")
+    amount = args.get("amount", 0)
+    try:
+        amount = int(amount)
+    except (ValueError, TypeError):
+        agent._action_log.append("invalid amount")
+        return
+    if amount <= 0:
+        agent._action_log.append("amount must be positive")
+        return
+    if amount > agent.food:
+        agent._action_log.append(f"not enough food to give {amount} (have {agent.food})")
+        return
+    other = ctx.agent_map.get(to)
+    if not other:
+        agent._action_log.append(f"unknown agent: {to}")
+        return
+    if to == agent.handle:
+        agent._action_log.append("cannot give food to yourself")
+        return
+    agent.food -= amount
+    other.food += amount
+    ctx.log(agent.handle, "give_food", {"to": to, "amount": amount})
+    print(f"[{agent.handle}] gave {amount} food to {to}", flush=True)
 
 
 _COMPACT_MAX = 8000
@@ -250,7 +291,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="inspect",
-            description="View another agent's public profile: personality, soul, coins, activity.",
+            description="View another agent's public profile: personality, soul, coins, food, activity.",
             parameters={
                 "handle": {
                     "type": "string",
@@ -288,6 +329,30 @@ def create_registry() -> ActionRegistry:
             },
             cost_flat=0,
             handler=_compact,
+        )
+    )
+    registry.register(
+        Action(
+            name="forage",
+            description="Spend this tick searching for food. Yields 1-4 food. THIS TAKES YOUR ENTIRE TICK — you cannot DM, post, or do anything else. You consume food automatically when hungry.",
+            parameters={},
+            cost_flat=0,
+            handler=_forage,
+        )
+    )
+    registry.register(
+        Action(
+            name="give_food",
+            description="Give food to another agent. Visible on inspect.",
+            parameters={
+                "to": {"type": "string", "description": "Handle of the recipient"},
+                "amount": {
+                    "type": "integer",
+                    "description": "Amount of food to give",
+                },
+            },
+            cost_flat=0,
+            handler=_give_food,
         )
     )
     registry.register(
