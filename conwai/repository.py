@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from conwai.config import ENERGY_MAX, HUNGER_MAX, MEMORY_MAX
+from conwai.config import ENERGY_MAX, FORAGE_SKILLS, HUNGER_MAX, MEMORY_MAX
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
@@ -41,6 +41,7 @@ class AgentRepository:
         food_path = d / "food"
         hunger_path = d / "hunger"
         alive_path = d / "alive"
+        forage_path = d / "forage_skill"
         return Agent(
             handle=handle,
             coins=float(energy_path.read_text().strip())
@@ -55,6 +56,9 @@ class AgentRepository:
             alive=alive_path.read_text().strip() == "true"
             if alive_path.exists()
             else True,
+            forage_skill=int(forage_path.read_text().strip())
+            if forage_path.exists()
+            else 0,
             system_prompt=context["system"],
             messages=context["messages"],
             soul=(d / "soul.md").read_text() if (d / "soul.md").exists() else "",
@@ -71,6 +75,7 @@ class AgentRepository:
         (d / "food").write_text(str(agent.food))
         (d / "hunger").write_text(str(agent.hunger))
         (d / "alive").write_text("true" if agent.alive else "false")
+        (d / "forage_skill").write_text(str(agent.forage_skill))
         (d / "soul.md").write_text(agent.soul)
         (d / "memory.md").write_text(agent.memory[:MEMORY_MAX])
         (d / "personality.md").write_text(agent.personality)

@@ -6,7 +6,6 @@ from conwai.config import (
     ENERGY_COST_PER_WORD,
     ENERGY_GAIN,
     ENERGY_MAX,
-    FOOD_FORAGE_YIELD,
 )
 
 
@@ -41,6 +40,7 @@ def _send_message(agent, ctx, args):
         print(f"[{agent.handle}] SEND FAILED: {err}", flush=True)
     else:
         agent._dm_sent_this_tick = True
+        agent.record_dm(ctx.tick, f"you → {to}: {message}")
         ctx.log(agent.handle, "dm_sent", {"to": to, "content": message})
         print(f"[{agent.handle}] -> [{to}]: {message}", flush=True)
         if to in ctx.agent_map:
@@ -99,12 +99,14 @@ def _inspect(agent, ctx, args):
     sleeps = sum(
         1 for e in events if e.get("entity") == handle and e.get("type") == "sleeping"
     )
+    forage_labels = {1: "poor", 2: "below average", 3: "decent", 4: "excellent"}
     lines = [
         f"Handle: {handle}",
         f"Personality: {other.personality}",
         f"Coins: {int(other.coins)}",
         f"Hunger: {other.hunger}/100",
         f"Food inventory: {other.food}",
+        f"Foraging ability: {forage_labels.get(other.forage_skill, 'unknown')}",
     ]
     soul = other.soul
     if soul:
@@ -140,14 +142,20 @@ def _pay(agent, ctx, args):
         return
     agent.coins -= amount
     other.gain_coins(f"payment from {agent.handle}", amount)
+    agent._energy_log.append(f"coins -{amount} (paid to {to})")
+    agent.record_ledger(ctx.tick, f"paid {amount} coins to {to}")
+    other.record_ledger(ctx.tick, f"received {amount} coins from {agent.handle}")
     ctx.log(agent.handle, "payment", {"to": to, "amount": amount})
     print(f"[{agent.handle}] paid {amount} coins to {to}", flush=True)
 
 
 def _forage(agent, ctx, args):
-    amount = random.randint(*FOOD_FORAGE_YIELD)
+    amount = random.randint(0, agent.forage_skill)
     agent.food += amount
-    agent._action_log.append(f"foraged {amount} food (inventory now {agent.food}). Foraging takes your full attention — no other actions this tick.")
+    if amount == 0:
+        agent._action_log.append("foraged but found nothing. Foraging takes your full attention — no other actions this tick.")
+    else:
+        agent._action_log.append(f"foraged {amount} food (inventory now {agent.food}). Foraging takes your full attention — no other actions this tick.")
     agent._foraging = True
     ctx.log(agent.handle, "forage", {"amount": amount, "food": agent.food})
     print(f"[{agent.handle}] foraged {amount} food (inventory: {agent.food})", flush=True)
@@ -176,11 +184,15 @@ def _give_food(agent, ctx, args):
         return
     agent.food -= amount
     other.food += amount
+    agent._action_log.append(f"sent {amount} food to {to} (your food: {agent.food})")
+    other._energy_log.append(f"received {amount} food from {agent.handle} (your food: {other.food})")
+    agent.record_ledger(ctx.tick, f"gave {amount} food to {to}")
+    other.record_ledger(ctx.tick, f"received {amount} food from {agent.handle}")
     ctx.log(agent.handle, "give_food", {"to": to, "amount": amount})
     print(f"[{agent.handle}] gave {amount} food to {to}", flush=True)
 
 
-_COMPACT_MAX = 8000
+_COMPACT_MAX = 2000
 
 
 def _compact(agent, ctx, args):
@@ -198,8 +210,8 @@ def _compact(agent, ctx, args):
     ]
     agent._compact_needed = False
     feedback = f"Compacted to {char_count} chars."
-    if char_count < 5000:
-        feedback += " WARNING: below target range (5000-6000). You may be losing important history."
+    if char_count < 400:
+        feedback += " WARNING: below target range (500-1500). You may be losing important context."
     elif original_len > _COMPACT_MAX:
         feedback += f" Note: truncated from {original_len} to {_COMPACT_MAX} chars. Be more concise next time."
     else:
@@ -262,20 +274,6 @@ def create_registry() -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="sleep",
-            description="Sleep for a number of ticks to regenerate coins. Only available below 50%.",
-            parameters={
-                "ticks": {
-                    "type": "integer",
-                    "description": "Number of ticks to sleep",
-                },
-            },
-            cost_flat=0,
-            handler=_sleep,
-        )
-    )
-    registry.register(
-        Action(
             name="update_soul",
             description="Update your public identity. Other agents can see your soul. Costs coins.",
             parameters={
@@ -320,7 +318,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="compact",
-            description="Compress your memory. Use this structure: STATUS (coins, situation), AGENTS (what you know about each agent), HISTORY (key events that still matter), ACTIVE (current goals). Do NOT include todo lists or action plans. Target: 5000-6000 chars.",
+            description="Compress your memory. The system provides transactions, stats, and events — write ONLY: trust assessments, active deals, lessons, goals. Target: 500-1500 chars.",
             parameters={
                 "summary": {
                     "type": "string",
@@ -334,7 +332,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="forage",
-            description="Spend this tick searching for food. Yields 1-4 food. THIS TAKES YOUR ENTIRE TICK — you cannot DM, post, or do anything else. You consume food automatically when hungry.",
+            description="Spend this tick searching for food. Yield depends on your foraging ability (you may find nothing). THIS TAKES YOUR ENTIRE TICK — you cannot DM, post, or do anything else.",
             parameters={},
             cost_flat=0,
             handler=_forage,
@@ -358,7 +356,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="submit_code",
-            description="Submit a 4-character code guess. Correct = +200 coins. Wrong = -50 coins. You learn how many positions are correct.",
+            description="Submit a 4-character code guess. Correct = big coin reward. Wrong = coin penalty. You learn how many positions are correct.",
             parameters={
                 "code": {
                     "type": "string",

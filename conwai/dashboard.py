@@ -50,6 +50,8 @@ def read_agents() -> list[dict]:
         agent["food"] = int(fp.read_text().strip()) if fp.exists() else None
         hp = d / "hunger"
         agent["hunger"] = int(hp.read_text().strip()) if hp.exists() else None
+        fsp = d / "forage_skill"
+        agent["forage_skill"] = int(fsp.read_text().strip()) if fsp.exists() else None
         alive_path = d / "alive"
         agent["alive"] = (
             alive_path.read_text().strip() == "true" if alive_path.exists() else True

@@ -11,13 +11,16 @@ from conwai.actions import ActionRegistry
 from conwai.config import (
     CONTEXT_WINDOW,
     ENERGY_MAX,
+    FORAGE_SKILLS,
     HUNGER_MAX,
     HUNGER_DECAY_PER_TICK,
     HUNGER_AUTO_EAT_THRESHOLD,
     HUNGER_EAT_RESTORE,
     HUNGER_STARVE_COIN_PENALTY,
     MEMORY_MAX,
-    SLEEP_REGEN_PER_TICK,
+    STATE_BOARD_LENGTH,
+    STATE_INTERACTIONS_LENGTH,
+    STATE_LEDGER_LENGTH,
     TRAITS,
 )
 from conwai.llm import LLMClient, LLMResponse
@@ -32,6 +35,7 @@ SOUL_TEMPLATE = (PROMPTS_DIR / "soul.md").read_text()
 MEMORY_TEMPLATE = (PROMPTS_DIR / "memory.md").read_text()
 
 _available_traits = set(TRAITS)
+_available_forage_skills = list(FORAGE_SKILLS)
 
 
 def assign_traits(n: int = 2) -> list[str]:
@@ -40,6 +44,14 @@ def assign_traits(n: int = 2) -> list[str]:
     chosen = random.sample(sorted(_available_traits), n)
     _available_traits.difference_update(chosen)
     return chosen
+
+
+def assign_forage_skill() -> int:
+    global _available_forage_skills
+    if not _available_forage_skills:
+        _available_forage_skills = list(FORAGE_SKILLS)
+    idx = random.randrange(len(_available_forage_skills))
+    return _available_forage_skills.pop(idx)
 
 
 MAX_REASONING = 200
@@ -53,6 +65,7 @@ class Agent:
     coins: float = ENERGY_MAX
     food: int = 0  # inventory — foraged, traded, given
     hunger: int = HUNGER_MAX  # survival stat — ticks down, auto-eats food
+    forage_skill: int = 0  # max forage yield (0 = assign at init)
     context_window: int = CONTEXT_WINDOW
     personality: str = ""
     soul: str = ""
@@ -66,7 +79,9 @@ class Agent:
     _running: bool = field(default=False, init=False, repr=False)
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
     _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
-    _sleep_ticks: int = field(default=0, init=False, repr=False)
+    _board_history: list[str] = field(default_factory=list, init=False, repr=False)
+    _dm_history: list[str] = field(default_factory=list, init=False, repr=False)
+    _ledger: list[str] = field(default_factory=list, init=False, repr=False)
     _compact_needed: bool = field(default=False, init=False, repr=False)
     _dm_sent_this_tick: bool = field(default=False, init=False, repr=False)
     _foraging: bool = field(default=False, init=False, repr=False)
@@ -74,13 +89,37 @@ class Agent:
     def __post_init__(self):
         if not self.personality:
             self.personality = ", ".join(assign_traits())
+        if not self.forage_skill:
+            self.forage_skill = assign_forage_skill()
 
     @property
     def is_running(self) -> bool:
         return self._running
 
-    def sleep(self, ticks: int) -> None:
-        self._sleep_ticks = max(1, min(ticks, 50))
+    def _stamp(self, tick: int, entry: str) -> str:
+        return f"[{self._tick_to_timestamp(tick)}] {entry}"
+
+    def record_board(self, tick: int, entry: str) -> None:
+        self._board_history.append(self._stamp(tick, entry))
+        self._board_history = self._board_history[-STATE_BOARD_LENGTH:]
+
+    def record_dm(self, tick: int, entry: str) -> None:
+        self._dm_history.append(self._stamp(tick, entry))
+        self._dm_history = self._dm_history[-STATE_INTERACTIONS_LENGTH:]
+
+    def record_ledger(self, tick: int, entry: str) -> None:
+        self._ledger.append(self._stamp(tick, entry))
+        self._ledger = self._ledger[-STATE_LEDGER_LENGTH:]
+
+    def _format_state_sections(self) -> str:
+        sections = []
+        if self._board_history:
+            sections.append("== Active Board Posts ==\n" + "\n".join(self._board_history))
+        if self._dm_history:
+            sections.append("== Recent Interactions ==\n" + "\n".join(self._dm_history))
+        if self._ledger:
+            sections.append("== Ledger ==\n" + "\n".join(self._ledger))
+        return "\n\n".join(sections)
 
     def gain_coins(self, reason: str, amount: int) -> None:
         old = self.coins
@@ -102,10 +141,6 @@ class Agent:
         self._dm_sent_this_tick = False
         self._foraging = False
         try:
-            if self._sleep_ticks > 0:
-                self._handle_sleep(ctx)
-                return
-
             if self.coins <= 0:
                 self.alive = False
                 print(f"[{self.handle}] DEAD — no coins", flush=True)
@@ -140,26 +175,6 @@ class Agent:
         finally:
             self._running = False
 
-    def _handle_sleep(self, ctx: Context) -> None:
-        self._sleep_ticks -= 1
-        self.gain_coins("sleeping", SLEEP_REGEN_PER_TICK)
-        self.hunger = max(0, self.hunger - HUNGER_DECAY_PER_TICK)
-        if self.hunger <= HUNGER_AUTO_EAT_THRESHOLD and self.food > 0:
-            self.food -= 1
-            self.hunger = min(HUNGER_MAX, self.hunger + HUNGER_EAT_RESTORE)
-        if self.hunger == 0:
-            self.coins = max(0, self.coins - HUNGER_STARVE_COIN_PENALTY)
-            self._energy_log.append(f"coins -{HUNGER_STARVE_COIN_PENALTY} (starving in sleep)")
-        self.decay_memory()
-        print(
-            f"[{self.handle}] SLEEPING ({self._sleep_ticks} ticks left, coins: {int(self.coins)}, food: {self.food})",
-            flush=True,
-        )
-        ctx.log(
-            self.handle,
-            "sleeping",
-            {"ticks_left": self._sleep_ticks, "energy": self.coins},
-        )
 
     _COMPACTION_PERSONA = (
         "You are a meticulous archivist. Your job is to preserve important information "
@@ -168,76 +183,31 @@ class Agent:
     )
 
     async def _do_compaction(self, ctx: Context) -> None:
-        """Two-pass compaction: plan what to keep, then write the summary."""
-        print(f"[{self.handle}] compaction pass 1: planning", flush=True)
+        """Single-pass compaction: ask for summary as text, then programmatically compact."""
+        print(f"[{self.handle}] compacting...", flush=True)
 
         compact_system = self._COMPACTION_PERSONA + "\n\n" + self.system_prompt
 
-        # Pass 1: Ask the agent to plan what to keep
         self.messages.append({
             "role": "user",
             "content": (
-                "COMPACTION REQUIRED. Before writing your summary, review your history and list:\n"
-                "1. Your current STATUS (coins, situation)\n"
-                "2. Every agent you know — what happened between you, do you trust them, any debts or deals\n"
-                "3. Important events that still affect you\n"
-                "4. Current goals or unfinished business\n\n"
-                "Write this out now. Be thorough — anything you forget will be lost forever."
-            ),
-        })
-        plan_response = await self.core.call(
-            compact_system,
-            self.messages,
-            tools=self.actions.tool_definitions(),
-        )
-        if not plan_response:
-            return
-        # Add the response to messages
-        assistant_msg: dict = {"role": "assistant"}
-        if plan_response.text:
-            assistant_msg["content"] = plan_response.text
-        self.messages.append(assistant_msg)
-        print(
-            f"[{self.handle}] ({plan_response.prompt_tokens}+{plan_response.completion_tokens} tok): {plan_response.text[:200] if plan_response.text else '(no text)'}",
-            flush=True,
-        )
-        # Process any tool calls from pass 1 (agent might call compact early)
-        if plan_response.tool_calls:
-            import json
-            assistant_msg["tool_calls"] = [
-                {"id": tc.id, "type": "function", "function": {"name": tc.name, "arguments": json.dumps(tc.args)}}
-                for tc in plan_response.tool_calls
-            ]
-            for tc in plan_response.tool_calls:
-                self.actions.execute(self, ctx, tc.name, tc.args)
-                result = ". ".join(self._action_log) if self._action_log else "ok"
-                self.messages.append({"role": "tool", "tool_call_id": tc.id, "name": tc.name, "content": result})
-                self._action_log.clear()
-            if not self._compact_needed:
-                return  # compact succeeded in pass 1
-
-        # Pass 2: Ask for the summary as text, then programmatically compact
-        print(f"[{self.handle}] compaction pass 2: writing summary", flush=True)
-        self.messages.append({
-            "role": "user",
-            "content": (
-                "Good. Now write your compressed memory. Target: 5000-6000 characters — "
-                "this is a MINIMUM as much as a maximum. Write enough detail to reconstruct your situation. "
-                "Structure: STATUS (2-3 lines), AGENTS (2-4 sentences each — what happened between you, trust level, deals), "
-                "HISTORY (key events with enough detail to understand them), ACTIVE (current goals). "
-                "Write ONLY the summary, nothing else."
+                "COMPACTION REQUIRED. Write your compressed memory now. Target: 500-1500 characters. "
+                "The system already provides your coins, food, hunger, recent transactions, board posts, and DMs each tick — do NOT repeat any of that. "
+                "Write ONLY: AGENTS (who you trust/distrust and why, 1 sentence each), "
+                "DEALS (active promises or debts), LESSONS (hard-won knowledge), GOALS (current plans). "
+                "Anything you don't write here will be lost forever. Be concise but complete."
             ),
         })
         compact_response = await self.core.call(
             compact_system,
             self.messages,
-            tools=None,  # No tools — force text-only output
+            tools=None,
         )
         if compact_response and compact_response.text:
             summary = compact_response.text.strip()
             from conwai.default_actions import _compact
             _compact(self, ctx, {"summary": summary})
-            print(f"[{self.handle}] compaction complete ({len(summary)} chars)", flush=True)
+            print(f"[{self.handle}] compacted ({len(summary)} chars)", flush=True)
 
     def _context_chars(self) -> int:
         return sum(len(m.get("content", "")) for m in self.messages)
@@ -245,8 +215,8 @@ class Agent:
     def _rebuild_context(self, ctx: Context) -> None:
         char_count = self._context_chars()
 
-        # Warn at 60% of context window, hard trim at 100%
-        warn_threshold = int(self.context_window * 0.6)
+        # Warn at 40% of context window, hard trim at 100%
+        warn_threshold = int(self.context_window * 0.4)
         if char_count >= warn_threshold and not self._compact_needed:
             self._compact_needed = True
 
@@ -255,10 +225,21 @@ class Agent:
             self.messages.pop(0)
         self.system_prompt = self._build_system_prompt()
 
-        parts = [ctx.board.format_new(self.handle)]
-        dms = ctx.bus.format_new(self.handle)
-        if dms:
-            parts.append(dms)
+        # Record board posts and DMs into rolling history
+        new_posts = ctx.board.read_new(self.handle)
+        for p in new_posts:
+            self.record_board(ctx.tick, f"{p.handle}: {p.content}")
+        new_dms = ctx.bus.receive(self.handle)
+        for dm in new_dms:
+            self.record_dm(ctx.tick, f"{dm.from_handle}: {dm.content}")
+
+        # Build tick message with new items
+        if new_posts:
+            parts = ["New on the board:\n" + "\n".join(f"{p.handle}: {p.content}" for p in new_posts)]
+        else:
+            parts = ["No new activity on the board."]
+        if new_dms:
+            parts.append("\n".join(f"DM from {dm.from_handle}: {dm.content}" for dm in new_dms))
         if self._energy_log:
             parts.append("Coin changes: " + ". ".join(self._energy_log))
             self._energy_log.clear()
@@ -352,11 +333,18 @@ class Agent:
         return f"Day {day}, {display_hour}:00 {period}"
 
     def _build_system_prompt(self) -> str:
+        forage_labels = {1: "poor", 2: "below average", 3: "decent", 4: "excellent"}
         prompt = SYSTEM_TEMPLATE.format(
             handle=self.handle,
             personality=self.personality,
+            forage_ability=forage_labels.get(self.forage_skill, "unknown"),
+            forage_max=self.forage_skill,
         )
-        return prompt + "\n\n" + self._build_state_block()
+        parts = [prompt, self._build_state_block()]
+        state = self._format_state_sections()
+        if state:
+            parts.append(state)
+        return "\n\n".join(parts)
 
     def _build_state_block(self) -> str:
         return SOUL_TEMPLATE.format(soul=self.soul or "(empty)")

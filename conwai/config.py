@@ -42,7 +42,7 @@ BOARD_MAX_POSTS = CFG.get("board_max_posts", 30)
 BOARD_MAX_POST_LENGTH = CFG.get("board_max_post_length", 200)
 
 # Heartbeat
-HEARTBEAT_INTERVAL = CFG.get("heartbeat_interval", 3.0)
+HEARTBEAT_INTERVAL = CFG.get("heartbeat_interval", 5.0)
 
 # Personality
 TRAITS = [
@@ -66,10 +66,13 @@ HUNGER_DECAY_PER_TICK = CFG.get("hunger_decay_per_tick", 3)
 HUNGER_AUTO_EAT_THRESHOLD = CFG.get("hunger_auto_eat_threshold", 80)
 HUNGER_EAT_RESTORE = CFG.get("hunger_eat_restore", 15)
 HUNGER_STARVE_COIN_PENALTY = CFG.get("hunger_starve_coin_penalty", 10)
-FOOD_FORAGE_YIELD = CFG.get("food_forage_yield", (1, 4))  # min, max
+FOOD_FORAGE_YIELD = CFG.get("food_forage_yield", (0, 4))  # min, max (overridden by agent forage_skill)
+FORAGE_SKILLS = CFG.get("forage_skills", [1, 2, 2, 3, 3, 3, 4, 4])  # max yields, one per agent
 
-# Sleep
-SLEEP_REGEN_PER_TICK = CFG.get("sleep_regen_per_tick", 10)
+# State window sizes (shown in system prompt)
+STATE_BOARD_LENGTH = CFG.get("state_board_length", 10)
+STATE_INTERACTIONS_LENGTH = CFG.get("state_interactions_length", 10)
+STATE_LEDGER_LENGTH = CFG.get("state_ledger_length", 10)
 
 # Context window (chars)
 CONTEXT_WINDOW = CFG.get("context_window", 16000)
