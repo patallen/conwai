@@ -58,7 +58,9 @@ export class PollingTransport implements DataSource {
         fetch('/api/status').then(r => r.json()),
       ])
 
-      let events = [...this.data.events, ...newEvents]
+      const seen = new Set(this.data.events.map((e: any) => e.idx))
+      const deduped = newEvents.filter((e: any) => !seen.has(e.idx))
+      let events = [...this.data.events, ...deduped]
       if (events.length > 500) events = events.slice(events.length - 500)
       if (newEvents.length > 0) this.lastEventIdx = newEvents[newEvents.length - 1].idx + 1
 
