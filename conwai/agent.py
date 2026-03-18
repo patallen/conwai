@@ -9,18 +9,11 @@ from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from conwai.actions import ActionRegistry
+import conwai.config as config
 from conwai.config import (
     CONTEXT_WINDOW,
     ENERGY_MAX,
     HUNGER_MAX,
-    HUNGER_DECAY_PER_TICK,
-    HUNGER_AUTO_EAT_THRESHOLD,
-    HUNGER_EAT_RESTORE,
-    HUNGER_STARVE_COIN_PENALTY,
-    MEMORY_MAX,
-    STATE_BOARD_LENGTH,
-    STATE_INTERACTIONS_LENGTH,
-    STATE_LEDGER_LENGTH,
     TRAITS,
 )
 import logging
@@ -97,15 +90,15 @@ class Agent:
 
     def record_board(self, tick: int, entry: str) -> None:
         self._board_history.append(self._stamp(tick, entry))
-        self._board_history = self._board_history[-STATE_BOARD_LENGTH:]
+        self._board_history = self._board_history[-config.STATE_BOARD_LENGTH:]
 
     def record_dm(self, tick: int, entry: str) -> None:
         self._dm_history.append(self._stamp(tick, entry))
-        self._dm_history = self._dm_history[-STATE_INTERACTIONS_LENGTH:]
+        self._dm_history = self._dm_history[-config.STATE_INTERACTIONS_LENGTH:]
 
     def record_ledger(self, tick: int, entry: str) -> None:
         self._ledger.append(self._stamp(tick, entry))
-        self._ledger = self._ledger[-STATE_LEDGER_LENGTH:]
+        self._ledger = self._ledger[-config.STATE_LEDGER_LENGTH:]
 
     def _format_state_sections(self) -> str:
         sections = []
@@ -125,8 +118,8 @@ class Agent:
             self._energy_log.append(f"coins +{int(gained)} ({reason})")
 
     def write_memory(self, content: str) -> int:
-        self.memory = content[:MEMORY_MAX]
-        return max(0, len(content) - MEMORY_MAX)
+        self.memory = content[:config.MEMORY_MAX]
+        return max(0, len(content) - config.MEMORY_MAX)
 
     def decay_memory(self, chars: int = 5) -> None:
         if len(self.memory) > chars:
@@ -137,24 +130,8 @@ class Agent:
         self._dm_sent_this_tick = False
         self._foraging = False
         try:
-            if self.coins <= 0:
-                self.alive = False
-                log.info(f"[{self.handle}] DEAD — no coins")
-                ctx.log(
-                    self.handle,
-                    "agent_died",
-                    {"reason": "no_coins", "coins": self.coins},
-                )
-                return
-
-            # Hunger ticks down, auto-eat bread if available
-            self.hunger = max(0, self.hunger - HUNGER_DECAY_PER_TICK)
-            if self.hunger <= HUNGER_AUTO_EAT_THRESHOLD and self.bread > 0:
-                self.bread -= 1
-                self.hunger = min(HUNGER_MAX, self.hunger + HUNGER_EAT_RESTORE)
-            if self.hunger == 0:
-                self.coins = max(0, self.coins - HUNGER_STARVE_COIN_PENALTY)
-                self._energy_log.append(f"coins -{HUNGER_STARVE_COIN_PENALTY} (starving — no bread)")
+            # Hunger ticks down
+            self.hunger = max(0, self.hunger - config.HUNGER_DECAY_PER_TICK)
 
             self._rebuild_context(ctx)
             msg_count_before = len(self.messages)
@@ -162,6 +139,25 @@ class Agent:
             if not llm_response:
                 return
             self._process_tool_calls(llm_response, ctx)
+
+            # Auto-eat AFTER acting so agents can trade first
+            # Prefer bread (restores more), fall back to eating flour raw
+            if self.hunger <= config.HUNGER_AUTO_EAT_THRESHOLD:
+                if self.bread > 0:
+                    self.bread -= 1
+                    self.hunger = min(HUNGER_MAX, self.hunger + config.HUNGER_EAT_RESTORE)
+                    self._energy_log.append(f"ate 1 bread (hunger now {self.hunger}, bread left: {self.bread})")
+                elif self.flour > 0:
+                    self.flour -= 1
+                    self.hunger = min(HUNGER_MAX, self.hunger + config.HUNGER_EAT_RAW_RESTORE)
+                    self._energy_log.append(f"ate 1 flour raw (hunger now {self.hunger}, flour left: {self.flour})")
+                elif self.water > 0:
+                    self.water -= 1
+                    self.hunger = min(HUNGER_MAX, self.hunger + config.HUNGER_EAT_RAW_RESTORE)
+                    self._energy_log.append(f"drank 1 water (hunger now {self.hunger}, water left: {self.water})")
+            if self.hunger == 0:
+                self.coins = max(0, self.coins - config.HUNGER_STARVE_COIN_PENALTY)
+                self._energy_log.append(f"coins -{config.HUNGER_STARVE_COIN_PENALTY} (starving)")
 
             await self._summarize_tick(ctx, msg_count_before)
 
@@ -269,7 +265,7 @@ class Agent:
         if self.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         if self.hunger <= 30:
-            parts.append(f"WARNING: You are hungry (hunger: {self.hunger}/100, bread: {self.bread}). If hunger reaches 0 you starve and lose {HUNGER_STARVE_COIN_PENALTY} coins per tick. You eat bread automatically but need to bake or trade for more.")
+            parts.append(f"WARNING: You are hungry (hunger: {self.hunger}/100, bread: {self.bread}). If hunger reaches 0 you starve and lose {config.HUNGER_STARVE_COIN_PENALTY} coins per tick. You eat bread automatically but need to bake or trade for more.")
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),
             coins=int(self.coins),

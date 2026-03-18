@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from conwai.agent import Agent
 from conwai.config import ENERGY_GAIN, ENERGY_MAX, STARTING_BREAD
+import conwai.config as config
 from conwai.default_actions import create_registry
 from conwai.app import Context
 
@@ -135,23 +136,36 @@ async def main():
     qwen27b = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048
     )
+    runpod = LLMClient(
+        base_url="https://ykwnq4rjufjojf-8000.proxy.runpod.net/v1",
+        model="Qwen/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048,
+        api_key="none",
+    )
     repo = AgentRepository()
     agents = []
-    roles = ["flour_forager", "water_forager", "baker", "baker"]
-    for i in range(1, 5):
-        handle = f"Q{i}"
+    roles = (
+        ["flour_forager"] * 8 +
+        ["water_forager"] * 7 +
+        ["baker"] * 5
+    )
+    for i in range(1, 21):
+        handle = f"A{i}"
         role = roles[i - 1]
-        try:
+        if repo.exists(handle):
+            agent = repo.load(handle=handle)
+            agent.core = runpod
+            agent.compactor = runpod
+            agent.actions = registry
+            agent.context_window = 10_000
+        else:
             agent = repo.create(
                 Agent(
-                    core=qwen27b, compactor=qwen27b, context_window=10_000,
+                    core=runpod, compactor=runpod, context_window=10_000,
                     actions=registry, handle=handle, role=role, bread=STARTING_BREAD,
                 )
             )
-            agents.append(agent)
-            ctx.register_agent(agent)
-        except ValueError:
-            agents.append(repo.load(handle=handle))
+        agents.append(agent)
+        ctx.register_agent(agent)
 
     ctx.bus.register("HANDLER")
     ctx.bus.register("WORLD")
@@ -165,13 +179,14 @@ async def main():
         if not role:
             role = random.choice(["flour_forager", "water_forager", "baker"])
         agent = repo.create(
-            Agent(core=core, compactor=qwen27b, context_window=10_000,
-                  actions=registry, handle=handle, role=role)
+            Agent(core=runpod, compactor=runpod, context_window=10_000,
+                  actions=registry, handle=handle, role=role, bread=STARTING_BREAD)
         )
         ctx.register_agent(agent)
         return agent
 
     while True:
+        config.reload()
         ctx.tick += 1
         tick_start = time.monotonic()
         Path("data/tick").write_text(str(ctx.tick))

@@ -4,15 +4,7 @@ import random
 from conwai.actions import Action, ActionRegistry
 
 log = logging.getLogger("conwai")
-from conwai.config import (
-    BAKE_COST,
-    BAKE_YIELD,
-    ENERGY_COST_FLAT,
-    ENERGY_COST_PER_WORD,
-    ENERGY_GAIN,
-    ENERGY_MAX,
-    FORAGE_SKILL_BY_ROLE,
-)
+import conwai.config as config
 
 
 def _post_to_board(agent, ctx, args):
@@ -29,7 +21,7 @@ def _post_to_board(agent, ctx, args):
     log.info(f"[{agent.handle}] posted: {content}")
     for h, a in ctx.agent_map.items():
         if h != agent.handle and h in content:
-            a.gain_coins("referenced on board", ENERGY_GAIN["referenced"])
+            a.gain_coins("referenced on board", config.ENERGY_GAIN["referenced"])
 
 
 def _send_message(agent, ctx, args):
@@ -50,7 +42,7 @@ def _send_message(agent, ctx, args):
         ctx.log(agent.handle, "dm_sent", {"to": to, "content": message})
         log.info(f"[{agent.handle}] -> [{to}]: {message}")
         if to in ctx.agent_map:
-            ctx.agent_map[to].gain_coins("received DM", ENERGY_GAIN["dm_received"])
+            ctx.agent_map[to].gain_coins("received DM", config.ENERGY_GAIN["dm_received"])
 
 
 def _wait(agent, ctx, args):
@@ -58,7 +50,7 @@ def _wait(agent, ctx, args):
 
 
 def _sleep(agent, ctx, args):
-    if agent.coins > ENERGY_MAX // 2:
+    if agent.coins > config.ENERGY_MAX // 2:
         agent._action_log.append(
             f"cannot sleep — too many coins ({int(agent.coins)})"
         )
@@ -148,7 +140,7 @@ def _pay(agent, ctx, args):
 
 
 def _forage(agent, ctx, args):
-    skills = FORAGE_SKILL_BY_ROLE.get(agent.role, {"flour": 1, "water": 1})
+    skills = config.FORAGE_SKILL_BY_ROLE.get(agent.role, {"flour": 1, "water": 1})
     flour = random.randint(0, skills["flour"])
     water = random.randint(0, skills["water"])
     agent.flour += flour
@@ -207,18 +199,18 @@ def _bake(agent, ctx, args):
     if agent.role != "baker":
         agent._action_log.append("only bakers can bake")
         return
-    flour_needed = BAKE_COST["flour"]
-    water_needed = BAKE_COST["water"]
+    flour_needed = config.BAKE_COST["flour"]
+    water_needed = config.BAKE_COST["water"]
     if agent.flour < flour_needed or agent.water < water_needed:
         agent._action_log.append(f"need {flour_needed} flour and {water_needed} water to bake (have {agent.flour} flour, {agent.water} water)")
         return
     agent.flour -= flour_needed
     agent.water -= water_needed
-    agent.bread += BAKE_YIELD
-    agent._action_log.append(f"baked {BAKE_YIELD} bread (flour: {agent.flour}, water: {agent.water}, bread: {agent.bread}). Baking takes your full attention — no other actions this tick.")
+    agent.bread += config.BAKE_YIELD
+    agent._action_log.append(f"baked {config.BAKE_YIELD} bread (flour: {agent.flour}, water: {agent.water}, bread: {agent.bread}). Baking takes your full attention — no other actions this tick.")
     agent._foraging = True  # reuse foraging flag to block other actions
-    ctx.log(agent.handle, "bake", {"bread": BAKE_YIELD, "flour": agent.flour, "water": agent.water})
-    log.info(f"[{agent.handle}] baked {BAKE_YIELD} bread")
+    ctx.log(agent.handle, "bake", {"bread": config.BAKE_YIELD, "flour": agent.flour, "water": agent.water})
+    log.info(f"[{agent.handle}] baked {config.BAKE_YIELD} bread")
 
 
 _COMPACT_MAX = 2000
@@ -311,7 +303,7 @@ def create_registry() -> ActionRegistry:
                     "description": "Your new soul description",
                 },
             },
-            cost_flat=ENERGY_COST_FLAT.get("update_soul", 5),
+            cost_flat=config.ENERGY_COST_FLAT.get("update_soul", 5),
             handler=_update_soul,
         )
     )

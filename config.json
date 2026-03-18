@@ -1,21 +1,31 @@
 {
   "energy_max": 1000,
-  "energy_cost_per_word": {
-    "post_to_board": 2,
-    "send_message": 0,
-    "remember": 0.5
-  },
   "energy_cost_flat": {
-    "recall": 0,
-    "update_soul": 3
+    "update_soul": 5
   },
   "energy_gain": {
-    "referenced": 8,
+    "referenced": 10,
     "dm_received": 5
   },
   "board_max_posts": 30,
   "board_max_post_length": 200,
-  "heartbeat_interval": 5.0,
-  "scratchpad_max": 3000,
-  "context_window": 60
+  "hunger_max": 100,
+  "hunger_decay_per_tick": 3,
+  "hunger_auto_eat_threshold": 80,
+  "hunger_eat_restore": 15,
+  "hunger_eat_raw_restore": 5,
+  "hunger_starve_coin_penalty": 10,
+  "forage_skill_by_role": {
+    "flour_forager": {"flour": 5, "water": 1},
+    "water_forager": {"flour": 1, "water": 5},
+    "baker": {"flour": 1, "water": 1}
+  },
+  "starting_bread": 5,
+  "bake_cost": {"flour": 1, "water": 1},
+  "bake_yield": 2,
+  "state_board_length": 10,
+  "state_interactions_length": 10,
+  "state_ledger_length": 10,
+  "context_window": 10000,
+  "memory_max": 1000
 }
