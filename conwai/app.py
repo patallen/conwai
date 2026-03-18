@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from conwai.board import Board
+from conwai.bulletin_board import BulletinBoard
 from conwai.config import BOARD_MAX_POSTS, BOARD_MAX_POST_LENGTH
 from conwai.events import EventLog
 from conwai.messages import MessageBus
@@ -9,8 +9,8 @@ from conwai.messages import MessageBus
 
 @dataclass
 class Context:
-    board: Board = field(
-        default_factory=lambda: Board(
+    board: BulletinBoard = field(
+        default_factory=lambda: BulletinBoard(
             max_posts=BOARD_MAX_POSTS, max_post_length=BOARD_MAX_POST_LENGTH
         )
     )

@@ -147,16 +147,14 @@ class Agent:
             self.hunger = max(0, self.hunger - config.HUNGER_DECAY_PER_TICK)
             self.thirst = max(0, self.thirst - config.THIRST_DECAY_PER_TICK)
 
-            # Die if starving/dehydrated with nothing to consume
+            # Passive water — everyone has access to water
+            self.water += config.PASSIVE_WATER_PER_TICK
+
+            # Die if starving with nothing to consume
             if self.hunger == 0 and self.bread == 0 and self.flour == 0:
                 self.alive = False
                 log.info(f"[{self.handle}] DEAD — starved")
                 ctx.log(self.handle, "agent_died", {"reason": "starved"})
-                return
-            if self.thirst == 0 and self.water == 0:
-                self.alive = False
-                log.info(f"[{self.handle}] DEAD — dehydrated")
-                ctx.log(self.handle, "agent_died", {"reason": "dehydrated"})
                 return
 
             self._rebuild_context(ctx)

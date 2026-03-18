@@ -19,6 +19,7 @@
   "thirst_auto_drink_threshold": 80,
   "thirst_drink_restore": 2,
   "thirst_dehydration_coin_penalty": 10,
+  "passive_water_per_tick": 1,
   "forage_skill_by_role": {
     "flour_forager": {"flour": 36, "water": 12},
     "water_forager": {"flour": 12, "water": 40},

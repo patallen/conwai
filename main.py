@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import random
-import sys
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -16,22 +15,9 @@ from conwai.app import Context
 from conwai.llm import LLMClient
 from conwai.repository import AgentRepository
 from conwai.world import WorldEvents
+from conwai.infra.logging import setup_logging
 
 log = logging.getLogger("conwai")
-
-
-def setup_logging():
-    fmt = logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S")
-    log.setLevel(logging.INFO)
-
-    console = logging.StreamHandler(sys.stdout)
-    console.setFormatter(fmt)
-    log.addHandler(console)
-
-    Path("data").mkdir(exist_ok=True)
-    fh = logging.FileHandler("data/sim.log")
-    fh.setFormatter(fmt)
-    log.addHandler(fh)
 
 HANDLER_FILE = Path("handler_input.txt")
 

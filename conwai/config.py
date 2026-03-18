@@ -33,6 +33,7 @@ def reload():
     g["THIRST_AUTO_DRINK_THRESHOLD"] = cfg.get("thirst_auto_drink_threshold", 80)
     g["THIRST_DRINK_RESTORE"] = cfg.get("thirst_drink_restore", 15)
     g["THIRST_DEHYDRATION_COIN_PENALTY"] = cfg.get("thirst_dehydration_coin_penalty", 10)
+    g["PASSIVE_WATER_PER_TICK"] = cfg.get("passive_water_per_tick", 0)
     g["FORAGE_SKILL_BY_ROLE"] = cfg.get("forage_skill_by_role", {
         "flour_forager": {"flour": 4, "water": 1},
         "water_forager": {"flour": 1, "water": 4},
@@ -81,6 +82,7 @@ THIRST_DECAY_PER_TICK = CFG.get("thirst_decay_per_tick", 3)
 THIRST_AUTO_DRINK_THRESHOLD = CFG.get("thirst_auto_drink_threshold", 80)
 THIRST_DRINK_RESTORE = CFG.get("thirst_drink_restore", 15)
 THIRST_DEHYDRATION_COIN_PENALTY = CFG.get("thirst_dehydration_coin_penalty", 10)
+PASSIVE_WATER_PER_TICK = CFG.get("passive_water_per_tick", 0)
 
 # Roles and foraging
 ROLES = ["flour_forager", "water_forager", "baker"]

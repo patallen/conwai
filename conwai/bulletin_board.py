@@ -9,7 +9,7 @@ class Post:
     timestamp: float = field(default_factory=time)
 
 
-class Board:
+class BulletinBoard:
     def __init__(self, max_posts: int = 30, max_post_length: int = 200):
         self.max_posts = max_posts
         self.max_post_length = max_post_length
