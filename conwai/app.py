@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass, field
 
 from conwai.board import Board
@@ -18,6 +19,9 @@ class Context:
     agent_map: dict = field(default_factory=dict)
     world: object = field(default=None, repr=False)
     tick: int = 0
+    compact_semaphore: asyncio.Semaphore = field(
+        default_factory=lambda: asyncio.Semaphore(5)
+    )
 
     def log(self, handle: str, event_type: str, data: dict | None = None):
         self.events.log(handle, event_type, data)

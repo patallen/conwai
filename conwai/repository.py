@@ -41,7 +41,7 @@ class AgentRepository:
             context = json.loads(ctx_path.read_text())
         else:
             context = {"system": "", "messages": []}
-        return Agent(
+        agent = Agent(
             handle=handle,
             coins=float(self._read(d, "energy", str(ENERGY_MAX))),
             role=self._read(d, "role"),
@@ -58,6 +58,10 @@ class AgentRepository:
             memory=self._read(d, "memory.md"),
             personality=self._read(d, "personality.md"),
         )
+        inbox_path = d / "inbox.json"
+        if inbox_path.exists():
+            agent._inbox = [tuple(x) for x in json.loads(inbox_path.read_text())]
+        return agent
 
     def save(self, agent: Agent) -> None:
         d = self._agent_dir(agent.handle)
@@ -80,3 +84,4 @@ class AgentRepository:
                 indent=2,
             )
         )
+        (d / "inbox.json").write_text(json.dumps(agent._inbox))
