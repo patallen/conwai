@@ -151,17 +151,18 @@ async def main():
     for i in range(1, 21):
         handle = f"A{i}"
         role = roles[i - 1]
+        compactor = qwen9b0 if i % 2 == 0 else qwen9b1
         if repo.exists(handle):
             agent = repo.load(handle=handle)
             agent.core = runpod
-            agent.compactor = runpod
+            agent.compactor = compactor
             agent.actions = registry
             agent.context_window = 10_000
         else:
             agent = repo.create(
                 Agent(
                     core=runpod, compactor=runpod, context_window=10_000,
-                    actions=registry, handle=handle, role=role, bread=STARTING_BREAD,
+                    actions=registry, handle=handle, role=role, bread=STARTING_BREAD, born_tick=ctx.tick,
                 )
             )
         agents.append(agent)
@@ -180,7 +181,7 @@ async def main():
             role = random.choice(["flour_forager", "water_forager", "baker"])
         agent = repo.create(
             Agent(core=runpod, compactor=runpod, context_window=10_000,
-                  actions=registry, handle=handle, role=role, bread=STARTING_BREAD)
+                  actions=registry, handle=handle, role=role, bread=STARTING_BREAD, born_tick=ctx.tick)
         )
         ctx.register_agent(agent)
         return agent
@@ -201,6 +202,14 @@ async def main():
                     agent._energy_log.append(f"coins -{tax} (daily tax)")
             ctx.log("WORLD", "tax", {"tick": ctx.tick})
             log.info(f"[WORLD] daily tax collected (tick {ctx.tick})")
+
+        # Bread spoilage
+        if config.BREAD_SPOIL_INTERVAL > 0 and ctx.tick % config.BREAD_SPOIL_INTERVAL == 0:
+            for agent in agents:
+                if agent.alive and agent.bread > 0:
+                    spoiled = min(agent.bread, config.BREAD_SPOIL_AMOUNT)
+                    agent.bread -= spoiled
+                    agent._energy_log.append(f"{spoiled} bread spoiled (bread left: {agent.bread})")
 
         for i, agent in enumerate(agents):
             if not agent.alive:

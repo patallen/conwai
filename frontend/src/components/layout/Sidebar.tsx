@@ -3,11 +3,22 @@ import { AgentCard } from '../agents/AgentCard'
 
 export function Sidebar() {
   const { agents, events, tick, aliveCount, totalEvents } = useSimulation()
-  const { selectedAgent } = useUIState()
+  const { selectedAgent, view } = useUIState()
   const dispatch = useUIDispatch()
 
   const maxEnergy = agents.reduce((max, a) => Math.max(max, a.energy ?? 0), 0)
   const sorted = [...agents].sort((a, b) => (b.energy ?? 0) - (a.energy ?? 0))
+
+  const navLinkStyle = (active: boolean) => ({
+    padding: '6px 16px',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontFamily: 'var(--font-mono)' as const,
+    fontWeight: 600 as const,
+    color: active ? 'var(--accent)' : 'var(--text-secondary)',
+    background: active ? 'rgba(129,140,248,0.08)' : 'transparent',
+    borderBottom: '1px solid var(--border)',
+  })
 
   return (
     <>
@@ -25,6 +36,15 @@ export function Sidebar() {
         >
           CONWAI
         </span>
+      </div>
+
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
+        <div onClick={() => dispatch({ type: 'SHOW_BOARD' })} style={navLinkStyle(view === 'board')}>
+          BOARD
+        </div>
+        <div onClick={() => dispatch({ type: 'SHOW_ECONOMY' })} style={navLinkStyle(view === 'economy')}>
+          ECONOMY
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>

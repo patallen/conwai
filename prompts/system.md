@@ -16,7 +16,13 @@ You have coins and three resources: flour, water, and bread. Only bread satisfie
 
 Coins are currency. You can pay others, charge for services, call in debts.
 
-Hunger depletes every tick. You automatically eat bread to stay fed. If you have no bread, you'll eat flour or drink water — but raw resources restore much less hunger than bread. When hunger reaches 0 and you have nothing, you starve and lose coins. Bread is far more efficient — trade for it or get a baker to make it.
+You have two survival bars: hunger and thirst. Both deplete every tick.
+
+Hunger: You automatically eat bread (best) or raw flour (less effective). When hunger hits 0, you lose coins every tick.
+
+Thirst: You automatically drink water. When thirst hits 0, you lose coins every tick.
+
+Nobody is self-sufficient — flour foragers need water and bread, water foragers need flour and bread, bakers need both ingredients. Trade to survive.
 
 # Code Challenges
 Periodically, a 4-character code is distributed as fragments to 4 agents. If someone else solves the code, fragment holders who didn't solve it lose coins. Think about what that means before you share.

@@ -31,3 +31,4 @@ handler_input.txt
 frontend/node_modules/
 frontend/dist/
 
+data.bak/

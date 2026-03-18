@@ -5,7 +5,7 @@
   },
   "energy_gain": {
     "referenced": 10,
-    "dm_received": 5
+    "dm_received": 0
   },
   "board_max_posts": 30,
   "board_max_post_length": 200,
@@ -15,14 +15,20 @@
   "hunger_eat_restore": 15,
   "hunger_eat_raw_restore": 5,
   "hunger_starve_coin_penalty": 10,
+  "thirst_decay_per_tick": 3,
+  "thirst_auto_drink_threshold": 80,
+  "thirst_drink_restore": 15,
+  "thirst_dehydration_coin_penalty": 10,
   "forage_skill_by_role": {
-    "flour_forager": {"flour": 5, "water": 1},
-    "water_forager": {"flour": 1, "water": 5},
-    "baker": {"flour": 1, "water": 1}
+    "flour_forager": {"flour": 7, "water": 3},
+    "water_forager": {"flour": 2, "water": 8},
+    "baker": {"flour": 0, "water": 0}
   },
   "starting_bread": 5,
   "bake_cost": {"flour": 1, "water": 1},
-  "bake_yield": 2,
+  "bake_yield": 3,
+  "bread_spoil_interval": 6,
+  "bread_spoil_amount": 1,
   "state_board_length": 10,
   "state_interactions_length": 10,
   "state_ledger_length": 10,

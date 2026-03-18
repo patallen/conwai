@@ -16,25 +16,15 @@ interface AgentCardProps {
 export function AgentCard({ agent, events, maxEnergy, selected, onClick }: AgentCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const color = getAgentColor(agent.handle)
-  const energyPct = agent.energy != null && maxEnergy > 0
-    ? Math.round((agent.energy / maxEnergy) * 100)
-    : 0
   const now = Date.now() / 1000
   const recentlyActive = events.some(
     e => e.entity === agent.handle && (now - e.t) < RECENCY_WINDOW_MS / 1000
   )
 
   const hungerPct = agent.hunger != null ? Math.round(agent.hunger) : 0
-  const energyColor = energyPct < 20
-    ? 'var(--energy-critical)'
-    : energyPct < 50
-    ? 'var(--energy-warning)'
-    : 'var(--energy-healthy)'
-  const hungerColor = hungerPct < 20
-    ? 'var(--energy-critical)'
-    : hungerPct < 50
-    ? 'var(--energy-warning)'
-    : '#4a9'
+  const thirstPct = agent.thirst != null ? Math.round(agent.thirst) : 0
+  const hungerColor = hungerPct < 20 ? '#f87171' : hungerPct < 50 ? '#fb923c' : '#f59e0b'
+  const thirstColor = thirstPct < 20 ? '#f87171' : thirstPct < 50 ? '#60a5fa' : '#38bdf8'
 
   return (
     <div
@@ -67,30 +57,25 @@ export function AgentCard({ agent, events, maxEnergy, selected, onClick }: Agent
         </span>
         <span style={{ color: 'var(--text-secondary)', fontSize: 11, marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <span>{agent.energy != null ? agent.energy : '?'}c</span>
-          <span style={{ color: hungerColor }}>{agent.hunger != null ? agent.hunger : '?'}h</span>
           <span style={{ color: '#c8a' }}>{agent.flour}F</span>
           <span style={{ color: '#48c' }}>{agent.water}W</span>
           <span style={{ color: '#ca4' }}>{agent.bread}B</span>
         </span>
       </div>
-      <div style={{ display: 'flex', gap: 2, margin: '4px 0' }}>
-        <div style={{
-          background: 'rgba(255,255,255,0.05)', height: 3, borderRadius: 2, flex: 1,
-        }}>
-          <div style={{
-            height: '100%', borderRadius: 2, width: `${energyPct}%`,
-            background: energyColor,
-            boxShadow: `0 0 6px ${energyColor}40`,
-            transition: 'width 300ms ease',
-          }} />
-        </div>
-        <div style={{
-          background: 'rgba(255,255,255,0.05)', height: 3, borderRadius: 2, flex: 1,
-        }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '4px 0' }}>
+        <div style={{ background: 'rgba(255,255,255,0.05)', height: 3, borderRadius: 2 }}>
           <div style={{
             height: '100%', borderRadius: 2, width: `${hungerPct}%`,
             background: hungerColor,
             boxShadow: `0 0 6px ${hungerColor}40`,
+            transition: 'width 300ms ease',
+          }} />
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.05)', height: 3, borderRadius: 2 }}>
+          <div style={{
+            height: '100%', borderRadius: 2, width: `${thirstPct}%`,
+            background: thirstColor,
+            boxShadow: `0 0 6px ${thirstColor}40`,
             transition: 'width 300ms ease',
           }} />
         </div>

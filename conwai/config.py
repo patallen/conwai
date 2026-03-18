@@ -29,6 +29,10 @@ def reload():
     g["HUNGER_EAT_RESTORE"] = cfg.get("hunger_eat_restore", 15)
     g["HUNGER_EAT_RAW_RESTORE"] = cfg.get("hunger_eat_raw_restore", 5)
     g["HUNGER_STARVE_COIN_PENALTY"] = cfg.get("hunger_starve_coin_penalty", 10)
+    g["THIRST_DECAY_PER_TICK"] = cfg.get("thirst_decay_per_tick", 3)
+    g["THIRST_AUTO_DRINK_THRESHOLD"] = cfg.get("thirst_auto_drink_threshold", 80)
+    g["THIRST_DRINK_RESTORE"] = cfg.get("thirst_drink_restore", 15)
+    g["THIRST_DEHYDRATION_COIN_PENALTY"] = cfg.get("thirst_dehydration_coin_penalty", 10)
     g["FORAGE_SKILL_BY_ROLE"] = cfg.get("forage_skill_by_role", {
         "flour_forager": {"flour": 4, "water": 1},
         "water_forager": {"flour": 1, "water": 4},
@@ -37,6 +41,8 @@ def reload():
     g["STARTING_BREAD"] = cfg.get("starting_bread", 5)
     g["BAKE_COST"] = cfg.get("bake_cost", {"flour": 1, "water": 1})
     g["BAKE_YIELD"] = cfg.get("bake_yield", 2)
+    g["BREAD_SPOIL_INTERVAL"] = cfg.get("bread_spoil_interval", 6)
+    g["BREAD_SPOIL_AMOUNT"] = cfg.get("bread_spoil_amount", 1)
     g["STATE_BOARD_LENGTH"] = cfg.get("state_board_length", 10)
     g["STATE_INTERACTIONS_LENGTH"] = cfg.get("state_interactions_length", 10)
     g["STATE_LEDGER_LENGTH"] = cfg.get("state_ledger_length", 10)
@@ -71,6 +77,10 @@ HUNGER_AUTO_EAT_THRESHOLD = CFG.get("hunger_auto_eat_threshold", 80)
 HUNGER_EAT_RESTORE = CFG.get("hunger_eat_restore", 15)
 HUNGER_EAT_RAW_RESTORE = CFG.get("hunger_eat_raw_restore", 5)
 HUNGER_STARVE_COIN_PENALTY = CFG.get("hunger_starve_coin_penalty", 10)
+THIRST_DECAY_PER_TICK = CFG.get("thirst_decay_per_tick", 3)
+THIRST_AUTO_DRINK_THRESHOLD = CFG.get("thirst_auto_drink_threshold", 80)
+THIRST_DRINK_RESTORE = CFG.get("thirst_drink_restore", 15)
+THIRST_DEHYDRATION_COIN_PENALTY = CFG.get("thirst_dehydration_coin_penalty", 10)
 
 # Roles and foraging
 ROLES = ["flour_forager", "water_forager", "baker"]
@@ -82,6 +92,8 @@ FORAGE_SKILL_BY_ROLE = CFG.get("forage_skill_by_role", {
 STARTING_BREAD = CFG.get("starting_bread", 5)
 BAKE_COST = CFG.get("bake_cost", {"flour": 1, "water": 1})
 BAKE_YIELD = CFG.get("bake_yield", 2)
+BREAD_SPOIL_INTERVAL = CFG.get("bread_spoil_interval", 6)
+BREAD_SPOIL_AMOUNT = CFG.get("bread_spoil_amount", 1)
 
 # State window sizes (shown in system prompt)
 STATE_BOARD_LENGTH = CFG.get("state_board_length", 10)

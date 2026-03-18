@@ -1,3 +1,3 @@
-[{timestamp} | coins:{coins} | hunger:{hunger} | flour:{flour} | water:{water} | bread:{bread}]
+[{timestamp} | coins:{coins} | hunger:{hunger} | thirst:{thirst} | flour:{flour} | water:{water} | bread:{bread}]
 
 {content}

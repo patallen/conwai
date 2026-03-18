@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useState, useCallback, type ReactNode, type Dispatch } from 'react'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import type { SimulationData, UIState, DataSource, HandlerAction, ActionResult } from './types'
 
 const SimulationContext = createContext<SimulationData | null>(null)
@@ -34,47 +35,94 @@ type UIAction =
   | { type: 'SELECT_AGENT'; handle: string }
   | { type: 'SELECT_CONVERSATION'; key: string }
   | { type: 'SHOW_GRAPH' }
+  | { type: 'SHOW_ECONOMY' }
+  | { type: 'SHOW_BOARD' }
   | { type: 'TOGGLE_CONTROL_PANEL' }
   | { type: 'OPEN_CONTROL_PANEL'; prefill?: Partial<HandlerAction> }
   | { type: 'CLOSE_CONTROL_PANEL' }
 
-const initialUIState: UIState = {
-  selectedAgent: null, selectedConversation: null, view: 'graph',
-  controlPanelOpen: false, controlPanelPrefill: null,
+// Navigation dispatch that uses react-router + control panel state
+export function useUIDispatch(): Dispatch<UIAction> {
+  const navigate = useNavigate()
+  const cpDispatch = useControlPanelDispatch()
+  return useCallback((action: UIAction) => {
+    switch (action.type) {
+      case 'SELECT_AGENT': navigate(`/agent/${action.handle}`); break
+      case 'SELECT_CONVERSATION': navigate(`/conversation/${action.key}`); break
+      case 'SHOW_GRAPH': navigate('/'); break
+      case 'SHOW_ECONOMY': navigate('/economy'); break
+      case 'SHOW_BOARD': navigate('/board'); break
+      case 'TOGGLE_CONTROL_PANEL':
+      case 'OPEN_CONTROL_PANEL':
+      case 'CLOSE_CONTROL_PANEL':
+        cpDispatch(action)
+        break
+    }
+  }, [navigate, cpDispatch])
 }
 
-function uiReducer(state: UIState, action: UIAction): UIState {
+// Derive UI state from current route
+export function useUIState(): UIState {
+  const location = useLocation()
+  const path = location.pathname
+
+  let view: UIState['view'] = 'graph'
+  let selectedAgent: string | null = null
+  let selectedConversation: string | null = null
+
+  if (path.startsWith('/agent/')) {
+    view = 'agent'
+    selectedAgent = path.slice(7)
+  } else if (path.startsWith('/conversation/')) {
+    view = 'conversation'
+    selectedConversation = path.slice(14)
+  } else if (path === '/economy') {
+    view = 'economy'
+  } else if (path === '/board') {
+    view = 'board'
+  }
+
+  const { controlPanelOpen, controlPanelPrefill } = useControlPanel()
+
+  return { selectedAgent, selectedConversation, view, controlPanelOpen, controlPanelPrefill }
+}
+
+// Control panel state (not URL-driven)
+type CPAction =
+  | { type: 'TOGGLE_CONTROL_PANEL' }
+  | { type: 'OPEN_CONTROL_PANEL'; prefill?: Partial<HandlerAction> }
+  | { type: 'CLOSE_CONTROL_PANEL' }
+
+interface CPState {
+  controlPanelOpen: boolean
+  controlPanelPrefill: Partial<HandlerAction> | null
+}
+
+function cpReducer(state: CPState, action: CPAction): CPState {
   switch (action.type) {
-    case 'SELECT_AGENT': return { ...state, selectedAgent: action.handle, selectedConversation: null, view: 'agent' }
-    case 'SELECT_CONVERSATION': return { ...state, selectedConversation: action.key, selectedAgent: null, view: 'conversation' }
-    case 'SHOW_GRAPH': return { ...state, selectedAgent: null, selectedConversation: null, view: 'graph' }
-    case 'TOGGLE_CONTROL_PANEL': return { ...state, controlPanelOpen: !state.controlPanelOpen, controlPanelPrefill: null }
-    case 'OPEN_CONTROL_PANEL': return { ...state, controlPanelOpen: true, controlPanelPrefill: action.prefill ?? null }
-    case 'CLOSE_CONTROL_PANEL': return { ...state, controlPanelOpen: false, controlPanelPrefill: null }
+    case 'TOGGLE_CONTROL_PANEL': return { controlPanelOpen: !state.controlPanelOpen, controlPanelPrefill: null }
+    case 'OPEN_CONTROL_PANEL': return { controlPanelOpen: true, controlPanelPrefill: action.prefill ?? null }
+    case 'CLOSE_CONTROL_PANEL': return { controlPanelOpen: false, controlPanelPrefill: null }
     default: return state
   }
 }
 
-const UIStateContext = createContext<UIState | null>(null)
-const UIDispatchContext = createContext<Dispatch<UIAction> | null>(null)
+const CPStateContext = createContext<CPState>({ controlPanelOpen: false, controlPanelPrefill: null })
+const CPDispatchContext = createContext<Dispatch<CPAction>>(() => {})
 
-export function UIProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(uiReducer, initialUIState)
+export function ControlPanelProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(cpReducer, { controlPanelOpen: false, controlPanelPrefill: null })
   return (
-    <UIStateContext.Provider value={state}>
-      <UIDispatchContext.Provider value={dispatch}>{children}</UIDispatchContext.Provider>
-    </UIStateContext.Provider>
+    <CPStateContext.Provider value={state}>
+      <CPDispatchContext.Provider value={dispatch}>{children}</CPDispatchContext.Provider>
+    </CPStateContext.Provider>
   )
 }
 
-export function useUIState(): UIState {
-  const ctx = useContext(UIStateContext)
-  if (!ctx) throw new Error('useUIState must be used within UIProvider')
-  return ctx
+export function useControlPanel(): CPState {
+  return useContext(CPStateContext)
 }
 
-export function useUIDispatch(): Dispatch<UIAction> {
-  const ctx = useContext(UIDispatchContext)
-  if (!ctx) throw new Error('useUIDispatch must be used within UIProvider')
-  return ctx
+export function useControlPanelDispatch(): Dispatch<CPAction> {
+  return useContext(CPDispatchContext)
 }

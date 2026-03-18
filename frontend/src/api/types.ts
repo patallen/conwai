@@ -9,7 +9,9 @@ export interface Agent {
   water: number
   bread: number
   hunger: number | null
+  thirst: number | null
   alive: boolean
+  born_tick: number
 }
 
 export interface SimEvent {
@@ -63,7 +65,7 @@ export interface SimulationData {
 export interface UIState {
   selectedAgent: string | null
   selectedConversation: string | null
-  view: 'graph' | 'agent' | 'conversation'
+  view: 'graph' | 'agent' | 'conversation' | 'economy' | 'board'
   controlPanelOpen: boolean
   controlPanelPrefill: Partial<HandlerAction> | null
 }

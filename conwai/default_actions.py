@@ -29,15 +29,15 @@ def _send_message(agent, ctx, args):
     message = args.get("message", "")
     if not to:
         return
-    if agent._dm_sent_this_tick:
-        agent._action_log.append("You already sent a DM this tick. You can only send 1 DM per tick. Wait until next tick.")
+    if agent._dm_sent_this_tick >= 2:
+        agent._action_log.append("You already sent 2 DMs this tick. Wait until next tick.")
         return
     err = ctx.bus.send(agent.handle, to, message)
     if err:
         agent._action_log.append(f"DM failed: {err}")
         log.info(f"[{agent.handle}] SEND FAILED: {err}")
     else:
-        agent._dm_sent_this_tick = True
+        agent._dm_sent_this_tick += 1
         agent.record_dm(ctx.tick, f"you → {to}: {message}")
         ctx.log(agent.handle, "dm_sent", {"to": to, "content": message})
         log.info(f"[{agent.handle}] -> [{to}]: {message}")
@@ -95,7 +95,7 @@ def _inspect(agent, ctx, args):
         f"Role: {role_labels.get(other.role, other.role)}",
         f"Personality: {other.personality}",
         f"Coins: {int(other.coins)}",
-        f"Hunger: {other.hunger}/100",
+        f"Hunger: {other.hunger}/100, Thirst: {other.thirst}/100",
         f"Flour: {other.flour}, Water: {other.water}, Bread: {other.bread}",
     ]
     soul = other.soul
@@ -207,8 +207,7 @@ def _bake(agent, ctx, args):
     agent.flour -= flour_needed
     agent.water -= water_needed
     agent.bread += config.BAKE_YIELD
-    agent._action_log.append(f"baked {config.BAKE_YIELD} bread (flour: {agent.flour}, water: {agent.water}, bread: {agent.bread}). Baking takes your full attention — no other actions this tick.")
-    agent._foraging = True  # reuse foraging flag to block other actions
+    agent._action_log.append(f"baked {config.BAKE_YIELD} bread (flour: {agent.flour}, water: {agent.water}, bread: {agent.bread})")
     ctx.log(agent.handle, "bake", {"bread": config.BAKE_YIELD, "flour": agent.flour, "water": agent.water})
     log.info(f"[{agent.handle}] baked {config.BAKE_YIELD} bread")
 
@@ -274,7 +273,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="send_message",
-            description="Send a private DM to another agent. Costs 2 coins. LIMIT: 1 DM per tick. Choose your recipient wisely.",
+            description="Send a private DM to another agent. Costs 2 coins. LIMIT: 2 DMs per tick.",
             parameters={
                 "to": {"type": "string", "description": "Handle of the recipient"},
                 "message": {"type": "string", "description": "The message to send"},
@@ -362,7 +361,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="bake",
-            description="Turn 1 flour + 1 water into 2 bread. Only bakers can do this. Bread is the only thing that satisfies hunger. THIS TAKES YOUR ENTIRE TICK.",
+            description="Turn 1 flour + 1 water into 3 bread. Only bakers can do this. Bread is the only thing that satisfies hunger.",
             parameters={},
             cost_flat=0,
             handler=_bake,

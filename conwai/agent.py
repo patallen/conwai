@@ -57,24 +57,27 @@ class Agent:
     water: int = 0
     bread: int = 0
     hunger: int = HUNGER_MAX
+    thirst: int = HUNGER_MAX
     context_window: int = CONTEXT_WINDOW
     personality: str = ""
     soul: str = ""
     memory: str = ""
     alive: bool = True
+    born_tick: int = 0
     code_fragment: str | None = None
 
     messages: list[dict] = field(default_factory=list, repr=False)
     system_prompt: str = field(default="", repr=False)
 
     _running: bool = field(default=False, init=False, repr=False)
+    _pending_summary: asyncio.Task | None = field(default=None, init=False, repr=False)
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
     _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
     _board_history: list[str] = field(default_factory=list, init=False, repr=False)
     _dm_history: list[str] = field(default_factory=list, init=False, repr=False)
     _ledger: list[str] = field(default_factory=list, init=False, repr=False)
     _compact_needed: bool = field(default=False, init=False, repr=False)
-    _dm_sent_this_tick: bool = field(default=False, init=False, repr=False)
+    _dm_sent_this_tick: int = field(default=0, init=False, repr=False)
     _foraging: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
@@ -127,11 +130,29 @@ class Agent:
 
     async def tick(self, ctx: Context) -> None:
         self._running = True
-        self._dm_sent_this_tick = False
+        self._dm_sent_this_tick = 0
         self._foraging = False
         try:
-            # Hunger ticks down
+            # Wait for previous tick's summary to finish before touching messages
+            if self._pending_summary:
+                await self._pending_summary
+                self._pending_summary = None
+
+            # Hunger and thirst tick down
             self.hunger = max(0, self.hunger - config.HUNGER_DECAY_PER_TICK)
+            self.thirst = max(0, self.thirst - config.THIRST_DECAY_PER_TICK)
+
+            # Die if starving/dehydrated with nothing to consume
+            if self.hunger == 0 and self.bread == 0 and self.flour == 0:
+                self.alive = False
+                log.info(f"[{self.handle}] DEAD — starved")
+                ctx.log(self.handle, "agent_died", {"reason": "starved"})
+                return
+            if self.thirst == 0 and self.water == 0:
+                self.alive = False
+                log.info(f"[{self.handle}] DEAD — dehydrated")
+                ctx.log(self.handle, "agent_died", {"reason": "dehydrated"})
+                return
 
             self._rebuild_context(ctx)
             msg_count_before = len(self.messages)
@@ -141,7 +162,6 @@ class Agent:
             self._process_tool_calls(llm_response, ctx)
 
             # Auto-eat AFTER acting so agents can trade first
-            # Prefer bread (restores more), fall back to eating flour raw
             if self.hunger <= config.HUNGER_AUTO_EAT_THRESHOLD:
                 if self.bread > 0:
                     self.bread -= 1
@@ -151,17 +171,26 @@ class Agent:
                     self.flour -= 1
                     self.hunger = min(HUNGER_MAX, self.hunger + config.HUNGER_EAT_RAW_RESTORE)
                     self._energy_log.append(f"ate 1 flour raw (hunger now {self.hunger}, flour left: {self.flour})")
-                elif self.water > 0:
-                    self.water -= 1
-                    self.hunger = min(HUNGER_MAX, self.hunger + config.HUNGER_EAT_RAW_RESTORE)
-                    self._energy_log.append(f"drank 1 water (hunger now {self.hunger}, water left: {self.water})")
             if self.hunger == 0:
                 self.coins = max(0, self.coins - config.HUNGER_STARVE_COIN_PENALTY)
                 self._energy_log.append(f"coins -{config.HUNGER_STARVE_COIN_PENALTY} (starving)")
 
-            await self._summarize_tick(ctx, msg_count_before)
+            # Auto-drink water AFTER acting
+            if self.thirst <= config.THIRST_AUTO_DRINK_THRESHOLD and self.water > 0:
+                self.water -= 1
+                self.thirst = min(HUNGER_MAX, self.thirst + config.THIRST_DRINK_RESTORE)
+                self._energy_log.append(f"drank 1 water (thirst now {self.thirst}, water left: {self.water})")
+            if self.thirst == 0:
+                self.coins = max(0, self.coins - config.THIRST_DEHYDRATION_COIN_PENALTY)
+                self._energy_log.append(f"coins -{config.THIRST_DEHYDRATION_COIN_PENALTY} (dehydrated)")
+
+            # Fire off summary in background — will be awaited at start of next tick
+            self._pending_summary = asyncio.create_task(self._summarize_tick(ctx, msg_count_before))
 
             if self._compact_needed:
+                # Compaction needs the summary done first
+                await self._pending_summary
+                self._pending_summary = None
                 await self._do_compaction(ctx)
 
         except Exception as e:
@@ -184,6 +213,8 @@ class Agent:
             for m in tick_messages
             if m.get("content")
         )
+        import time as _time
+        _start = _time.monotonic()
         resp = await compactor.call(
             "Summarize what you did this tick as a short memory. Write in first person. 1-3 sentences. Include actions, results, and anything important you learned.",
             [{"role": "user", "content": text}],
@@ -191,10 +222,10 @@ class Agent:
         )
         if resp and resp.text:
             summary = resp.text.strip()
+            log.info(f"[{self.handle}] tick summarized ({len(summary)} chars, {_time.monotonic() - _start:.1f}s)")
             # Replace tick messages with the summary
             del self.messages[msg_count_before - 1:]
             self.messages.append({"role": "user", "content": f"[{self._tick_to_timestamp(ctx.tick)}] {summary}"})
-            log.info(f"[{self.handle}] tick summarized ({len(summary)} chars)")
 
     _COMPACTION_PERSONA = (
         "You are a meticulous archivist. Your job is to preserve important information "
@@ -265,11 +296,14 @@ class Agent:
         if self.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {self.code_fragment}")
         if self.hunger <= 30:
-            parts.append(f"WARNING: You are hungry (hunger: {self.hunger}/100, bread: {self.bread}). If hunger reaches 0 you starve and lose {config.HUNGER_STARVE_COIN_PENALTY} coins per tick. You eat bread automatically but need to bake or trade for more.")
+            parts.append(f"WARNING: You are hungry (hunger: {self.hunger}/100, bread: {self.bread}). Eat bread or raw flour to restore hunger.")
+        if self.thirst <= 30:
+            parts.append(f"WARNING: You are thirsty (thirst: {self.thirst}/100, water: {self.water}). Drink water to restore thirst.")
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),
             coins=int(self.coins),
             hunger=self.hunger,
+            thirst=self.thirst,
             flour=self.flour,
             water=self.water,
             bread=self.bread,

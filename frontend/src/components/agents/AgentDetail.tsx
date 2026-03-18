@@ -3,11 +3,12 @@ import { useSimulation, useUIState, useUIDispatch } from '../../api/hooks'
 import { getAgentColor } from '../../api/colors'
 
 export function AgentDetail() {
-  const { agents, events, stats, conversations } = useSimulation()
+  const { agents, events, stats, conversations, tick } = useSimulation()
   const { selectedAgent } = useUIState()
   const dispatch = useUIDispatch()
   const [context, setContext] = useState<any>(null)
   const [contextLoading, setContextLoading] = useState(false)
+  const [compactedMemory, setCompactedMemory] = useState<string>('')
 
   const agent = agents.find(a => a.handle === selectedAgent)
   const agentStats = stats.find(s => s.handle === selectedAgent)
@@ -20,6 +21,21 @@ export function AgentDetail() {
 
   const boardPosts = agentEvents.filter(e => e.type === 'board_post').slice(-10)
   const dms = agentEvents.filter(e => e.type === 'dm_sent').slice(-20)
+
+  // Trade history: gives where this agent is sender or receiver
+  const gives = events.filter(e =>
+    e.type === 'give' && (e.entity === selectedAgent || e.data.to === selectedAgent)
+  ).slice(-30)
+
+  // Trading partners summary
+  const partnerCounts: Record<string, number> = {}
+  for (const g of gives) {
+    const partner = g.entity === selectedAgent ? g.data.to : g.entity
+    if (partner) partnerCounts[partner] = (partnerCounts[partner] || 0) + 1
+  }
+  const topPartners = Object.entries(partnerCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
 
   // Conversations involving this agent
   const agentConvos = Object.entries(conversations)
@@ -40,6 +56,22 @@ export function AgentDetail() {
   // Reset context when agent changes
   useEffect(() => { setContext(null) }, [selectedAgent])
 
+  // Auto-fetch compacted memory
+  useEffect(() => {
+    if (!selectedAgent) return
+    setCompactedMemory('')
+    const fetchMemory = async () => {
+      try {
+        const resp = await fetch(`/api/agent/${selectedAgent}/memory`)
+        const data = await resp.json()
+        if (data.memory) setCompactedMemory(data.memory)
+      } catch { /* ignore */ }
+    }
+    fetchMemory()
+    const interval = setInterval(fetchMemory, 5000)
+    return () => clearInterval(interval)
+  }, [selectedAgent])
+
   if (!agent) {
     return <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Agent not found</div>
   }
@@ -53,10 +85,11 @@ export function AgentDetail() {
         }}>
           {agent.handle}
         </span>
-        <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{agent.role} · {agent.personality}</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{agent.role} · {agent.personality} · age {tick - agent.born_tick} ticks</span>
         <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)', fontSize: 12, display: 'flex', gap: 12 }}>
           <span>coins: <span style={{ color: 'var(--text-primary)' }}>{agent.energy ?? '?'}</span></span>
           <span>hunger: <span style={{ color: 'var(--text-primary)' }}>{agent.hunger ?? '?'}/100</span></span>
+          <span>thirst: <span style={{ color: 'var(--text-primary)' }}>{agent.thirst ?? '?'}/100</span></span>
           <span>flour: <span style={{ color: '#c8a' }}>{agent.flour}</span></span>
           <span>water: <span style={{ color: '#48c' }}>{agent.water}</span></span>
           <span>bread: <span style={{ color: '#ca4' }}>{agent.bread}</span></span>
@@ -83,11 +116,66 @@ export function AgentDetail() {
         </div>
       )}
 
+      {/* Trading Partners */}
+      <Section title={`trading partners (${topPartners.length})`}>
+        {topPartners.length === 0 ? <Muted>(none)</Muted> : topPartners.map(([partner, count]) => (
+          <div key={partner} style={{
+            padding: '3px 0', fontSize: 12, display: 'flex', justifyContent: 'space-between',
+            borderBottom: '1px solid var(--border)',
+          }}>
+            <span
+              style={{ color: getAgentColor(partner), cursor: 'pointer' }}
+              onClick={() => dispatch({ type: 'SELECT_AGENT', handle: partner })}
+            >
+              {partner}
+            </span>
+            <span style={{ color: 'var(--text-secondary)' }}>{count} trades</span>
+          </div>
+        ))}
+      </Section>
+
+      {/* Trade History */}
+      <Section title={`trade history (${gives.length})`}>
+        {gives.length === 0 ? <Muted>(none)</Muted> : gives.slice().reverse().map((e, i) => {
+          const outgoing = e.entity === selectedAgent
+          const partner = outgoing ? e.data.to : e.entity
+          const item = e.data.resource && e.data.amount
+            ? `${e.data.amount} ${e.data.resource}`
+            : ''
+          return (
+            <div key={`give-${e.idx}-${i}`} style={{
+              padding: '3px 0', borderBottom: '1px solid var(--border)', fontSize: 12,
+            }}>
+              <span style={{ color: outgoing ? '#f97316' : '#34d399' }}>
+                {outgoing ? 'sent' : 'recv'}
+              </span>
+              {' '}
+              <span
+                style={{ color: getAgentColor(partner), cursor: 'pointer' }}
+                onClick={() => dispatch({ type: 'SELECT_AGENT', handle: partner })}
+              >
+                {outgoing ? `-> ${partner}` : `<- ${partner}`}
+              </span>
+              {item && (
+                <span style={{ color: 'var(--text-secondary)' }}> {item}</span>
+              )}
+            </div>
+          )
+        })}
+      </Section>
+
       {/* Soul */}
       <Section title="soul">
         <div style={{ color: '#67e8f9', fontStyle: 'italic', fontSize: 12 }}>
           {agent.soul || '(empty)'}
         </div>
+      </Section>
+
+      {/* Compacted Memory */}
+      <Section title="compacted memory">
+        <pre style={{ color: 'var(--text-primary)', fontSize: 12, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>
+          {compactedMemory || '(not yet compacted)'}
+        </pre>
       </Section>
 
       {/* Memory */}

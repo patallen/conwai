@@ -38,6 +38,10 @@ def read_agents() -> list[dict]:
             agent[resource] = int(rp.read_text().strip()) if rp.exists() else 0
         hp = d / "hunger"
         agent["hunger"] = int(hp.read_text().strip()) if hp.exists() else None
+        tp = d / "thirst"
+        agent["thirst"] = int(tp.read_text().strip()) if tp.exists() else None
+        bp = d / "born_tick"
+        agent["born_tick"] = int(bp.read_text().strip()) if bp.exists() else 0
         alive_path = d / "alive"
         agent["alive"] = (
             alive_path.read_text().strip() == "true" if alive_path.exists() else True
@@ -126,6 +130,24 @@ def api_agent_context(handle: str):
     if not ctx_path.exists():
         return {"error": "no context available"}
     return json.loads(ctx_path.read_text())
+
+
+@app.get("/api/agent/{handle}/memory")
+def api_agent_memory(handle: str):
+    ctx_path = AGENTS_DIR / handle / "context.json"
+    if not ctx_path.exists():
+        return {"memory": ""}
+    context = json.loads(ctx_path.read_text())
+    for m in context.get("messages", []):
+        content = m.get("content", "")
+        if "COMPACTED MEMORY" in content:
+            # Extract just the memory content between the markers
+            start = content.find("=== YOUR COMPACTED MEMORY ===")
+            end = content.find("=== END COMPACTED MEMORY ===")
+            if start >= 0 and end >= 0:
+                return {"memory": content[start + 29:end].strip()}
+            return {"memory": content.strip()}
+    return {"memory": ""}
 
 
 @app.get("/api/agent/{handle}")

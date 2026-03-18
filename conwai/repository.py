@@ -49,7 +49,9 @@ class AgentRepository:
             water=int(self._read(d, "water", "0")),
             bread=int(self._read(d, "bread", "0")),
             hunger=int(self._read(d, "hunger", str(HUNGER_MAX))),
+            thirst=int(self._read(d, "thirst", str(HUNGER_MAX))),
             alive=self._read(d, "alive", "true") == "true",
+            born_tick=int(self._read(d, "born_tick", "0")),
             system_prompt=context["system"],
             messages=context["messages"],
             soul=self._read(d, "soul.md"),
@@ -66,7 +68,9 @@ class AgentRepository:
         (d / "water").write_text(str(agent.water))
         (d / "bread").write_text(str(agent.bread))
         (d / "hunger").write_text(str(agent.hunger))
+        (d / "thirst").write_text(str(agent.thirst))
         (d / "alive").write_text("true" if agent.alive else "false")
+        (d / "born_tick").write_text(str(agent.born_tick))
         (d / "soul.md").write_text(agent.soul)
         (d / "memory.md").write_text(agent.memory[:MEMORY_MAX])
         (d / "personality.md").write_text(agent.personality)

@@ -2,6 +2,8 @@ import { useUIState } from '../../api/hooks'
 import { SocialGraph } from '../graph/SocialGraph'
 import { AgentDetail } from '../agents/AgentDetail'
 import { ConversationView } from '../feed/ConversationView'
+import { EconomyOverview } from '../economy/EconomyOverview'
+import { BoardView } from '../feed/BoardView'
 
 export function MainView() {
   const { view } = useUIState()
@@ -19,6 +21,8 @@ export function MainView() {
       {/* Agent/conversation views are normal flow — they inherit the grid cell width */}
       {view === 'agent' && <AgentDetail />}
       {view === 'conversation' && <ConversationView />}
+      {view === 'economy' && <EconomyOverview />}
+      {view === 'board' && <BoardView />}
     </div>
   )
 }
