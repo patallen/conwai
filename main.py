@@ -137,11 +137,24 @@ async def main():
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048
     )
     runpod = LLMClient(
-        base_url="https://ykwnq4rjufjojf-8000.proxy.runpod.net/v1",
+        base_url="https://84gtx3cs1eb7xa-8000.proxy.runpod.net/v1",
         model="Qwen/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048,
         api_key="none",
     )
     repo = AgentRepository()
+
+    def make_agent(core: LLMClient, prefix: str, role: str = "") -> Agent:
+        handle = f"{prefix}{uuid4().hex[:3]}"
+        if not role:
+            role = random.choice(["flour_forager", "water_forager", "baker"])
+        compactor = random.choice([qwen9b0, qwen9b1])
+        agent = repo.create(
+            Agent(core=runpod, compactor=compactor, context_window=10_000,
+                  actions=registry, handle=handle, role=role, bread=STARTING_BREAD, born_tick=ctx.tick)
+        )
+        ctx.register_agent(agent)
+        return agent
+
     agents = []
     roles = (
         ["flour_forager"] * 8 +
@@ -154,14 +167,19 @@ async def main():
         compactor = qwen9b0 if i % 2 == 0 else qwen9b1
         if repo.exists(handle):
             agent = repo.load(handle=handle)
-            agent.core = runpod
-            agent.compactor = compactor
-            agent.actions = registry
-            agent.context_window = 10_000
+            if not agent.alive:
+                # Dead agent — spawn a replacement with the same role
+                agent = make_agent(runpod, handle[0], role=role)
+                log.info(f"[WORLD] {agent.handle} spawned (replacing dead {handle})")
+            else:
+                agent.core = runpod
+                agent.compactor = compactor
+                agent.actions = registry
+                agent.context_window = 10_000
         else:
             agent = repo.create(
                 Agent(
-                    core=runpod, compactor=runpod, context_window=10_000,
+                    core=runpod, compactor=compactor, context_window=10_000,
                     actions=registry, handle=handle, role=role, bread=STARTING_BREAD, born_tick=ctx.tick,
                 )
             )
@@ -174,17 +192,6 @@ async def main():
     ctx.world = world
 
     asyncio.create_task(watch_handler_file(ctx))
-
-    def make_agent(core: LLMClient, prefix: str, role: str = "") -> Agent:
-        handle = f"{prefix}{uuid4().hex[:3]}"
-        if not role:
-            role = random.choice(["flour_forager", "water_forager", "baker"])
-        agent = repo.create(
-            Agent(core=runpod, compactor=runpod, context_window=10_000,
-                  actions=registry, handle=handle, role=role, bread=STARTING_BREAD, born_tick=ctx.tick)
-        )
-        ctx.register_agent(agent)
-        return agent
 
     while True:
         config.reload()

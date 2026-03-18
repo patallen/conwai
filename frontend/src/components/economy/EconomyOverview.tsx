@@ -1,4 +1,13 @@
+import { useRef, useEffect, useState } from 'react'
 import { useSimulation } from '../../api/hooks'
+import { getAgentColor } from '../../api/colors'
+import type { Agent } from '../../api/types'
+
+const ROLE_COLORS: Record<string, string> = {
+  flour_forager: '#c8a',
+  water_forager: '#48c',
+  baker: '#ca4',
+}
 
 export function EconomyOverview() {
   const { agents, events } = useSimulation()
@@ -83,6 +92,26 @@ export function EconomyOverview() {
         </div>
       )}
 
+      {/* Disparity charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div>
+          <SectionLabel>Bread Distribution</SectionLabel>
+          <DisparityChart agents={agents} metric="bread" color="#ca4" />
+        </div>
+        <div>
+          <SectionLabel>Coin Distribution</SectionLabel>
+          <DisparityChart agents={agents} metric="coins" color="var(--text-primary)" />
+        </div>
+        <div>
+          <SectionLabel>Hunger Distribution</SectionLabel>
+          <DisparityChart agents={agents} metric="hunger" color="#f59e0b" />
+        </div>
+        <div>
+          <SectionLabel>Thirst Distribution</SectionLabel>
+          <DisparityChart agents={agents} metric="thirst" color="#38bdf8" />
+        </div>
+      </div>
+
       {/* Per-role averages */}
       <SectionLabel>Per-Role Averages</SectionLabel>
       <div style={{
@@ -134,6 +163,48 @@ function StatCard({ label, value, color }: { label: string; value: number; color
       <div style={{ color, fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
         {value}
       </div>
+    </div>
+  )
+}
+
+function DisparityChart({ agents, metric, color }: { agents: Agent[]; metric: string; color: string }) {
+  const getValue = (a: Agent) => {
+    if (metric === 'coins') return a.energy ?? 0
+    return (a as any)[metric] ?? 0
+  }
+  const sorted = [...agents].sort((a, b) => getValue(b) - getValue(a))
+  const max = Math.max(1, ...sorted.map(getValue))
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)', border: '1px solid var(--border)',
+      borderRadius: 4, padding: 10, maxHeight: 300, overflowY: 'auto',
+    }}>
+      {sorted.map(a => {
+        const val = getValue(a)
+        const pct = (val / max) * 100
+        const roleColor = ROLE_COLORS[a.role ?? ''] ?? '#888'
+        return (
+          <div key={a.handle} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <span style={{
+              width: 32, fontSize: 10, fontFamily: 'var(--font-mono)',
+              color: roleColor, flexShrink: 0, textAlign: 'right',
+            }}>
+              {a.handle}
+            </span>
+            <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+              <div style={{
+                height: '100%', borderRadius: 2, width: `${pct}%`,
+                background: roleColor, opacity: 0.8,
+                transition: 'width 300ms ease',
+              }} />
+            </div>
+            <span style={{ width: 28, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textAlign: 'right' }}>
+              {val}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
