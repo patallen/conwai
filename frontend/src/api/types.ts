@@ -51,12 +51,18 @@ export interface ActionResult {
   error?: string
 }
 
+export interface EconomyData {
+  counts: Record<string, number>
+  trade_volume: Record<string, number>
+}
+
 export interface SimulationData {
   agents: Agent[]
   events: SimEvent[]
   board: BoardPost[]
   conversations: Record<string, SimEvent[]>
   stats: AgentStats[]
+  economy: EconomyData
   tick: number
   aliveCount: number
   totalEvents: number

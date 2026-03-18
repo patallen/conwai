@@ -1,6 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
 import { useSimulation } from '../../api/hooks'
-import { getAgentColor } from '../../api/colors'
 import type { Agent } from '../../api/types'
 
 const ROLE_COLORS: Record<string, string> = {
@@ -10,15 +8,16 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 export function EconomyOverview() {
-  const { agents, events } = useSimulation()
+  const { agents, economy } = useSimulation()
 
   const totalFlour = agents.reduce((sum, a) => sum + (a.flour ?? 0), 0)
   const totalWater = agents.reduce((sum, a) => sum + (a.water ?? 0), 0)
   const totalBread = agents.reduce((sum, a) => sum + (a.bread ?? 0), 0)
   const totalCoins = agents.reduce((sum, a) => sum + (a.energy ?? 0), 0)
 
-  const bakeEvents = events.filter(e => e.type === 'bake')
-  const giveEvents = events.filter(e => e.type === 'give')
+  const bakeCount = economy.counts.bake ?? 0
+  const tradeCount = economy.counts.give ?? 0
+  const tradeVolume = economy.trade_volume
 
   // Per-role averages
   const roles = ['flour_forager', 'water_forager', 'baker'] as const
@@ -37,16 +36,6 @@ export function EconomyOverview() {
       avgBread: roleAgents.reduce((s, a) => s + (a.bread ?? 0), 0) / count,
     }
   })
-
-  // Trade volume breakdown
-  const tradeVolume: Record<string, number> = {}
-  for (const e of giveEvents) {
-    const resource = e.data.resource as string
-    const amount = e.data.amount as number
-    if (resource && amount) {
-      tradeVolume[resource] = (tradeVolume[resource] || 0) + amount
-    }
-  }
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: 24 }}>
@@ -71,8 +60,8 @@ export function EconomyOverview() {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24,
       }}>
-        <StatCard label="Bakes" value={bakeEvents.length} color="#34d399" />
-        <StatCard label="Trades" value={giveEvents.length} color="#fb923c" />
+        <StatCard label="Bakes" value={bakeCount} color="#34d399" />
+        <StatCard label="Trades" value={tradeCount} color="#fb923c" />
       </div>
 
       {/* Trade volume */}
@@ -167,7 +156,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   )
 }
 
-function DisparityChart({ agents, metric, color }: { agents: Agent[]; metric: string; color: string }) {
+function DisparityChart({ agents, metric, color: _color }: { agents: Agent[]; metric: string; color: string }) {
   const getValue = (a: Agent) => {
     if (metric === 'coins') return a.energy ?? 0
     return (a as any)[metric] ?? 0

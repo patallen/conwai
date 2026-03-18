@@ -90,6 +90,19 @@ def api_stats():
     return _events.agent_stats()
 
 
+@app.get("/api/economy")
+def api_economy():
+    counts = _events.economy_counts()
+    trades = _events.trade_volume()
+    volume: dict[str, int] = {}
+    for e in trades:
+        resource = e["data"].get("resource", "")
+        amount = e["data"].get("amount", 0)
+        if resource and amount:
+            volume[resource] = volume.get(resource, 0) + amount
+    return {"counts": counts, "trade_volume": volume}
+
+
 @app.post("/api/handler")
 async def api_handler(request: Request):
     body = await request.json()

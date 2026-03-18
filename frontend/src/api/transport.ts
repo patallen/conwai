@@ -2,7 +2,8 @@ import type { DataSource, SimulationData, HandlerAction, ActionResult, BoardPost
 
 const EMPTY_DATA: SimulationData = {
   agents: [], events: [], board: [], conversations: {},
-  stats: [], tick: 0, aliveCount: 0, totalEvents: 0,
+  stats: [], economy: { counts: {}, trade_volume: {} },
+  tick: 0, aliveCount: 0, totalEvents: 0,
 }
 
 export class PollingTransport implements DataSource {
@@ -49,13 +50,14 @@ export class PollingTransport implements DataSource {
 
   private async poll(): Promise<void> {
     try {
-      const [agents, newEvents, board, conversations, stats, status] = await Promise.all([
+      const [agents, newEvents, board, conversations, stats, status, economy] = await Promise.all([
         fetch('/api/agents').then(r => r.json()),
         fetch(`/api/events?since=${this.lastEventIdx}`).then(r => r.json()),
         fetch('/api/board').then(r => r.json()),
         fetch('/api/conversations').then(r => r.json()),
         fetch('/api/stats').then(r => r.json()),
         fetch('/api/status').then(r => r.json()),
+        fetch('/api/economy').then(r => r.json()),
       ])
 
       const seen = new Set(this.data.events.map((e: any) => e.idx))
@@ -65,7 +67,7 @@ export class PollingTransport implements DataSource {
       if (newEvents.length > 0) this.lastEventIdx = newEvents[newEvents.length - 1].idx + 1
 
       this.data = {
-        agents, events, board: board as BoardPost[], conversations, stats,
+        agents, events, board: board as BoardPost[], conversations, stats, economy,
         tick: status.tick ?? 0, aliveCount: status.alive ?? 0, totalEvents: status.total_events ?? 0,
       }
 

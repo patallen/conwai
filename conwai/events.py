@@ -117,6 +117,18 @@ class EventLog:
             for r in rows
         ]
 
+    def economy_counts(self) -> dict:
+        rows = self._conn.execute(
+            "SELECT type, COUNT(*) FROM events WHERE type IN ('bake', 'give', 'payment', 'forage') GROUP BY type"
+        ).fetchall()
+        return {r[0]: r[1] for r in rows}
+
+    def trade_volume(self) -> list[dict]:
+        rows = self._conn.execute(
+            "SELECT id, t, entity, type, data FROM events WHERE type = 'give' ORDER BY id"
+        ).fetchall()
+        return [self._row_to_dict(r) for r in rows]
+
     def agent_events(self, handle: str, event_type: str | None = None, limit: int = 50) -> list[dict]:
         if event_type:
             rows = self._conn.execute(
