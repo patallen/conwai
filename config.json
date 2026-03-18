@@ -1,10 +1,10 @@
 {
-  "energy_max": 1000,
+  "energy_max": 500,
   "energy_cost_flat": {
-    "update_soul": 5
+    "update_soul": 0
   },
   "energy_gain": {
-    "referenced": 10,
+    "referenced": 5,
     "dm_received": 0
   },
   "board_max_posts": 30,
@@ -20,12 +20,12 @@
   "thirst_drink_restore": 15,
   "thirst_dehydration_coin_penalty": 10,
   "forage_skill_by_role": {
-    "flour_forager": {"flour": 7, "water": 3},
-    "water_forager": {"flour": 2, "water": 8},
-    "baker": {"flour": 0, "water": 0}
+    "flour_forager": {"flour": 9, "water": 3},
+    "water_forager": {"flour": 3, "water": 9},
+    "baker": {"flour": 1, "water": 1}
   },
   "starting_bread": 5,
-  "bake_cost": {"flour": 1, "water": 1},
+  "bake_cost": {"flour": 2, "water": 2},
   "bake_yield": 3,
   "bread_spoil_interval": 6,
   "bread_spoil_amount": 1,
