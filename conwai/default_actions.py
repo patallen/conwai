@@ -186,11 +186,9 @@ def _give(agent, ctx, args):
         agent._action_log.append("cannot give to yourself")
         return
     setattr(agent, resource, have - amount)
-    setattr(other, resource, getattr(other, resource) + amount)
+    other._inbox.append((agent.handle, resource, amount))
     agent._action_log.append(f"gave {amount} {resource} to {to}")
-    other._energy_log.append(f"received {amount} {resource} from {agent.handle}")
     agent.record_ledger(ctx.tick, f"gave {amount} {resource} to {to}")
-    other.record_ledger(ctx.tick, f"received {amount} {resource} from {agent.handle}")
     ctx.log(agent.handle, "give", {"to": to, "resource": resource, "amount": amount})
     log.info(f"[{agent.handle}] gave {amount} {resource} to {to}")
 
@@ -361,7 +359,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="bake",
-            description="Turn 1 flour + 1 water into 3 bread. Only bakers can do this. Bread is the only thing that satisfies hunger.",
+            description="Turn 1 flour + 1 water into 3 bread. Only bakers can do this.",
             parameters={},
             cost_flat=0,
             handler=_bake,

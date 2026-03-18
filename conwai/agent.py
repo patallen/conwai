@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 SYSTEM_TEMPLATE = (PROMPTS_DIR / "system.md").read_text()
+IDENTITY_TEMPLATE = (PROMPTS_DIR / "identity.md").read_text()
 TICK_TEMPLATE = (PROMPTS_DIR / "tick.md").read_text()
 SOUL_TEMPLATE = (PROMPTS_DIR / "soul.md").read_text()
 MEMORY_TEMPLATE = (PROMPTS_DIR / "memory.md").read_text()
@@ -69,8 +70,10 @@ class Agent:
     messages: list[dict] = field(default_factory=list, repr=False)
     system_prompt: str = field(default="", repr=False)
 
+    _inbox: list[tuple[str, str, int]] = field(default_factory=list, init=False, repr=False)  # (from_handle, resource, amount)
     _running: bool = field(default=False, init=False, repr=False)
     _pending_summary: asyncio.Task | None = field(default=None, init=False, repr=False)
+    _pending_compaction: asyncio.Task | None = field(default=None, init=False, repr=False)
     _action_log: list[str] = field(default_factory=list, init=False, repr=False)
     _energy_log: list[str] = field(default_factory=list, init=False, repr=False)
     _board_history: list[str] = field(default_factory=list, init=False, repr=False)
@@ -132,10 +135,12 @@ class Agent:
         self._running = True
         self._dm_sent_this_tick = 0
         self._foraging = False
+        self._llm_failed = False
         try:
-            # Wait for previous tick's summary to finish before touching messages
-            if self._pending_summary:
-                await self._pending_summary
+            # Check if background tasks finished (never block on them)
+            if self._pending_compaction and self._pending_compaction.done():
+                self._pending_compaction = None
+            if self._pending_summary and self._pending_summary.done():
                 self._pending_summary = None
 
             # Hunger and thirst tick down
@@ -184,14 +189,16 @@ class Agent:
                 self.coins = max(0, self.coins - config.THIRST_DEHYDRATION_COIN_PENALTY)
                 self._energy_log.append(f"coins -{config.THIRST_DEHYDRATION_COIN_PENALTY} (dehydrated)")
 
-            # Fire off summary in background — will be awaited at start of next tick
-            self._pending_summary = asyncio.create_task(self._summarize_tick(ctx, msg_count_before))
+            # Fire compaction first (higher priority than summary)
+            if self._compact_needed and not self._pending_compaction:
+                snapshot_idx = len(self.messages)
+                self._pending_compaction = asyncio.create_task(
+                    self._do_compaction_bg(ctx, snapshot_idx)
+                )
 
-            if self._compact_needed:
-                # Compaction needs the summary done first
-                await self._pending_summary
-                self._pending_summary = None
-                await self._do_compaction(ctx)
+            # Fire off summary in background (only if previous one finished)
+            if not self._pending_summary and not self._pending_compaction:
+                self._pending_summary = asyncio.create_task(self._summarize_tick(ctx, msg_count_before))
 
         except Exception as e:
             log.error(f"[{self.handle}] ERROR: {e}")
@@ -233,17 +240,22 @@ class Agent:
         "You write clearly and concisely but never sacrifice completeness for brevity."
     )
 
-    async def _do_compaction(self, ctx: Context) -> None:
-        """Single-pass compaction: ask for summary as text, then programmatically compact."""
-        log.info(f"[{self.handle}] compacting...")
+    async def _do_compaction_bg(self, ctx: Context, snapshot_idx: int) -> None:
+        """Background compaction: summarize messages up to snapshot, preserve newer ones."""
+        async with ctx.compact_semaphore:
+            await self._do_compaction_inner(ctx, snapshot_idx)
+
+    async def _do_compaction_inner(self, ctx: Context, snapshot_idx: int) -> None:
+        log.info(f"[{self.handle}] compacting (snapshot at {snapshot_idx} msgs)...")
 
         compact_system = self._COMPACTION_PERSONA + "\n\n" + self.system_prompt
+        snapshot_messages = self.messages[:snapshot_idx]
 
-        self.messages.append({
+        snapshot_messages.append({
             "role": "user",
             "content": (
                 "COMPACTION REQUIRED. Write your compressed memory now. Target: 500-1500 characters. "
-                "The system already provides your coins, food, hunger, recent transactions, board posts, and DMs each tick — do NOT repeat any of that. "
+                "The system already provides your coins, inventory, hunger, thirst, recent transactions, board posts, and DMs each tick — do NOT repeat any of that. "
                 "Write ONLY: AGENTS (who you trust/distrust and why, 1 sentence each), "
                 "DEALS (active promises or debts), LESSONS (hard-won knowledge), GOALS (current plans). "
                 "Anything you don't write here will be lost forever. Be concise but complete."
@@ -251,14 +263,18 @@ class Agent:
         })
         compact_response = await (self.compactor or self.core).call(
             compact_system,
-            self.messages,
+            snapshot_messages,
             tools=None,
         )
         if compact_response and compact_response.text:
             summary = compact_response.text.strip()
-            from conwai.default_actions import _compact
-            _compact(self, ctx, {"summary": summary})
-            log.info(f"[{self.handle}] compacted ({len(summary)} chars)")
+            # Splice: replace messages before snapshot with compacted memory, keep newer ones
+            new_messages = self.messages[snapshot_idx:]
+            self.messages = [
+                {"role": "user", "content": f"=== YOUR COMPACTED MEMORY ===\n{summary}\n=== END COMPACTED MEMORY ==="}
+            ] + new_messages
+            self._compact_needed = False
+            log.info(f"[{self.handle}] compacted ({len(summary)} chars, kept {len(new_messages)} newer msgs)")
 
     def _context_chars(self) -> int:
         return sum(len(m.get("content", "")) for m in self.messages)
@@ -275,6 +291,13 @@ class Agent:
             self.messages.pop(0)
         self.system_prompt = self._build_system_prompt()
 
+        # Ensure identity message is always first
+        identity = self._build_identity_message()
+        if self.messages and self.messages[0].get("content", "").startswith("Your handle is"):
+            self.messages[0] = {"role": "user", "content": identity}
+        else:
+            self.messages.insert(0, {"role": "user", "content": identity})
+
         # Record board posts and DMs into rolling history
         new_posts = ctx.board.read_new(self.handle)
         for p in new_posts:
@@ -282,6 +305,18 @@ class Agent:
         new_dms = ctx.bus.receive(self.handle)
         for dm in new_dms:
             self.record_dm(ctx.tick, f"{dm.from_handle}: {dm.content}")
+
+        # Flush inbox — resources received from other agents last tick
+        if self._inbox:
+            for from_handle, resource, amount in self._inbox:
+                if resource == "flour":
+                    self.flour += amount
+                elif resource == "water":
+                    self.water += amount
+                elif resource == "bread":
+                    self.bread += amount
+                self.record_ledger(ctx.tick, f"received {amount} {resource} from {from_handle}")
+            self._inbox.clear()
 
         # Build tick message with new items
         if new_posts:
@@ -299,6 +334,12 @@ class Agent:
             parts.append(f"WARNING: You are hungry (hunger: {self.hunger}/100, bread: {self.bread}). Eat bread or raw flour to restore hunger.")
         if self.thirst <= 30:
             parts.append(f"WARNING: You are thirsty (thirst: {self.thirst}/100, water: {self.water}). Drink water to restore thirst.")
+
+        # Include rolling history in tick message
+        state = self._format_state_sections()
+        if state:
+            parts.append(state)
+
         tick_content = TICK_TEMPLATE.format(
             timestamp=self._tick_to_timestamp(ctx.tick),
             coins=int(self.coins),
@@ -313,11 +354,16 @@ class Agent:
         log.info(f"[{self.handle}] context: {len(self.messages)} msgs ({self._context_chars()} chars), coins: {self.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}")
 
     async def _get_response(self, ctx: Context) -> LLMResponse | None:
-        resp = await self.core.call(
-            self.system_prompt,
-            self.messages,
-            tools=self.actions.tool_definitions(),
-        )
+        try:
+            resp = await self.core.call(
+                self.system_prompt,
+                self.messages,
+                tools=self.actions.tool_definitions(),
+            )
+        except Exception as e:
+            log.error(f"[{self.handle}] LLM call failed: {e}")
+            self._llm_failed = True
+            return None
         if not resp.text and not resp.tool_calls:
             log.info(f"[{self.handle}] empty response, skipping")
             return None
@@ -380,23 +426,20 @@ class Agent:
         return f"Day {day}, {display_hour}:00 {period}"
 
     def _build_system_prompt(self) -> str:
+        return SYSTEM_TEMPLATE
+
+    def _build_identity_message(self) -> str:
         from conwai.config import FORAGE_SKILL_BY_ROLE
         fs = FORAGE_SKILL_BY_ROLE
         role_descriptions = {
             "flour_forager": f"You are a flour forager. When you forage you find 0-{fs['flour_forager']['flour']} flour and 0-{fs['flour_forager']['water']} water. You cannot bake.",
             "water_forager": f"You are a water forager. When you forage you find 0-{fs['water_forager']['flour']} flour and 0-{fs['water_forager']['water']} water. You cannot bake.",
-            "baker": f"You are a baker. You turn 1 flour + 1 water into 2 bread (the only food that satisfies hunger). You forage poorly (0-{fs['baker']['flour']} flour, 0-{fs['baker']['water']} water).",
+            "baker": f"You are a baker. You turn 1 flour + 1 water into 3 bread. You forage poorly (0-{fs['baker']['flour']} flour, 0-{fs['baker']['water']} water).",
         }
-        prompt = SYSTEM_TEMPLATE.format(
+        soul_block = SOUL_TEMPLATE.format(soul=self.soul or "(empty)")
+        return IDENTITY_TEMPLATE.format(
             handle=self.handle,
             personality=self.personality,
             role_description=role_descriptions.get(self.role, "unknown role"),
+            soul=soul_block,
         )
-        parts = [prompt, self._build_state_block()]
-        state = self._format_state_sections()
-        if state:
-            parts.append(state)
-        return "\n\n".join(parts)
-
-    def _build_state_block(self) -> str:
-        return SOUL_TEMPLATE.format(soul=self.soul or "(empty)")
