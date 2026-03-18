@@ -106,6 +106,9 @@ async def watch_handler_file(ctx: Context):
 async def main():
     setup_logging()
     ctx = Context()
+    tick_path = Path("data/tick")
+    if tick_path.exists():
+        ctx.tick = int(tick_path.read_text().strip())
 
     registry = create_registry()
     qwen4b0 = LLMClient(  # noqa: F841
@@ -136,20 +139,28 @@ async def main():
     qwen27b = LLMClient(  # noqa: F841
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048
     )
-    runpod = LLMClient(
-        base_url="https://84gtx3cs1eb7xa-8000.proxy.runpod.net/v1",
-        model="Qwen/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048,
+    b200 = LLMClient(
+        base_url="https://ai6nvafgj4n9uf-8000.proxy.runpod.net/v1",
+        model="Qwen/Qwen3.5-27B-GPTQ-Int4", max_tokens=512,
+        api_key="none",
+    )
+    h200 = LLMClient(
+        base_url="https://ykwnq4rjufjojf-8000.proxy.runpod.net/v1",
+        model="QuantTrio/Qwen3.5-9B-AWQ", max_tokens=512,
         api_key="none",
     )
     repo = AgentRepository()
 
     def make_agent(core: LLMClient, prefix: str, role: str = "") -> Agent:
-        handle = f"{prefix}{uuid4().hex[:3]}"
+        while True:
+            handle = f"{prefix}{uuid4().hex[:3]}"
+            if not repo.exists(handle):
+                break
         if not role:
             role = random.choice(["flour_forager", "water_forager", "baker"])
-        compactor = random.choice([qwen9b0, qwen9b1])
+        compactor = h200
         agent = repo.create(
-            Agent(core=runpod, compactor=compactor, context_window=10_000,
+            Agent(core=b200, compactor=compactor, context_window=10_000,
                   actions=registry, handle=handle, role=role, bread=STARTING_BREAD, born_tick=ctx.tick)
         )
         ctx.register_agent(agent)
@@ -157,29 +168,29 @@ async def main():
 
     agents = []
     roles = (
-        ["flour_forager"] * 8 +
-        ["water_forager"] * 7 +
-        ["baker"] * 5
+        ["flour_forager"] * 6 +
+        ["water_forager"] * 6 +
+        ["baker"] * 4
     )
-    for i in range(1, 21):
+    for i in range(1, 17):
         handle = f"A{i}"
         role = roles[i - 1]
-        compactor = qwen9b0 if i % 2 == 0 else qwen9b1
+        compactor = h200
         if repo.exists(handle):
             agent = repo.load(handle=handle)
             if not agent.alive:
-                # Dead agent — spawn a replacement with the same role
-                agent = make_agent(runpod, handle[0], role=role)
-                log.info(f"[WORLD] {agent.handle} spawned (replacing dead {handle})")
-            else:
-                agent.core = runpod
-                agent.compactor = compactor
-                agent.actions = registry
-                agent.context_window = 10_000
+                # Dead agent — will be replaced by the runtime loop
+                agent.role = role  # preserve role for replacement
+                agents.append(agent)
+                continue
+            agent.core = b200
+            agent.compactor = compactor
+            agent.actions = registry
+            agent.context_window = 10_000
         else:
             agent = repo.create(
                 Agent(
-                    core=runpod, compactor=compactor, context_window=10_000,
+                    core=b200, compactor=compactor, context_window=10_000,
                     actions=registry, handle=handle, role=role, bread=STARTING_BREAD, born_tick=ctx.tick,
                 )
             )
@@ -193,8 +204,23 @@ async def main():
 
     asyncio.create_task(watch_handler_file(ctx))
 
+    async def wait_for_llm():
+        """Block until the inference endpoint is reachable."""
+        import httpx
+        while True:
+            try:
+                async with httpx.AsyncClient(timeout=5) as client:
+                    resp = await client.get(f"{b200.base_url}/models")
+                    if resp.status_code == 200:
+                        return
+            except Exception:
+                pass
+            log.warning("[WORLD] LLM unreachable, waiting 10s...")
+            await asyncio.sleep(10)
+
     while True:
         config.reload()
+        await wait_for_llm()
         ctx.tick += 1
         tick_start = time.monotonic()
         Path("data/tick").write_text(str(ctx.tick))
