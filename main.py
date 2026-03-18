@@ -140,8 +140,8 @@ async def main():
         base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048
     )
     b200 = LLMClient(
-        base_url="https://ai6nvafgj4n9uf-8000.proxy.runpod.net/v1",
-        model="Qwen/Qwen3.5-27B-GPTQ-Int4", max_tokens=512,
+        base_url="https://cq2qdgtb5xh2ap-8000.proxy.runpod.net/v1",
+        model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4", max_tokens=512,
         api_key="none",
     )
     h200 = LLMClient(

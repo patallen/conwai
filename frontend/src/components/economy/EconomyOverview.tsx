@@ -16,6 +16,7 @@ export function EconomyOverview() {
   const totalCoins = agents.reduce((sum, a) => sum + (a.energy ?? 0), 0)
 
   const bakeCount = economy.counts.bake ?? 0
+  const breadBaked = economy.counts.bread_baked ?? 0
   const tradeCount = economy.counts.give ?? 0
   const tradeVolume = economy.trade_volume
 
@@ -58,9 +59,10 @@ export function EconomyOverview() {
 
       {/* Activity */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24,
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24,
       }}>
         <StatCard label="Bakes" value={bakeCount} color="#34d399" />
+        <StatCard label="Bread Baked" value={breadBaked} color="#34d399" />
         <StatCard label="Trades" value={tradeCount} color="#fb923c" />
       </div>
 

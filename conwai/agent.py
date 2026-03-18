@@ -434,7 +434,7 @@ class Agent:
         role_descriptions = {
             "flour_forager": f"You are a flour forager. When you forage you find 0-{fs['flour_forager']['flour']} flour and 0-{fs['flour_forager']['water']} water. You cannot bake.",
             "water_forager": f"You are a water forager. When you forage you find 0-{fs['water_forager']['flour']} flour and 0-{fs['water_forager']['water']} water. You cannot bake.",
-            "baker": f"You are a baker. You turn 1 flour + 1 water into 3 bread. You forage poorly (0-{fs['baker']['flour']} flour, 0-{fs['baker']['water']} water).",
+            "baker": f"You are a baker. You turn {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water into {config.BAKE_YIELD} bread. You forage poorly (0-{fs['baker']['flour']} flour, 0-{fs['baker']['water']} water).",
         }
         soul_block = SOUL_TEMPLATE.format(soul=self.soul or "(empty)")
         return IDENTITY_TEMPLATE.format(

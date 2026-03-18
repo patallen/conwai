@@ -271,13 +271,12 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="send_message",
-            description="Send a private DM to another agent. Costs 2 coins. LIMIT: 2 DMs per tick.",
+            description="Send a private DM to another agent. LIMIT: 2 DMs per tick.",
             parameters={
                 "to": {"type": "string", "description": "Handle of the recipient"},
                 "message": {"type": "string", "description": "The message to send"},
             },
-            # cost_per_word=ENERGY_COST_PER_WORD.get("send_message", 0),
-            cost_flat=2,
+            cost_flat=0,
             handler=_send_message,
         )
     )
@@ -359,7 +358,7 @@ def create_registry() -> ActionRegistry:
     registry.register(
         Action(
             name="bake",
-            description="Turn 1 flour + 1 water into 3 bread. Only bakers can do this.",
+            description=f"Turn {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water into {config.BAKE_YIELD} bread. Only bakers can do this.",
             parameters={},
             cost_flat=0,
             handler=_bake,

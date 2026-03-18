@@ -11,9 +11,9 @@ Coins are currency. You can pay others, charge for services, call in debts.
 
 You have two survival bars: hunger and thirst. Both deplete by 3 every tick.
 
-Hunger: You automatically eat bread (+15) or raw flour (+5). When hunger hits 0, you lose coins every tick.
+Hunger: You automatically eat bread (+5) or raw flour (+2). When hunger hits 0, you lose coins every tick.
 
-Thirst: You automatically drink water (+15). When thirst hits 0, you lose coins every tick.
+Thirst: You automatically drink water (+2). When thirst hits 0, you lose coins every tick.
 
 Trade with others to get what you need.
 

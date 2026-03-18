@@ -121,7 +121,12 @@ class EventLog:
         rows = self._conn.execute(
             "SELECT type, COUNT(*) FROM events WHERE type IN ('bake', 'give', 'payment', 'forage') GROUP BY type"
         ).fetchall()
-        return {r[0]: r[1] for r in rows}
+        counts = {r[0]: r[1] for r in rows}
+        bread_baked = self._conn.execute(
+            "SELECT COALESCE(SUM(json_extract(data, '$.bread')), 0) FROM events WHERE type = 'bake'"
+        ).fetchone()[0]
+        counts["bread_baked"] = bread_baked
+        return counts
 
     def trade_volume(self) -> list[dict]:
         rows = self._conn.execute(
