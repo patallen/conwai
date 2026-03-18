@@ -66,7 +66,7 @@ export function SocialGraph() {
         setFadingAgents(m => {
           const next = new Map(m)
           next.set(handle, {
-            agent: { handle, personality: '', soul: '', memory: '', energy: 0, alive: false },
+            agent: { handle, personality: '', soul: '', memory: '', energy: 0, alive: false, role: null, flour: 0, water: 0, bread: 0, hunger: null, thirst: null, born_tick: 0 } as Agent,
             fadeStart: Date.now(),
           })
           return next

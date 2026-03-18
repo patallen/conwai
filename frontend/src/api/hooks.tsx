@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useState, useCallback, type ReactNode, type Dispatch } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import type { SimulationData, UIState, DataSource, HandlerAction, ActionResult } from './types'
 
 const SimulationContext = createContext<SimulationData | null>(null)

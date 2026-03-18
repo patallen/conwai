@@ -13,7 +13,7 @@ interface AgentCardProps {
   onClick: () => void
 }
 
-export function AgentCard({ agent, events, maxEnergy, selected, onClick }: AgentCardProps) {
+export function AgentCard({ agent, events, maxEnergy: _maxEnergy, selected, onClick }: AgentCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const color = getAgentColor(agent.handle)
   const now = Date.now() / 1000
