@@ -136,8 +136,9 @@ async def main():
         api_key="none",
     )
     compactor = LLMClient(
-        base_url="http://ai-lab.lan:8080/v1",
+        base_url="https://0t8o4r6o90m1v9-8000.proxy.runpod.net/v1",
         model="Qwen/Qwen3.5-35B-A3B-GPTQ-Int4", max_tokens=2048,
+        api_key="none",
     )
 
     # --- World Events ---
