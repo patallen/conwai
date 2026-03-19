@@ -36,7 +36,7 @@
     "auto_drink_threshold": 80,
     "drink_restore": 3,
     "dehydration_coin_penalty": 10,
-    "passive_water_per_tick": 1
+    "passive_water_per_tick": 0
   },
   "foraging": {
     "roles": ["flour_forager", "water_forager", "baker"],
