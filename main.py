@@ -35,13 +35,11 @@ async def watch_handler_file(pool, store, board, bus, events, perception, brains
     """Process admin commands from the handler file. Used by dashboard."""
     if not HANDLER_FILE.exists():
         HANDLER_FILE.write_text("")
-    last_size = 0
     while True:
-        current_size = HANDLER_FILE.stat().st_size
-        if current_size > last_size:
-            content = HANDLER_FILE.read_text()
-            new_content = content[last_size:]
-            for line in new_content.strip().splitlines():
+        content = HANDLER_FILE.read_text()
+        if content.strip():
+            HANDLER_FILE.write_text("")
+            for line in content.strip().splitlines():
                 line = line.strip()
                 if not line:
                     continue
@@ -106,7 +104,6 @@ async def watch_handler_file(pool, store, board, bus, events, perception, brains
                     board.post("HANDLER", line)
                     events.log("HANDLER", "board_post", {"content": line})
                     log.info(f"[HANDLER]: {line}")
-            last_size = current_size
         await asyncio.sleep(0.5)
 
 
