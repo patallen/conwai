@@ -93,6 +93,7 @@ class WorldEvents:
         self._clue_holders: dict[str, str] = {}  # handle -> clue description
         self._solver_reward: int = 200
         self._wrong_penalty: int = 50
+        self._attempts: list[dict] = []  # {"handle": ..., "guess": ..., "correct_chars": ...}
 
     def get_cipher_status(self) -> dict | None:
         if not self._plaintext:
@@ -103,6 +104,7 @@ class WorldEvents:
             "expires_tick": self._cipher_started_tick + 80,
             "clue_holders": list(self._clue_holders.keys()),
             "clues": {handle: clue for handle, clue in self._clue_holders.items()},
+            "attempts": self._attempts,
             "reward": self._solver_reward,
             "penalty": self._wrong_penalty,
         }
@@ -160,6 +162,7 @@ class WorldEvents:
         self._plaintext = CIPHER_PHRASES[idx]
         self._cipher_key = _make_cipher_key()
         self._ciphertext = _encrypt(self._plaintext, self._cipher_key)
+        self._attempts.clear()
         self._cipher_started_tick = self._tick
         self._clue_holders.clear()
 
@@ -248,6 +251,7 @@ class WorldEvents:
                 eco = self._store.get(agent.handle, "economy")
                 eco["coins"] = max(0, eco["coins"] - self._wrong_penalty)
                 self._store.set(agent.handle, "economy", eco)
+            self._attempts.append({"handle": agent.handle, "guess": guess, "correct_chars": correct_chars})
             log.info(f"[WORLD] WRONG CIPHER by {agent.handle}: '{guess}' (wanted '{self._plaintext}')")
             hint = f"{correct_chars} characters in the right position"
             if not correct_len:

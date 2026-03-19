@@ -51,12 +51,19 @@ export interface ActionResult {
   error?: string
 }
 
+export interface CipherAttempt {
+  handle: string
+  guess: string
+  correct_chars: number
+}
+
 export interface CipherData {
   ciphertext: string
   started_tick: number
   expires_tick: number
   clue_holders: string[]
   clues: Record<string, string>
+  attempts: CipherAttempt[]
   reward: number
   penalty: number
 }
