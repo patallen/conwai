@@ -130,10 +130,15 @@ async def main():
     pool = AgentPool(repo, bus, store)
 
     # --- LLM clients ---
-    qwen4b0 = LLMClient(base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-4B-AWQ")  # noqa: F841
-    qwen4b1 = LLMClient(base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-4B-AWQ")  # noqa: F841
-    qwen9b0 = LLMClient(base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048)
-    qwen9b1 = LLMClient(base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048)
+    b200 = LLMClient(
+        base_url="https://cq2qdgtb5xh2ap-8000.proxy.runpod.net/v1",
+        model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4", max_tokens=512,
+        api_key="none",
+    )
+    compactor = LLMClient(
+        base_url="http://ai-lab.lan:8080/v1",
+        model="Qwen/Qwen3.5-35B-A3B-GPTQ-Int4", max_tokens=2048,
+    )
 
     # --- World Events ---
     world = WorldEvents(board=board, bus=bus, pool=pool, store=store, perception=perception)
@@ -153,10 +158,10 @@ async def main():
         "Anything you don't write here will be lost forever. Be concise but complete."
     )
 
-    def make_brain(core=qwen9b0):
+    def make_brain(core=b200):
         return LLMBrain(
             core=core,
-            compactor=qwen9b1,
+            compactor=compactor,
             tools=registry.tool_definitions(),
             system_prompt=perception.build_system_prompt(),
             context_window=config.CONTEXT_WINDOW,
@@ -201,7 +206,7 @@ async def main():
 
     while True:
         config.reload()
-        await wait_for_llm(qwen9b0)
+        await wait_for_llm(b200)
         tick += 1
         tick_start = time.monotonic()
         Path("data").mkdir(exist_ok=True)
