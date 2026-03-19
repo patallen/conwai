@@ -13,6 +13,7 @@ FRONTEND_DIR = Path("frontend/dist")
 AGENTS_DIR = Path("data/agents")
 HANDLER_FILE = Path("handler_input.txt")
 TICK_PATH = Path("data/tick")
+CIPHER_PATH = Path("data/cipher.json")
 
 _events = EventLog()
 
@@ -82,6 +83,13 @@ def api_status():
                     if identity.get("alive", True):
                         alive += 1
     return {"tick": tick, "alive": alive, "total_events": _events.count()}
+
+
+@app.get("/api/cipher")
+def api_cipher():
+    if not CIPHER_PATH.exists():
+        return None
+    return json.loads(CIPHER_PATH.read_text())
 
 
 @app.get("/api/board")

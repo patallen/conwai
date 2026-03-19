@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
 import random
 import string
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -92,6 +94,24 @@ class WorldEvents:
         self._solver_reward: int = 200
         self._wrong_penalty: int = 50
 
+    def get_cipher_status(self) -> dict | None:
+        if not self._plaintext:
+            return None
+        return {
+            "ciphertext": self._ciphertext,
+            "started_tick": self._cipher_started_tick,
+            "expires_tick": self._cipher_started_tick + 80,
+            "clue_holders": list(self._clue_holders.keys()),
+            "reward": self._solver_reward,
+            "penalty": self._wrong_penalty,
+        }
+
+    def _save_cipher_status(self):
+        status = self.get_cipher_status()
+        p = Path("data/cipher.json")
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(status))
+
     def tick(self, agents: list[Agent], store: ComponentStore, perception: Perception, **kwargs) -> None:
         tick = kwargs.get("tick", 0)
         self._tick = tick
@@ -107,6 +127,8 @@ class WorldEvents:
             recurring = self._tick > 10 and self._tick % self.cipher_interval == 0
             if first or recurring:
                 self._start_cipher()
+
+        self._save_cipher_status()
 
     def _ask_question(self):
         available = [i for i in range(len(QUESTIONS)) if i not in self._used_questions]
