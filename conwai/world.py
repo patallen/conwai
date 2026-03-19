@@ -97,6 +97,8 @@ class WorldEvents:
         self._wrong_penalty: int = 10
         self._attempts: list[dict] = []  # {"handle": ..., "guess": ..., "correct_chars": ...}
 
+        self._load_state()
+
     def get_cipher_status(self) -> dict | None:
         if not self._plaintext:
             return None
@@ -111,11 +113,38 @@ class WorldEvents:
             "penalty": self._wrong_penalty,
         }
 
-    def _save_cipher_status(self):
-        status = self.get_cipher_status()
-        p = Path("data/cipher.json")
+    def _save_state(self):
+        state = {
+            "plaintext": self._plaintext,
+            "ciphertext": self._ciphertext,
+            "cipher_key": self._cipher_key,
+            "cipher_started_tick": self._cipher_started_tick,
+            "clue_holders": self._clue_holders,
+            "attempts": self._attempts,
+            "used_questions": list(self._used_questions),
+            "used_phrases": list(self._used_phrases),
+        }
+        p = Path("data/world_state.json")
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(status))
+        p.write_text(json.dumps(state))
+
+        # Dashboard-facing status
+        p2 = Path("data/cipher.json")
+        p2.write_text(json.dumps(self.get_cipher_status()))
+
+    def _load_state(self):
+        p = Path("data/world_state.json")
+        if not p.exists():
+            return
+        state = json.loads(p.read_text())
+        self._plaintext = state.get("plaintext")
+        self._ciphertext = state.get("ciphertext")
+        self._cipher_key = state.get("cipher_key", {})
+        self._cipher_started_tick = state.get("cipher_started_tick", 0)
+        self._clue_holders = state.get("clue_holders", {})
+        self._attempts = state.get("attempts", [])
+        self._used_questions = set(state.get("used_questions", []))
+        self._used_phrases = set(state.get("used_phrases", []))
 
     def tick(self, agents: list[Agent], store: ComponentStore, perception: Perception, **kwargs) -> None:
         tick = kwargs.get("tick", 0)
@@ -138,7 +167,7 @@ class WorldEvents:
             if first or recurring:
                 self._start_cipher()
 
-        self._save_cipher_status()
+        self._save_state()
 
     def _ask_question(self):
         available = [i for i in range(len(QUESTIONS)) if i not in self._used_questions]
