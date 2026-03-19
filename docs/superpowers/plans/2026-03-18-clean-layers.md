@@ -85,7 +85,7 @@ class TestComponentStore:
         store.register_component("inventory", {"flour": 0})
         store.init_agent("A1")
         store.set("A1", "economy", {"coins": 123})
-        store.save(tmp_path / "A1")
+        store.save("A1", tmp_path / "A1")
 
         store2 = ComponentStore()
         store2.register_component("economy", {"coins": 500})
@@ -148,14 +148,8 @@ class ComponentStore:
     def handles(self) -> list[str]:
         return list(self._data.keys())
 
-    def save(self, path: Path) -> None:
+    def save(self, handle: str, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
-        for component, data in self._data.get(path.name, {}).items():
-            (path / f"{component}.json").write_text(json.dumps(data))
-
-    def save(self, path: Path) -> None:
-        path.mkdir(parents=True, exist_ok=True)
-        handle = path.name
         if handle not in self._data:
             return
         for component, data in self._data[handle].items():
@@ -655,7 +649,7 @@ class Decision:
 
 @runtime_checkable
 class Brain(Protocol):
-    async def decide(self, agent: Agent, perception: str) -> list[Decision]: ...
+    async def decide(self, agent: Agent, perception: str, identity: str = "") -> list[Decision]: ...
     def observe(self, decision: Decision, result: str) -> None: ...
 
 
@@ -685,8 +679,10 @@ class LLMBrain:
         self.messages: list[dict] = []
         self._pending_compaction: asyncio.Task | None = None
         self._pending_summary: asyncio.Task | None = None
+        self._last_tick: int = 0
 
-    async def decide(self, agent: Agent, perception: str) -> list[Decision]:
+    async def decide(self, agent: Agent, perception: str, identity: str = "", tick: int = 0) -> list[Decision]:
+        self._last_tick = tick
         # Manage context window
         while self._context_chars() > self.context_window and len(self.messages) > 1:
             self.messages.pop(0)
@@ -695,6 +691,13 @@ class LLMBrain:
             self._pending_compaction = None
         if self._pending_summary and self._pending_summary.done():
             self._pending_summary = None
+
+        # Manage identity message (first message slot, updated each tick)
+        if identity:
+            if self.messages and self.messages[0].get("content", "").startswith("Your handle is"):
+                self.messages[0] = {"role": "user", "content": identity}
+            else:
+                self.messages.insert(0, {"role": "user", "content": identity})
 
         msg_count_before = len(self.messages)
 
@@ -740,7 +743,7 @@ class LLMBrain:
             )
         if not self._pending_summary and not self._pending_compaction:
             self._pending_summary = asyncio.create_task(
-                self._summarize(agent.handle, msg_count_before)
+                self._summarize(agent.handle, msg_count_before, tick=self._last_tick)
             )
 
         # Convert tool calls to Decisions
@@ -794,7 +797,7 @@ class LLMBrain:
             ] + new_messages
             log.info(f"[{handle}] compacted ({len(summary)} chars, kept {len(new_messages)} newer msgs)")
 
-    async def _summarize(self, handle: str, msg_count_before: int) -> None:
+    async def _summarize(self, handle: str, msg_count_before: int, tick: int = 0) -> None:
         from conwai.agent import tick_to_timestamp
         compactor = self.compactor
         if not compactor:
@@ -817,7 +820,7 @@ class LLMBrain:
             summary = resp.text.strip()
             log.info(f"[{handle}] tick summarized ({len(summary)} chars, {time.monotonic() - start:.1f}s)")
             del self.messages[msg_count_before - 1:]
-            self.messages.append({"role": "user", "content": summary})
+            self.messages.append({"role": "user", "content": f"[{tick_to_timestamp(tick)}] {summary}"})
 
     def get_state(self) -> dict:
         """Return serializable state for persistence."""
@@ -1221,6 +1224,8 @@ class ActionRegistry:
         board: BulletinBoard,
         bus: MessageBus,
         events: EventLog,
+        pool: AgentPool | None = None,
+        perception: Perception | None = None,
         tick_state: dict[str, dict] | None = None,
     ):
         self._actions: dict[str, Action] = {}
@@ -1228,6 +1233,8 @@ class ActionRegistry:
         self.board = board
         self.bus = bus
         self.events = events
+        self.pool = pool
+        self.perception = perception
         self.tick_state = tick_state or {}
 
     def register(self, action: Action):
@@ -1264,21 +1271,25 @@ class ActionRegistry:
 
 All actions use `registry.store`, `registry.board`, `registry.bus` instead of reaching into agent internals. Each returns a feedback string.
 
-The action handlers now receive `(agent, registry, args)` where `registry` provides access to store, board, bus, events, and tick_state. This replaces the old `(agent, ctx, args)` pattern where ctx was the god object.
+The action handlers now receive `(agent, registry, args)` where `registry` provides access to store, board, bus, events, pool, perception, and tick_state. This replaces the old `(agent, ctx, args)` pattern where ctx was the god object.
 
 Key changes per action:
 - `forage`: `registry.store.get/set` instead of `agent.flour +=`
-- `pay`/`give`: `registry.store.get/set` on both agents instead of `agent.coins -=` / `other.gain_coins()`
-- `post_to_board`: `registry.board.post()` instead of `ctx.board.post()`
-- `send_message`: `registry.bus.send()`, DM rate limit via `registry.tick_state`
+- `pay`/`give`: `registry.store.get/set` on both agents. `give` calls `registry.perception.notify(to, ...)` so the recipient hears about it next tick
+- `post_to_board`: `registry.board.post()`. Add `recent_by_handle(handle, n)` public method to BulletinBoard for duplicate detection. Iterate `registry.pool.alive()` for @mention reference rewards
+- `send_message`: `registry.bus.send()`, DM rate limit via `registry.tick_state`. Give DM recipient coins via `registry.store` + `registry.perception.notify()`
 - `bake`: `registry.store.get/set` for inventory
-- `inspect`: `registry.store.get` to read other agent's state
+- `inspect`: `registry.store.get` for other agent's game state, `registry.pool.by_handle()` for identity (personality, soul)
 - `update_soul`: set `agent.soul` directly (still on Agent identity)
 - `update_journal`: `registry.store.get/set` on memory component
 - `submit_code`: uses `registry` to access world events
+- `wait`: no-op, return "waiting"
 - `compact`: **removed** — compaction is brain-internal now
+- `sleep`: **removed** — was already broken (Agent had no sleep method)
 
 Foraging lock: action sets `registry.tick_state[handle]["foraging"] = True`. The engine checks this before executing subsequent decisions.
+
+**Event logging**: Every action must call `registry.events.log(handle, type, data)` to preserve the event types the dashboard depends on: `board_post`, `dm_sent`, `forage`, `bake`, `give`, `payment`, `soul_updated`, `inspect`, `code_submitted`, `code_wrong_guess`.
 
 - [ ] **Step 5: Run tests**
 
@@ -1495,15 +1506,21 @@ class Engine:
 
         # Persist
         self.pool.save_all()
+        for handle, brain in self.brains.items():
+            if hasattr(brain, 'get_state'):
+                state_path = Path(f"data/agents/{handle}/context.json")
+                state_path.parent.mkdir(parents=True, exist_ok=True)
+                state_path.write_text(json.dumps(brain.get_state()))
 
     async def _tick_agent(self, agent, brain, board, bus, tick):
         start = time.monotonic()
 
-        # Build perception
+        # Build perception and identity
         text = self.perception.build(agent, self.store, board, bus, tick)
+        identity = self.perception.build_identity(agent, self.store)
 
         # Get decisions from brain
-        decisions = await brain.decide(agent, text)
+        decisions = await brain.decide(agent, text, identity=identity, tick=tick)
 
         # Execute each decision
         for decision in decisions:
@@ -1579,15 +1596,21 @@ async def main():
     engine.register_pre_brain(DeathSystem(pool=pool, board=board, events=events, brains=brains, on_create_brain=...))
     engine.register_post_brain(ConsumptionSystem())
 
+    # Handler file watcher (admin controls from dashboard)
+    # Port watch_handler_file() to use store instead of agent fields
+    asyncio.create_task(watch_handler_file(pool, store, board, bus, events, perception))
+
     # Tick loop
     tick = load_tick()
     while True:
         config.reload()
+        await wait_for_llm(qwen9b0)  # block until LLM is reachable
         tick += 1
         save_tick(tick)
-        world.tick(...)  # as a system
         await engine.tick(tick, board, bus)
 ```
+
+Port `watch_handler_file` from current main.py — update it to use `store.get()`/`store.set()` instead of `agent.coins`, `agent.coins - amount`, etc. Port `wait_for_llm` unchanged.
 
 - [ ] **Step 4: Run all tests**
 
