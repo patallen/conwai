@@ -69,8 +69,10 @@ export function Sidebar() {
             {data.cipher.ciphertext}
           </div>
           <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            <div>clues: {data.cipher.clue_holders.join(', ')}</div>
-            <div>reward: {data.cipher.reward} · penalty: {data.cipher.penalty}</div>
+            {data.cipher.clue_holders.map(h => (
+              <div key={h}>{h}: {data.cipher!.clues[h]}</div>
+            ))}
+            <div style={{ marginTop: 4 }}>reward: {data.cipher.reward} · penalty: {data.cipher.penalty}</div>
             <div>expires tick {data.cipher.expires_tick} ({data.cipher.expires_tick - tick} left)</div>
           </div>
         </div>

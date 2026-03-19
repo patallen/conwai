@@ -102,6 +102,7 @@ class WorldEvents:
             "started_tick": self._cipher_started_tick,
             "expires_tick": self._cipher_started_tick + 80,
             "clue_holders": list(self._clue_holders.keys()),
+            "clues": {handle: clue for handle, clue in self._clue_holders.items()},
             "reward": self._solver_reward,
             "penalty": self._wrong_penalty,
         }

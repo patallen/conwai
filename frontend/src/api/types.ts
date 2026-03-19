@@ -56,6 +56,7 @@ export interface CipherData {
   started_tick: number
   expires_tick: number
   clue_holders: string[]
+  clues: Record<string, string>
   reward: number
   penalty: number
 }
