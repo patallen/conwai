@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("conwai")
 
+_compact_semaphore = asyncio.Semaphore(5)
+
 
 @runtime_checkable
 class Brain(Protocol):
@@ -211,7 +213,7 @@ class LLMBrain:
     # --- Context management ---
 
     async def _compact(self, agent: Agent, ctx: Context, snapshot_idx: int) -> None:
-        async with ctx.compact_semaphore:
+        async with _compact_semaphore:
             await self._compact_inner(agent, snapshot_idx)
 
     async def _compact_inner(self, agent: Agent, snapshot_idx: int) -> None:
