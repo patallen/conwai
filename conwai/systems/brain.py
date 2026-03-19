@@ -26,10 +26,7 @@ class BrainSystem:
         await asyncio.gather(*tasks)
 
     async def _tick_agent(self, agent, ctx) -> None:
-        agent._running = True
-        agent._dm_sent_this_tick = 0
-        agent._foraging = False
-        agent._llm_failed = False
+        agent.begin_tick()
         try:
             if agent._pending_compaction and agent._pending_compaction.done():
                 agent._pending_compaction = None
@@ -59,4 +56,4 @@ class BrainSystem:
         except Exception as e:
             log.error(f"[{agent.handle}] ERROR: {e}")
         finally:
-            agent._running = False
+            agent.end_tick()

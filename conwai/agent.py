@@ -86,6 +86,15 @@ class Agent:
     def is_running(self) -> bool:
         return self._running
 
+    def begin_tick(self) -> None:
+        self._running = True
+        self._dm_sent_this_tick = 0
+        self._foraging = False
+        self._llm_failed = False
+
+    def end_tick(self) -> None:
+        self._running = False
+
     def _stamp(self, tick: int, entry: str) -> str:
         return f"[{self._tick_to_timestamp(tick)}] {entry}"
 
