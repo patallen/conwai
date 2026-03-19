@@ -196,24 +196,23 @@ def _forage(agent: Agent, registry: ActionRegistry, args: dict) -> str:
 
 
 def _bake(agent: Agent, registry: ActionRegistry, args: dict) -> str:
-    if agent.role != "baker":
-        return "only bakers can bake"
     flour_needed = config.BAKE_COST["flour"]
     water_needed = config.BAKE_COST["water"]
     inv = registry.store.get(agent.handle, "inventory")
     if inv["flour"] < flour_needed or inv["water"] < water_needed:
         return f"need {flour_needed} flour and {water_needed} water to bake (have {inv['flour']} flour, {inv['water']} water)"
+    bread_yield = config.BAKE_BAKER_YIELD if agent.role == "baker" else config.BAKE_YIELD
     inv["flour"] -= flour_needed
     inv["water"] -= water_needed
-    inv["bread"] += config.BAKE_YIELD
+    inv["bread"] += bread_yield
     registry.store.set(agent.handle, "inventory", inv)
     registry.events.log(
         agent.handle,
         "bake",
-        {"bread": config.BAKE_YIELD, "flour": inv["flour"], "water": inv["water"]},
+        {"bread": bread_yield, "flour": inv["flour"], "water": inv["water"]},
     )
-    log.info(f"[{agent.handle}] baked {config.BAKE_YIELD} bread")
-    return f"baked {config.BAKE_YIELD} bread (flour: {inv['flour']}, water: {inv['water']}, bread: {inv['bread']})"
+    log.info(f"[{agent.handle}] baked {bread_yield} bread")
+    return f"baked {bread_yield} bread (flour: {inv['flour']}, water: {inv['water']}, bread: {inv['bread']})"
 
 
 def _give(agent: Agent, registry: ActionRegistry, args: dict) -> str:
@@ -381,7 +380,7 @@ def create_registry(
     registry.register(
         Action(
             name="bake",
-            description=f"Turn {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water into {config.BAKE_YIELD} bread. Only bakers can do this.",
+            description=f"Turn {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water into bread. Bakers produce {config.BAKE_BAKER_YIELD}, others produce {config.BAKE_YIELD}.",
             parameters={},
             cost_flat=0,
             handler=_bake,

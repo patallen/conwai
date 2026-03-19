@@ -43,10 +43,11 @@ class Perception:
     def build_identity(self, agent: Agent, store: ComponentStore) -> str:
         from conwai.config import FORAGE_SKILL_BY_ROLE
         fs = FORAGE_SKILL_BY_ROLE
+        bake_desc = f"Anyone can bake ({config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water → {config.BAKE_YIELD} bread), but bakers produce {config.BAKE_BAKER_YIELD}."
         role_descriptions = {
-            "flour_forager": f"You are a flour forager. When you forage you find 0-{fs['flour_forager']['flour']} flour and 0-{fs['flour_forager']['water']} water. You cannot bake.",
-            "water_forager": f"You are a water forager. When you forage you find 0-{fs['water_forager']['flour']} flour and 0-{fs['water_forager']['water']} water. You cannot bake.",
-            "baker": f"You are a baker. You turn {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water into {config.BAKE_YIELD} bread. You forage poorly (0-{fs['baker']['flour']} flour, 0-{fs['baker']['water']} water).",
+            "flour_forager": f"You are a flour forager. When you forage you find 0-{fs['flour_forager']['flour']} flour and 0-{fs['flour_forager']['water']} water. {bake_desc}",
+            "water_forager": f"You are a water forager. When you forage you find 0-{fs['water_forager']['flour']} flour and 0-{fs['water_forager']['water']} water. {bake_desc}",
+            "baker": f"You are a baker. When you forage you find 0-{fs['baker']['flour']} flour and 0-{fs['baker']['water']} water. You bake efficiently: {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water → {config.BAKE_BAKER_YIELD} bread (others produce {config.BAKE_YIELD}).",
         }
         mem = store.get(agent.handle, "memory")
         soul = mem.get("soul", "")

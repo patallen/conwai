@@ -69,8 +69,9 @@ def reload():
     })
 
     # Baking
-    g["BAKE_COST"] = _get(cfg, "baking", "cost", default={"flour": 1, "water": 1})
+    g["BAKE_COST"] = _get(cfg, "baking", "cost", default={"flour": 3, "water": 3})
     g["BAKE_YIELD"] = _get(cfg, "baking", "yield", default=2)
+    g["BAKE_BAKER_YIELD"] = _get(cfg, "baking", "baker_yield", default=3)
 
     # Spoilage
     g["BREAD_SPOIL_INTERVAL"] = _get(cfg, "spoilage", "interval", default=6)
