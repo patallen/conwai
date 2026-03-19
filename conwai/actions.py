@@ -75,6 +75,13 @@ class ActionRegistry:
         if ts.get("foraging"):
             return "You are foraging this tick and cannot take other actions."
 
+        # Reset forage streak if doing something else
+        if name != "forage" and self.store.has(agent.handle, "forage"):
+            forage_data = self.store.get(agent.handle, "forage")
+            if forage_data.get("streak", 0) > 0:
+                forage_data["streak"] = 0
+                self.store.set(agent.handle, "forage", forage_data)
+
         eco = self.store.get(agent.handle, "economy")
         if action.cost_flat > eco["coins"]:
             return f"not enough coins for {name} ({action.cost_flat} needed, have {int(eco['coins'])})"

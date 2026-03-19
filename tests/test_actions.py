@@ -17,6 +17,7 @@ def _setup():
     store.register_component("inventory", {"flour": 0, "water": 0, "bread": 0})
     store.register_component("hunger", {"hunger": 100, "thirst": 100})
     store.register_component("memory", {"memory": "", "code_fragment": None, "soul": ""})
+    store.register_component("forage", {"streak": 0})
     board = BulletinBoard()
     bus = MessageBus()
     events = EventLog(path=Path(":memory:"))

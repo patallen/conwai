@@ -174,25 +174,38 @@ def _pay(agent: Agent, registry: ActionRegistry, args: dict) -> str:
 
 def _forage(agent: Agent, registry: ActionRegistry, args: dict) -> str:
     skills = config.FORAGE_SKILL_BY_ROLE.get(agent.role, {"flour": 1, "water": 1})
-    flour = random.randint(0, skills["flour"])
-    water = random.randint(0, skills["water"])
+
+    # Streak bonus: consecutive forages increase yield
+    forage_data = registry.store.get(agent.handle, "forage")
+    streak = forage_data.get("streak", 0)
+    multiplier = 1.0 + streak * 0.5  # 1x, 1.5x, 2x, 2.5x, 3x cap
+    multiplier = min(multiplier, 3.0)
+
+    flour = int(random.randint(0, skills["flour"]) * multiplier)
+    water = int(random.randint(0, skills["water"]) * multiplier)
     inv = registry.store.get(agent.handle, "inventory")
     inv["flour"] += flour
     inv["water"] += water
     registry.store.set(agent.handle, "inventory", inv)
+
+    # Increment streak
+    forage_data["streak"] = streak + 1
+    registry.store.set(agent.handle, "forage", forage_data)
+
     tick_data = registry.tick_state.get(agent.handle, {})
     tick_data["foraging"] = True
     registry.tick_state[agent.handle] = tick_data
-    registry.events.log(agent.handle, "forage", {"flour": flour, "water": water})
-    log.info(f"[{agent.handle}] foraged {flour} flour, {water} water")
+    registry.events.log(agent.handle, "forage", {"flour": flour, "water": water, "streak": streak + 1, "multiplier": multiplier})
+    log.info(f"[{agent.handle}] foraged {flour} flour, {water} water (streak {streak + 1}, {multiplier}x)")
     parts = []
     if flour > 0:
         parts.append(f"{flour} flour")
     if water > 0:
         parts.append(f"{water} water")
+    streak_msg = f" (streak {streak + 1}, {multiplier}x bonus)" if streak > 0 else ""
     if parts:
-        return f"foraged {', '.join(parts)}. Foraging takes your full attention — no other actions this tick."
-    return "foraged but found nothing. Foraging takes your full attention — no other actions this tick."
+        return f"foraged {', '.join(parts)}{streak_msg}. Foraging takes your full attention — no other actions this tick."
+    return f"foraged but found nothing{streak_msg}. Foraging takes your full attention — no other actions this tick."
 
 
 def _bake(agent: Agent, registry: ActionRegistry, args: dict) -> str:
@@ -371,7 +384,7 @@ def create_registry(
     registry.register(
         Action(
             name="forage",
-            description="Spend this tick searching for flour and water. Yield depends on your role. THIS TAKES YOUR ENTIRE TICK.",
+            description="Spend this tick searching for flour and water. Yield depends on your role. Consecutive forages build a streak bonus (up to 3x yield). Doing anything else resets the streak. THIS TAKES YOUR ENTIRE TICK.",
             parameters={},
             cost_flat=0,
             handler=_forage,
