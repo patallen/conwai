@@ -76,12 +76,3 @@ class ActionRegistry:
 
         result = action.handler(agent, self, args) if action.handler else "ok"
         return result or "ok"
-
-    def charge(self, handle: str, amount: int, reason: str) -> str | None:
-        """Deduct coins. Returns error string if insufficient, None on success."""
-        eco = self.store.get(handle, "economy")
-        if amount > eco["coins"]:
-            return f"not enough coins for {reason} ({amount} needed, have {int(eco['coins'])})"
-        eco["coins"] -= amount
-        self.store.set(handle, "economy", eco)
-        return None

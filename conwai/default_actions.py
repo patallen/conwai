@@ -13,8 +13,18 @@ if TYPE_CHECKING:
 log = logging.getLogger("conwai")
 
 
+def charge(store, handle: str, amount: int, reason: str) -> str | None:
+    """Deduct coins. Returns error string if insufficient, None on success."""
+    eco = store.get(handle, "economy")
+    if amount > eco["coins"]:
+        return f"not enough coins for {reason} ({amount} needed, have {int(eco['coins'])})"
+    eco["coins"] -= amount
+    store.set(handle, "economy", eco)
+    return None
+
+
 def _post_to_board(agent: Agent, registry: ActionRegistry, args: dict) -> str:
-    err = registry.charge(agent.handle, 25, "post_to_board")
+    err = charge(registry.store, agent.handle, 25, "post_to_board")
     if err:
         return err
     content = args.get("message", "")
@@ -83,7 +93,7 @@ def _wait(agent: Agent, registry: ActionRegistry, args: dict) -> str:
 def _update_soul(agent: Agent, registry: ActionRegistry, args: dict) -> str:
     cost = config.ENERGY_COST_FLAT.get("update_soul", 5)
     if cost > 0:
-        err = registry.charge(agent.handle, cost, "update_soul")
+        err = charge(registry.store, agent.handle, cost, "update_soul")
         if err:
             return err
     content = args.get("content", "")
