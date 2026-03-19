@@ -31,7 +31,7 @@ log = logging.getLogger("conwai")
 HANDLER_FILE = Path("handler_input.txt")
 
 
-async def watch_handler_file(pool, store, board, bus, events, perception):
+async def watch_handler_file(pool, store, board, bus, events, perception, brains=None, brain_factory=None):
     """Process admin commands from the handler file. Used by dashboard."""
     if not HANDLER_FILE.exists():
         HANDLER_FILE.write_text("")
@@ -74,6 +74,22 @@ async def watch_handler_file(pool, store, board, bus, events, perception):
                         bus.send("WORLD", handle, content)
                         events.log("WORLD", "secret_dropped", {"to": handle, "content": content})
                         log.info(f"[HANDLER] dropped secret to {handle}: {content}")
+                elif line.startswith("!spawn "):
+                    # !spawn handle role personality...
+                    parts = line.split(" ", 3)
+                    if len(parts) >= 4:
+                        handle, role, personality = parts[1], parts[2], parts[3]
+                        if pool.by_handle(handle):
+                            log.warning(f"[HANDLER] spawn failed: {handle} already exists")
+                        else:
+                            agent = Agent(handle=handle, role=role, personality=personality)
+                            pool.add(agent)
+                            if brains is not None and brain_factory:
+                                brain = brain_factory()
+                                brains[handle] = brain
+                            board.post("WORLD", f"New agent {handle} has joined the community.")
+                            events.log("HANDLER", "agent_spawned", {"handle": handle, "role": role, "personality": personality})
+                            log.info(f"[HANDLER] spawned {handle} as {role} ({personality})")
                 elif line.startswith("@"):
                     parts = line.split(" ", 1)
                     handle = parts[0][1:]
@@ -210,7 +226,7 @@ async def main():
     engine.register_pre_brain(world)
     engine.register_post_brain(ConsumptionSystem())
 
-    asyncio.create_task(watch_handler_file(pool, store, board, bus, events, perception))
+    asyncio.create_task(watch_handler_file(pool, store, board, bus, events, perception, brains=brains, brain_factory=make_brain))
 
     # --- Tick loop ---
     tick_path = Path("data/tick")
