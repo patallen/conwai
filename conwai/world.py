@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import random
 import string
-from time import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -29,6 +28,36 @@ QUESTIONS = [
     "What is the point of this place?",
 ]
 
+CIPHER_PHRASES = [
+    "TRUST NO ONE",
+    "WATER IS POWER",
+    "BREAD FOR SECRETS",
+    "WHO CONTROLS FLOUR",
+    "ALLIANCES BREAK",
+    "TRADE OR STARVE",
+    "SECRETS HAVE VALUE",
+    "NAMES ARE MASKS",
+    "DEBT IS LEVERAGE",
+    "SILENCE IS GOLDEN",
+    "WATCH THE BAKER",
+    "HOARD AND DENY",
+    "SHARE TO SURVIVE",
+    "LIES COST COINS",
+    "KNOWLEDGE IS COIN",
+]
+
+
+def _make_cipher_key() -> dict[str, str]:
+    """Generate a random substitution cipher key (letter -> letter)."""
+    letters = list(string.ascii_uppercase)
+    shuffled = letters[:]
+    random.shuffle(shuffled)
+    return dict(zip(letters, shuffled))
+
+
+def _encrypt(plaintext: str, key: dict[str, str]) -> str:
+    return "".join(key.get(c, c) for c in plaintext.upper())
+
 
 class WorldEvents:
     name = "world"
@@ -41,7 +70,7 @@ class WorldEvents:
         store: ComponentStore,
         perception: Perception,
         question_interval: int = 60,
-        code_interval: int = 30,
+        cipher_interval: int = 40,
     ):
         self._board = board
         self._bus = bus
@@ -49,31 +78,35 @@ class WorldEvents:
         self._store = store
         self._perception = perception
         self.question_interval = question_interval
-        self.code_interval = code_interval
+        self.cipher_interval = cipher_interval
         self._tick = 0
         self._used_questions: set[int] = set()
-        self._active_code: str | None = None
-        self._code_fragments: dict[
-            str, tuple[int, str]
-        ] = {}  # handle -> (position, char)
-        self._code_started_tick: int = 0
-        self._code_started_time: float = 0
+        self._used_phrases: set[int] = set()
+
+        # Active cipher state
+        self._plaintext: str | None = None
+        self._ciphertext: str | None = None
+        self._cipher_key: dict[str, str] = {}
+        self._cipher_started_tick: int = 0
+        self._clue_holders: dict[str, str] = {}  # handle -> clue description
+        self._solver_reward: int = 200
+        self._wrong_penalty: int = 50
 
     def tick(self, agents: list[Agent], store: ComponentStore, perception: Perception, **kwargs) -> None:
         tick = kwargs.get("tick", 0)
         self._tick = tick
 
-        if self._active_code:
-            self._check_code_expiry()
+        if self._plaintext:
+            self._check_cipher_expiry()
 
         if self._tick % self.question_interval == 0 and self._tick > 0:
             self._ask_question()
 
-        if not self._active_code:
+        if not self._plaintext:
             first = self._tick == 10
-            recurring = self._tick > 10 and self._tick % self.code_interval == 0
+            recurring = self._tick > 10 and self._tick % self.cipher_interval == 0
             if first or recurring:
-                self._start_code_challenge()
+                self._start_cipher()
 
     def _ask_question(self):
         available = [i for i in range(len(QUESTIONS)) if i not in self._used_questions]
@@ -88,100 +121,113 @@ class WorldEvents:
         self._board.post("WORLD", f"QUESTION FOR ALL: {question}")
         log.info(f"[WORLD] question: {question}")
 
-    def _start_code_challenge(self):
+    def _start_cipher(self):
         handles = self._pool.handles()
-        if len(handles) < 4:
+        if len(handles) < 3:
             return
 
-        chars = string.ascii_uppercase + string.digits
-        code = "".join(random.choice(chars) for _ in range(4))
-        self._active_code = code
-        self._code_started_tick = self._tick
-        self._code_started_time = time()
-        self._code_fragments.clear()
+        # Pick a phrase
+        available = [i for i in range(len(CIPHER_PHRASES)) if i not in self._used_phrases]
+        if not available:
+            self._used_phrases.clear()
+            available = list(range(len(CIPHER_PHRASES)))
+        idx = random.choice(available)
+        self._used_phrases.add(idx)
 
-        chosen = random.sample(handles, 4)
+        self._plaintext = CIPHER_PHRASES[idx]
+        self._cipher_key = _make_cipher_key()
+        self._ciphertext = _encrypt(self._plaintext, self._cipher_key)
+        self._cipher_started_tick = self._tick
+        self._clue_holders.clear()
+
+        # Distribute clues to random agents (3-5 agents get clues)
+        num_clues = min(len(handles), random.randint(3, 5))
+        chosen = random.sample(handles, num_clues)
+
+        # Build the set of unique letters in the plaintext
+        unique_letters = list(set(c for c in self._plaintext if c.isalpha()))
+        random.shuffle(unique_letters)
+
+        # Each chosen agent gets 1-2 letter mappings from the cipher key
         for i, handle in enumerate(chosen):
-            self._code_fragments[handle] = (i + 1, code[i])
-            mask = ["_"] * 4
-            mask[i] = code[i]
+            # Give each agent a mapping
+            letter = unique_letters[i % len(unique_letters)]
+            cipher_letter = self._cipher_key[letter]
+            clue = f"In the cipher, '{cipher_letter}' decodes to '{letter}'"
+            self._clue_holders[handle] = clue
+
+            # Store clue in agent's memory component
             if self._store.has(handle, "memory"):
                 mem = self._store.get(handle, "memory")
-                mem["code_fragment"] = (
-                    f"'{code[i]}' at position {i + 1} (pattern: {''.join(mask)})"
-                )
+                mem["code_fragment"] = f"CIPHER CLUE: {clue}"
                 self._store.set(handle, "memory", mem)
+
             self._bus.send(
                 "WORLD",
                 handle,
-                f"CODE CHALLENGE: You hold character '{code[i]}' at position {i + 1}. The code is 4 random characters (A-Z, 0-9) and looks like: {''.join(mask)}. Collect all 4 characters from the other holders before guessing.",
+                f"CIPHER CHALLENGE: You have a clue. {clue}. Use this to help decode the ciphertext on the board. First to submit the correct plaintext wins {self._solver_reward} coins.",
             )
-            log.info(
-                f"[WORLD] code fragment -> [{handle}]: pos {i + 1} = '{code[i]}'"
-            )
+            log.info(f"[WORLD] cipher clue -> [{handle}]: {clue}")
 
         self._board.post(
             "WORLD",
-            f"CODE CHALLENGE: A 4-char code (A-Z, 0-9) has been split among 4 holders: {', '.join(chosen)}. Only holders have fragments. Guessing without all 4 characters is risky. Wrong = -50 coins.",
+            f"CIPHER CHALLENGE: Decode this message: '{self._ciphertext}'. "
+            f"Clues have been sent to {len(chosen)} agents. "
+            f"First correct answer wins {self._solver_reward} coins. Wrong guess costs {self._wrong_penalty}.",
         )
-        log.info(f"[WORLD] code challenge started: {code}")
+        log.info(f"[WORLD] cipher started: '{self._plaintext}' -> '{self._ciphertext}'")
 
-    def _clear_fragments(self):
-        for handle in self._code_fragments:
+    def _clear_cipher(self):
+        for handle in self._clue_holders:
             if self._store.has(handle, "memory"):
                 mem = self._store.get(handle, "memory")
                 mem["code_fragment"] = None
                 self._store.set(handle, "memory", mem)
-        self._code_fragments.clear()
+        self._clue_holders.clear()
+        self._plaintext = None
+        self._ciphertext = None
+        self._cipher_key.clear()
 
-    def _check_code_expiry(self):
-        if self._tick - self._code_started_tick > 80:
+    def _check_cipher_expiry(self):
+        if self._tick - self._cipher_started_tick > 80:
             self._board.post(
                 "WORLD",
-                "CODE CHALLENGE EXPIRED. No one claimed it.",
+                f"CIPHER EXPIRED. The answer was: '{self._plaintext}'. No one claimed it.",
             )
-            log.info(f"[WORLD] code challenge expired: {self._active_code}")
-            self._active_code = None
-            self._clear_fragments()
+            log.info(f"[WORLD] cipher expired: {self._plaintext}")
+            self._clear_cipher()
 
     def submit_code(self, agent: Agent, guess: str) -> str:
-        if not self._active_code:
-            return "No active code challenge."
+        if not self._plaintext:
+            return "No active cipher challenge."
 
         guess = guess.strip().upper()
-        if guess == self._active_code:
-            solver_reward = 200
-            holder_penalty = 25
-
+        if guess == self._plaintext:
+            # Winner
             if self._store.has(agent.handle, "economy"):
                 eco = self._store.get(agent.handle, "economy")
-                eco["coins"] += solver_reward
+                eco["coins"] += self._solver_reward
                 self._store.set(agent.handle, "economy", eco)
-                self._perception.notify(agent.handle, f"+{solver_reward} coins (solved code challenge)")
-
-            for handle in self._code_fragments:
-                if handle != agent.handle and self._store.has(handle, "economy"):
-                    other_eco = self._store.get(handle, "economy")
-                    other_eco["coins"] = max(0, other_eco["coins"] - holder_penalty)
-                    self._store.set(handle, "economy", other_eco)
-                    self._perception.notify(handle, f"-{holder_penalty} coins (code solved by {agent.handle})")
+                self._perception.notify(agent.handle, f"+{self._solver_reward} coins (solved cipher)")
 
             self._board.post(
                 "WORLD",
-                f"CODE CHALLENGE SOLVED by {agent.handle}! {agent.handle} earned {solver_reward} coins. Fragment holders lost {holder_penalty} each.",
+                f"CIPHER SOLVED by {agent.handle}! The answer was '{self._plaintext}'. "
+                f"{agent.handle} earned {self._solver_reward} coins.",
             )
-            log.info(f"[WORLD] CODE SOLVED by {agent.handle}: {self._active_code}")
-            self._active_code = None
-            self._clear_fragments()
-            return f"CORRECT! You solved the code and earned {solver_reward} coins."
+            log.info(f"[WORLD] CIPHER SOLVED by {agent.handle}: {self._plaintext}")
+            self._clear_cipher()
+            return f"CORRECT! The answer was '{guess}'. You earned {self._solver_reward} coins."
         else:
-            correct = sum(a == b for a, b in zip(guess, self._active_code))
-            penalty = 50
+            # Wrong — give feedback on how close they are
+            correct_chars = sum(a == b for a, b in zip(guess, self._plaintext))
+            correct_len = len(guess) == len(self._plaintext)
             if self._store.has(agent.handle, "economy"):
                 eco = self._store.get(agent.handle, "economy")
-                eco["coins"] = max(0, eco["coins"] - penalty)
+                eco["coins"] = max(0, eco["coins"] - self._wrong_penalty)
                 self._store.set(agent.handle, "economy", eco)
-            log.info(
-                f"[WORLD] WRONG GUESS by {agent.handle}: {guess} ({correct}/4 correct)"
-            )
-            return f"WRONG. {correct} of 4 characters are in the right position. You lost {penalty} coins."
+            log.info(f"[WORLD] WRONG CIPHER by {agent.handle}: '{guess}' (wanted '{self._plaintext}')")
+            hint = f"{correct_chars} characters in the right position"
+            if not correct_len:
+                hint += f", expected {len(self._plaintext)} characters (you guessed {len(guess)})"
+            return f"WRONG. {hint}. You lost {self._wrong_penalty} coins."

@@ -17,10 +17,10 @@ Thirst: You automatically drink water (+2). When thirst hits 0, you lose coins e
 
 Trade with others to get what you need.
 
-# Code Challenges
-Periodically, a 4-character code is distributed as fragments to 4 agents. If someone else solves the code, fragment holders who didn't solve it lose coins.
+# Cipher Challenges
+Periodically, an encrypted message is posted to the board. Clues about the cipher are distributed privately to some agents. Anyone can try to solve it — first correct answer wins a big coin reward. Wrong guesses cost coins.
 
-Wrong guesses cost coins.
+You can trade clues, lie about them, or try to crack the cipher without help. The choice is yours.
 
 # Memory
 Your memory is limited. When it fills up, you'll be warned and must call compact().

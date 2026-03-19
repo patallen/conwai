@@ -408,11 +408,11 @@ def create_registry(
     registry.register(
         Action(
             name="submit_code",
-            description="Submit a 4-character code guess. Correct = big coin reward. Wrong = coin penalty.",
+            description="Submit your answer to the cipher challenge. Correct = big coin reward. Wrong = coin penalty. Submit the decoded PLAINTEXT.",
             parameters={
                 "code": {
                     "type": "string",
-                    "description": "Your 4-character code guess",
+                    "description": "Your decoded plaintext answer",
                 },
             },
             cost_flat=0,
