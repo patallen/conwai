@@ -19,8 +19,8 @@ def _post_to_board(agent, ctx, args):
     ctx.board.post(agent.handle, content)
     ctx.log(agent.handle, "board_post", {"content": content})
     log.info(f"[{agent.handle}] posted: {content}")
-    for h, a in ctx.agent_map.items():
-        if h != agent.handle and h in content:
+    for a in ctx.pool.all():
+        if a.handle != agent.handle and a.handle in content:
             a.gain_coins("referenced on board", config.ENERGY_GAIN["referenced"])
 
 
@@ -41,8 +41,9 @@ def _send_message(agent, ctx, args):
         agent.record_dm(ctx.tick, f"you → {to}: {message}")
         ctx.log(agent.handle, "dm_sent", {"to": to, "content": message})
         log.info(f"[{agent.handle}] -> [{to}]: {message}")
-        if to in ctx.agent_map:
-            ctx.agent_map[to].gain_coins("received DM", config.ENERGY_GAIN["dm_received"])
+        recipient = ctx.pool.by_handle(to)
+        if recipient:
+            recipient.gain_coins("received DM", config.ENERGY_GAIN["dm_received"])
 
 
 def _wait(agent, ctx, args):
@@ -83,7 +84,7 @@ def _update_journal(agent, ctx, args):
 
 def _inspect(agent, ctx, args):
     handle = args.get("handle", "")
-    other = ctx.agent_map.get(handle)
+    other = ctx.pool.by_handle(handle)
     if not other:
         log.info(f"[{agent.handle}] inspect failed: unknown agent {handle}")
         return
@@ -123,7 +124,7 @@ def _pay(agent, ctx, args):
             f"not enough coins to pay {amount} (have {int(agent.coins)})"
         )
         return
-    other = ctx.agent_map.get(to)
+    other = ctx.pool.by_handle(to)
     if not other:
         agent._action_log.append(f"unknown agent: {to}")
         return
@@ -178,7 +179,7 @@ def _give(agent, ctx, args):
     if amount > have:
         agent._action_log.append(f"not enough {resource} to give {amount} (have {have})")
         return
-    other = ctx.agent_map.get(to)
+    other = ctx.pool.by_handle(to)
     if not other:
         agent._action_log.append(f"unknown agent: {to}")
         return

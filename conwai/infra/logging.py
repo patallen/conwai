@@ -2,10 +2,8 @@ import logging
 import sys
 from pathlib import Path
 
-from main import log
-
-
 def setup_logging():
+    log = logging.getLogger("conwai")
     fmt = logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S")
     log.setLevel(logging.INFO)
 

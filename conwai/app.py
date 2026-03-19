@@ -16,7 +16,7 @@ class Context:
     )
     bus: MessageBus = field(default_factory=MessageBus)
     events: EventLog = field(default_factory=EventLog)
-    agent_map: dict = field(default_factory=dict)
+    pool: object = field(default=None, repr=False)
     world: object = field(default=None, repr=False)
     tick: int = 0
     compact_semaphore: asyncio.Semaphore = field(
@@ -26,6 +26,3 @@ class Context:
     def log(self, handle: str, event_type: str, data: dict | None = None):
         self.events.log(handle, event_type, data)
 
-    def register_agent(self, agent):
-        self.agent_map[agent.handle] = agent
-        self.bus.register(agent.handle)

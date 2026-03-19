@@ -25,6 +25,7 @@ from conwai.agent import Agent
 from conwai.default_actions import create_registry
 from conwai.app import Context
 from conwai.llm import LLMClient
+from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
 from conwai.world import WorldEvents
 
@@ -43,10 +44,14 @@ async def run(args):
         else {"chat_template_kwargs": {"enable_thinking": False}},
     )
 
+    pool = AgentPool(repo, ctx.bus)
+    ctx.pool = pool
+
     handle = args.handle or uuid4().hex[:3]
     agent = Agent(core=client, actions=registry, handle=handle)
     repo.save(agent)
-    ctx.register_agent(agent)
+    pool._agents[handle] = agent
+    pool._bus.register(handle)
     ctx.bus.register("HANDLER")
     ctx.bus.register("WORLD")
 
@@ -56,7 +61,8 @@ async def run(args):
     for name in ["alice", "bob", "carol"]:
         fake = Agent(core=client, actions=registry, handle=name)
         repo.save(fake)
-        ctx.register_agent(fake)
+        pool._agents[name] = fake
+        pool._bus.register(name)
 
     print(f"Agent: {handle}")
     print(f"Personality: {agent.personality}")

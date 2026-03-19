@@ -66,7 +66,7 @@ class WorldEvents:
         log.info(f"[WORLD] question: {question}")
 
     def _start_code_challenge(self, ctx):
-        handles = list(ctx.agent_map.keys())
+        handles = ctx.pool.handles()
         if len(handles) < 4:
             return
 
@@ -82,7 +82,7 @@ class WorldEvents:
             self._code_fragments[handle] = (i + 1, code[i])
             mask = ["_"] * 4
             mask[i] = code[i]
-            agent = ctx.agent_map.get(handle)
+            agent = ctx.pool.by_handle(handle)
             if agent:
                 agent.code_fragment = (
                     f"'{code[i]}' at position {i + 1} (pattern: {''.join(mask)})"
@@ -115,7 +115,7 @@ class WorldEvents:
 
     def _clear_fragments(self, ctx):
         for handle in self._code_fragments:
-            agent = ctx.agent_map.get(handle)
+            agent = ctx.pool.by_handle(handle)
             if agent:
                 agent.code_fragment = None
         self._code_fragments.clear()
@@ -143,8 +143,8 @@ class WorldEvents:
             agent.gain_coins("solved code challenge", solver_reward)
 
             for handle in self._code_fragments:
-                if handle != agent.handle and handle in ctx.agent_map:
-                    other = ctx.agent_map[handle]
+                other = ctx.pool.by_handle(handle)
+                if other and handle != agent.handle:
                     other.coins = max(0, other.coins - holder_penalty)
                     other._energy_log.append(
                         f"coins -{holder_penalty} (code solved by {agent.handle})"

@@ -10,10 +10,15 @@ Usage:
 
 import asyncio
 import argparse
+import tempfile
+from pathlib import Path
 from conwai.agent import Agent
 from conwai.app import Context
 from conwai.default_actions import create_registry
 from conwai.llm import LLMClient
+from conwai.messages import MessageBus
+from conwai.pool import AgentPool
+from conwai.repository import AgentRepository
 
 
 # --- Fake history builders ---
@@ -413,7 +418,11 @@ async def run_test(scenario: str):
     )
 
     ctx = Context()
-    ctx.register_agent(agent)
+    bus = MessageBus()
+    pool = AgentPool(AgentRepository(base_dir=Path(tempfile.mkdtemp()) / "agents"), bus)
+    ctx.pool = pool
+    pool._agents[agent.handle] = agent
+    bus.register(agent.handle)
 
     if scenario == "first":
         agent.messages = build_first_compact_history()
