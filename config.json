@@ -38,6 +38,12 @@
     "dehydration_coin_penalty": 10,
     "passive_water_per_tick": 0
   },
+  "cipher": {
+    "reward": 300,
+    "wrong_penalty": 10,
+    "interval": 40,
+    "expiry": 80
+  },
   "foraging": {
     "roles": ["flour_forager", "water_forager", "baker"],
     "skill_by_role": {

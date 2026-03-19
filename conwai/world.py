@@ -91,8 +91,8 @@ class WorldEvents:
         self._cipher_key: dict[str, str] = {}
         self._cipher_started_tick: int = 0
         self._clue_holders: dict[str, str] = {}  # handle -> clue description
-        self._solver_reward: int = 200
-        self._wrong_penalty: int = 50
+        self._solver_reward: int = 300
+        self._wrong_penalty: int = 10
         self._attempts: list[dict] = []  # {"handle": ..., "guess": ..., "correct_chars": ...}
 
     def get_cipher_status(self) -> dict | None:
@@ -118,6 +118,11 @@ class WorldEvents:
     def tick(self, agents: list[Agent], store: ComponentStore, perception: Perception, **kwargs) -> None:
         tick = kwargs.get("tick", 0)
         self._tick = tick
+
+        # Hot-reload cipher config
+        cipher_cfg = config.CFG.get("cipher", {})
+        self._solver_reward = cipher_cfg.get("reward", 300)
+        self._wrong_penalty = cipher_cfg.get("wrong_penalty", 10)
 
         if self._plaintext:
             self._check_cipher_expiry()
