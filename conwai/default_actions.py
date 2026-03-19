@@ -200,7 +200,7 @@ def _forage(agent: Agent, registry: ActionRegistry, args: dict) -> str:
     registry.store.set(agent.handle, "forage", forage_data)
 
     tick_data = registry.tick_state.get(agent.handle, {})
-    tick_data["foraging"] = True
+    tick_data["blocked"] = "You are foraging this tick and cannot take other actions."
     registry.tick_state[agent.handle] = tick_data
     registry.events.log(agent.handle, "forage", {"flour": flour, "water": water, "streak": streak + 1, "multiplier": multiplier})
     log.info(f"[{agent.handle}] foraged {flour} flour, {water} water (streak {streak + 1}, {multiplier}x)")

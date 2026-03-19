@@ -72,8 +72,8 @@ class ActionRegistry:
             return f"unknown action: {name}"
 
         ts = self.tick_state.get(agent.handle, {})
-        if ts.get("foraging"):
-            return "You are foraging this tick and cannot take other actions."
+        if ts.get("blocked"):
+            return ts["blocked"]
 
         eco = self.store.get(agent.handle, "economy")
         if action.cost_flat > eco["coins"]:
