@@ -173,7 +173,7 @@ async def main():
         agent = Agent(handle=f"A{i}", role=role, born_tick=0, personality=", ".join(assign_traits()))
         agent = pool.load_or_create(agent)
         if agent.alive:
-            brain = make_brain(core=qwen9b0)
+            brain = make_brain()
             saved_state = pool.load_brain_state(agent.handle)
             if saved_state:
                 brain.load_state(saved_state)
