@@ -168,7 +168,7 @@ async def main():
     engine.register(TaxSystem())
     engine.register(SpoilageSystem())
     engine.register(DeathSystem(on_spawn=wire_agent))
-    engine.register(BrainSystem(save_fn=pool.save))
+    engine.register(BrainSystem())
     engine.register(ConsumptionSystem())
 
     asyncio.create_task(watch_handler_file(ctx))

@@ -14,9 +14,6 @@ log = logging.getLogger("conwai")
 class BrainSystem:
     name = "brain"
 
-    def __init__(self, save_fn=None):
-        self._save_fn = save_fn
-
     async def tick(self, ctx: Context) -> None:
         tasks = []
         for agent in ctx.pool.alive():
@@ -26,34 +23,7 @@ class BrainSystem:
         await asyncio.gather(*tasks)
 
     async def _tick_agent(self, agent, ctx) -> None:
-        agent.begin_tick()
-        try:
-            if agent._pending_compaction and agent._pending_compaction.done():
-                agent._pending_compaction = None
-            if agent._pending_summary and agent._pending_summary.done():
-                agent._pending_summary = None
-
-            msg_count_before = len(agent.messages)
-            start = time.monotonic()
-            resp = await agent.brain.decide(agent, ctx)
-            elapsed = time.monotonic() - start
-            log.info(f"[{agent.handle}] tick {ctx.tick} took {elapsed:.1f}s")
-
-            if self._save_fn:
-                self._save_fn(agent.handle)
-
-            if not resp:
-                return
-
-            if agent._compact_needed and not agent._pending_compaction:
-                agent._pending_compaction = asyncio.create_task(
-                    agent.brain.compact(agent, ctx, len(agent.messages))
-                )
-            if not agent._pending_summary and not agent._pending_compaction:
-                agent._pending_summary = asyncio.create_task(
-                    agent.brain.summarize(agent, ctx, msg_count_before)
-                )
-        except Exception as e:
-            log.error(f"[{agent.handle}] ERROR: {e}")
-        finally:
-            agent.end_tick()
+        start = time.monotonic()
+        await agent.brain.tick(agent, ctx)
+        ctx.pool.save(agent.handle)
+        log.info(f"[{agent.handle}] tick {ctx.tick} took {time.monotonic() - start:.1f}s")

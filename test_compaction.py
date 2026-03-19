@@ -388,7 +388,7 @@ def print_summary(agent: Agent, label: str):
     print(f"{'='*60}")
     print(f"Messages in history: {len(agent.messages)}")
     print(f"Context chars: {agent._context_chars()}")
-    print(f"Compact needed flag: {agent._compact_needed}")
+    print(f"Compact needed flag: {agent.brain._compact_needed if agent.brain else False}")
     if agent.messages:
         first = agent.messages[0]["content"]
         if "=== YOUR COMPACTED MEMORY ===" in first:
@@ -413,9 +413,8 @@ async def run_test(scenario: str):
     agent = Agent(
         handle="TEST.1",
         personality="cautious, analytical",
-        context_window=24_000,
     )
-    agent.brain = LLMBrain(core=client, compactor=client, actions=registry)
+    agent.brain = LLMBrain(core=client, compactor=client, actions=registry, context_window=24_000)
 
     ctx = Context()
     bus = MessageBus()
@@ -433,13 +432,13 @@ async def run_test(scenario: str):
         return
 
     # Force compact needed
-    agent._compact_needed = True
+    agent.brain._compact_needed = True
 
     print_summary(agent, f"BEFORE COMPACTION (scenario={scenario})")
 
     # Build system prompt and run two-pass compaction
     agent.system_prompt = agent._build_system_prompt()
-    await agent.brain.compact(agent, ctx, len(agent.messages))
+    await agent.brain._compact(agent, ctx, len(agent.messages))
 
     print_summary(agent, f"AFTER COMPACTION (scenario={scenario})")
 
