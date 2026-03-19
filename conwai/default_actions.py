@@ -227,8 +227,6 @@ def _compact(agent, ctx, args):
     agent.messages = [
         {"role": "user", "content": f"=== YOUR COMPACTED MEMORY ===\n{summary}\n=== END COMPACTED MEMORY ==="}
     ]
-    if agent.brain:
-        agent.brain._compact_needed = False
     feedback = f"Compacted to {char_count} chars."
     if char_count < 400:
         feedback += " WARNING: below target range (500-1500). You may be losing important context."

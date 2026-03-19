@@ -42,7 +42,6 @@ class LLMBrain:
         self.context_window = context_window
         self._pending_compaction: asyncio.Task | None = None
         self._pending_summary: asyncio.Task | None = None
-        self._compact_needed: bool = False
 
     async def tick(self, agent: Agent, ctx: Context) -> None:
         agent._dm_sent_this_tick = 0
@@ -60,7 +59,8 @@ class LLMBrain:
                 return
             self._process_tool_calls(agent, resp, ctx)
 
-            if self._compact_needed and not self._pending_compaction:
+            compact_needed = self._context_chars(agent) >= int(self.context_window * 0.60)
+            if compact_needed and not self._pending_compaction:
                 self._pending_compaction = asyncio.create_task(
                     self._compact(agent, ctx, len(agent.messages))
                 )
@@ -75,10 +75,6 @@ class LLMBrain:
 
     def _rebuild_context(self, agent: Agent, ctx: Context) -> None:
         from conwai.agent import tick_to_timestamp
-
-        char_count = self._context_chars(agent)
-        if char_count >= int(self.context_window * 0.60) and not self._compact_needed:
-            self._compact_needed = True
 
         while self._context_chars(agent) > self.context_window and len(agent.messages) > 1:
             agent.messages.pop(0)
@@ -140,7 +136,9 @@ class LLMBrain:
             content="\n\n".join(parts),
         )
         agent.messages.append({"role": "user", "content": tick_content})
-        log.info(f"[{agent.handle}] context: {len(agent.messages)} msgs ({self._context_chars(agent)} chars), coins: {agent.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}")
+        chars = self._context_chars(agent)
+        compact_pct = int(chars / self.context_window * 100)
+        log.info(f"[{agent.handle}] context: {len(agent.messages)} msgs ({chars} chars, {compact_pct}%), coins: {agent.coins}")
 
     @staticmethod
     def _context_chars(agent: Agent) -> int:
@@ -240,7 +238,6 @@ class LLMBrain:
             agent.messages = [
                 {"role": "user", "content": f"=== YOUR COMPACTED MEMORY ===\n{summary}\n=== END COMPACTED MEMORY ==="}
             ] + new_messages
-            self._compact_needed = False
             log.info(f"[{agent.handle}] compacted ({len(summary)} chars, kept {len(new_messages)} newer msgs)")
 
     async def _summarize(self, agent: Agent, ctx: Context, msg_count_before: int) -> None:

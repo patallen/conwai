@@ -388,7 +388,8 @@ def print_summary(agent: Agent, label: str):
     print(f"{'='*60}")
     print(f"Messages in history: {len(agent.messages)}")
     print(f"Context chars: {agent._context_chars()}")
-    print(f"Compact needed flag: {agent.brain._compact_needed if agent.brain else False}")
+    chars = sum(len(m.get("content", "")) for m in agent.messages)
+    print(f"Context: {chars} chars ({int(chars / agent.brain.context_window * 100)}% of window)")
     if agent.messages:
         first = agent.messages[0]["content"]
         if "=== YOUR COMPACTED MEMORY ===" in first:
@@ -431,12 +432,9 @@ async def run_test(scenario: str):
         print(f"Unknown scenario: {scenario}")
         return
 
-    # Force compact needed
-    agent.brain._compact_needed = True
-
     print_summary(agent, f"BEFORE COMPACTION (scenario={scenario})")
 
-    # Build system prompt and run two-pass compaction
+    # Build system prompt and run compaction
     agent.system_prompt = agent._build_system_prompt()
     await agent.brain._compact(agent, ctx, len(agent.messages))
 
