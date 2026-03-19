@@ -19,6 +19,12 @@ class AgentRepository:
     def exists(self, handle: str) -> bool:
         return self._agent_dir(handle).exists()
 
+    def list_handles(self) -> list[str]:
+        if not self._base_dir.exists():
+            return []
+        return [d.name for d in sorted(self._base_dir.iterdir())
+                if d.is_dir() and (d / "identity.json").exists()]
+
     def save_agent(self, agent: Agent) -> None:
         d = self._agent_dir(agent.handle)
         d.mkdir(parents=True, exist_ok=True)

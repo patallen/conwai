@@ -169,14 +169,25 @@ async def main():
             compaction_prompt=compaction_prompt,
         )
 
-    for i, role in enumerate(roles, 1):
-        agent = Agent(handle=f"A{i}", role=role, born_tick=0, personality=", ".join(assign_traits()))
-        agent = pool.load_or_create(agent)
+    # Load all existing agents from disk
+    for handle in repo.list_handles():
+        agent = pool.load_or_create(Agent(handle=handle, role=""))
         if agent.alive:
             brain = make_brain()
             saved_state = pool.load_brain_state(agent.handle)
             if saved_state:
                 brain.load_state(saved_state)
+            brains[agent.handle] = brain
+
+    # Create new agents to fill up to target population
+    target = len(roles)
+    alive_count = len(pool.alive())
+    for i in range(alive_count, target):
+        role = roles[i % len(roles)]
+        agent = Agent(handle=f"A{i+1}", role=role, born_tick=0, personality=", ".join(assign_traits()))
+        agent = pool.load_or_create(agent)
+        if agent.alive:
+            brain = make_brain()
             brains[agent.handle] = brain
 
     bus.register("HANDLER")
