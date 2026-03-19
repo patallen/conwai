@@ -10,9 +10,12 @@ from conwai.default_actions import create_registry
 from conwai.app import Context
 
 from conwai.brain import LLMBrain
+from conwai.engine import Engine
 from conwai.llm import LLMClient
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
+from conwai.systems.spoilage import SpoilageSystem
+from conwai.systems.tax import TaxSystem
 from conwai.world import WorldEvents
 from conwai.infra.logging import setup_logging
 
@@ -145,7 +148,7 @@ async def main():
         ["water_forager"] * 3 +
         ["baker"] * 2
     )
-    cores = [qwen9b0] * 8
+    cores = [qwen9b0] * 6
     for i, (role, core) in enumerate(zip(roles, cores), 1):
         agent = pool.load_or_create(f"A{i}", role, ctx.tick)
         if agent.alive:
@@ -155,6 +158,10 @@ async def main():
     ctx.bus.register("WORLD")
     world = WorldEvents()
     ctx.world = world
+
+    engine = Engine()
+    engine.register(TaxSystem())
+    engine.register(SpoilageSystem())
 
     asyncio.create_task(watch_handler_file(ctx))
 
@@ -179,24 +186,7 @@ async def main():
         tick_start = time.monotonic()
         Path("data/tick").write_text(str(ctx.tick))
         world.tick(ctx)
-
-        # Daily tax: 1% of coins every 24 ticks
-        if ctx.tick % 24 == 0:
-            for agent in pool.alive():
-                if agent.coins > 0:
-                    tax = max(1, int(agent.coins * 0.01))
-                    agent.coins -= tax
-                    agent._energy_log.append(f"coins -{tax} (daily tax)")
-            ctx.log("WORLD", "tax", {"tick": ctx.tick})
-            log.info(f"[WORLD] daily tax collected (tick {ctx.tick})")
-
-        # Bread spoilage
-        if config.BREAD_SPOIL_INTERVAL > 0 and ctx.tick % config.BREAD_SPOIL_INTERVAL == 0:
-            for agent in pool.alive():
-                if agent.bread > 0:
-                    spoiled = min(agent.bread, config.BREAD_SPOIL_AMOUNT)
-                    agent.bread -= spoiled
-                    agent._energy_log.append(f"{spoiled} bread spoiled (bread left: {agent.bread})")
+        engine.tick(ctx)
 
         # Death + replacement
         new_agents = pool.replace_dead(ctx.board, ctx.events, ctx.tick)
