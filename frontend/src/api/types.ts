@@ -51,6 +51,15 @@ export interface ActionResult {
   error?: string
 }
 
+export interface CipherData {
+  ciphertext: string
+  started_tick: number
+  expires_tick: number
+  clue_holders: string[]
+  reward: number
+  penalty: number
+}
+
 export interface EconomyData {
   counts: Record<string, number>
   trade_volume: Record<string, number>
@@ -63,6 +72,7 @@ export interface SimulationData {
   conversations: Record<string, SimEvent[]>
   stats: AgentStats[]
   economy: EconomyData
+  cipher: CipherData | null
   tick: number
   aliveCount: number
   totalEvents: number

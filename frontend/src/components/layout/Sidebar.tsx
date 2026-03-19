@@ -2,7 +2,8 @@ import { useSimulation, useUIState, useUIDispatch } from '../../api/hooks'
 import { AgentCard } from '../agents/AgentCard'
 
 export function Sidebar() {
-  const { agents, events, tick, aliveCount, totalEvents } = useSimulation()
+  const data = useSimulation()
+  const { agents, events, tick, aliveCount, totalEvents } = data
   const { selectedAgent, view } = useUIState()
   const dispatch = useUIDispatch()
 
@@ -46,6 +47,34 @@ export function Sidebar() {
           ECONOMY
         </div>
       </div>
+
+      {data.cipher && (
+        <div style={{
+          padding: '8px 16px',
+          borderBottom: '1px solid var(--border)',
+          fontSize: 11,
+          fontFamily: 'var(--font-mono)',
+        }}>
+          <div style={{ color: 'var(--accent)', fontWeight: 600, marginBottom: 4 }}>
+            CIPHER ACTIVE
+          </div>
+          <div style={{
+            color: 'var(--text-primary)',
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: 1.5,
+            wordBreak: 'break-all',
+            marginBottom: 6,
+          }}>
+            {data.cipher.ciphertext}
+          </div>
+          <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <div>clues: {data.cipher.clue_holders.join(', ')}</div>
+            <div>reward: {data.cipher.reward} · penalty: {data.cipher.penalty}</div>
+            <div>expires tick {data.cipher.expires_tick} ({data.cipher.expires_tick - tick} left)</div>
+          </div>
+        </div>
+      )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
         {sorted.map(agent => (
