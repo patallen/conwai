@@ -7,6 +7,8 @@ import string
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import conwai.config as config
+
 if TYPE_CHECKING:
     from conwai.agent import Agent
     from conwai.bulletin_board import BulletinBoard
