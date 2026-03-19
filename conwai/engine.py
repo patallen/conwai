@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import inspect
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from conwai.app import Context
@@ -9,21 +10,16 @@ if TYPE_CHECKING:
 log = logging.getLogger("conwai")
 
 
-@runtime_checkable
-class System(Protocol):
-    name: str
-
-    def tick(self, ctx: Context) -> None: ...
-
-
 class Engine:
     def __init__(self):
-        self._systems: list[System] = []
+        self._systems: list = []
 
-    def register(self, system: System) -> None:
+    def register(self, system) -> None:
         self._systems.append(system)
         log.info(f"[ENGINE] registered system: {system.name}")
 
-    def tick(self, ctx: Context) -> None:
+    async def tick(self, ctx: Context) -> None:
         for system in self._systems:
-            system.tick(ctx)
+            result = system.tick(ctx)
+            if inspect.isawaitable(result):
+                await result

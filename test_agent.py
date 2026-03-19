@@ -24,10 +24,14 @@ from uuid import uuid4
 from conwai.agent import Agent
 from conwai.brain import LLMBrain
 from conwai.default_actions import create_registry
+from conwai.engine import Engine
 from conwai.app import Context
 from conwai.llm import LLMClient
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
+from conwai.systems.brain import BrainSystem
+from conwai.systems.consumption import ConsumptionSystem
+from conwai.systems.decay import DecaySystem
 from conwai.world import WorldEvents
 
 repo = AgentRepository()
@@ -59,6 +63,11 @@ async def run(args):
 
     world = WorldEvents()
     ctx.world = world
+
+    engine = Engine()
+    engine.register(DecaySystem())
+    engine.register(BrainSystem(save_fn=lambda h: repo.save(pool.by_handle(h)) if pool.by_handle(h) else None))
+    engine.register(ConsumptionSystem())
 
     for name in ["alice", "bob", "carol"]:
         fake = Agent(handle=name)
@@ -126,8 +135,7 @@ async def run(args):
             print(f"  [HANDLER posted]: {line}")
 
         ctx.tick += 1
-        await agent.tick(ctx)
-        repo.save(agent)
+        await engine.tick(ctx)
         print()
 
 

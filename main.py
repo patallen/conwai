@@ -14,6 +14,10 @@ from conwai.engine import Engine
 from conwai.llm import LLMClient
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
+from conwai.systems.brain import BrainSystem
+from conwai.systems.consumption import ConsumptionSystem
+from conwai.systems.death import DeathSystem
+from conwai.systems.decay import DecaySystem
 from conwai.systems.spoilage import SpoilageSystem
 from conwai.systems.tax import TaxSystem
 from conwai.world import WorldEvents
@@ -160,8 +164,12 @@ async def main():
     ctx.world = world
 
     engine = Engine()
+    engine.register(DecaySystem())
     engine.register(TaxSystem())
     engine.register(SpoilageSystem())
+    engine.register(DeathSystem(on_spawn=wire_agent))
+    engine.register(BrainSystem(save_fn=pool.save))
+    engine.register(ConsumptionSystem())
 
     asyncio.create_task(watch_handler_file(ctx))
 
@@ -186,25 +194,7 @@ async def main():
         tick_start = time.monotonic()
         Path("data/tick").write_text(str(ctx.tick))
         world.tick(ctx)
-        engine.tick(ctx)
-
-        # Death + replacement
-        new_agents = pool.replace_dead(ctx.board, ctx.events, ctx.tick)
-        for agent in new_agents:
-            wire_agent(agent)
-
-        tasks = []
-        for agent in pool.alive():
-            async def tick_and_save(a=agent, t=ctx.tick):
-                start = time.monotonic()
-                await a.tick(ctx)
-                pool.save(a.handle)
-                elapsed = time.monotonic() - start
-                log.info(f"[{a.handle}] tick {t} took {elapsed:.1f}s")
-
-            tasks.append(asyncio.create_task(tick_and_save()))
-
-        await asyncio.gather(*tasks)
+        await engine.tick(ctx)
         log.info(f"[WORLD] tick {ctx.tick} completed in {time.monotonic() - tick_start:.1f}s")
 
 
