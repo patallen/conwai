@@ -18,7 +18,6 @@ class Action:
     name: str
     description: str
     parameters: dict = field(default_factory=dict)
-    cost_flat: int = 0
     handler: Callable | None = None
 
     def tool_schema(self) -> dict:
@@ -75,20 +74,14 @@ class ActionRegistry:
         if ts.get("blocked"):
             return ts["blocked"]
 
-        eco = self.store.get(agent.handle, "economy")
-        if action.cost_flat > eco["coins"]:
-            return f"not enough coins for {name} ({action.cost_flat} needed, have {int(eco['coins'])})"
-
-        eco["coins"] -= action.cost_flat
-        self.store.set(agent.handle, "economy", eco)
-
-        cost_msg = (
-            f"{name}: {action.cost_flat} coins spent, {int(eco['coins'])} remaining"
-            if action.cost_flat > 0
-            else ""
-        )
-
         result = action.handler(agent, self, args) if action.handler else "ok"
-        if cost_msg and result:
-            return f"{cost_msg}. {result}"
-        return cost_msg or result or "ok"
+        return result or "ok"
+
+    def charge(self, handle: str, amount: int, reason: str) -> str | None:
+        """Deduct coins. Returns error string if insufficient, None on success."""
+        eco = self.store.get(handle, "economy")
+        if amount > eco["coins"]:
+            return f"not enough coins for {reason} ({amount} needed, have {int(eco['coins'])})"
+        eco["coins"] -= amount
+        self.store.set(handle, "economy", eco)
+        return None

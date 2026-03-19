@@ -14,6 +14,9 @@ log = logging.getLogger("conwai")
 
 
 def _post_to_board(agent: Agent, registry: ActionRegistry, args: dict) -> str:
+    err = registry.charge(agent.handle, 25, "post_to_board")
+    if err:
+        return err
     content = args.get("message", "")
     recent = registry.board.recent_by_handle(agent.handle, n=10)
     if any(p.content == content for p in recent):
@@ -78,6 +81,11 @@ def _wait(agent: Agent, registry: ActionRegistry, args: dict) -> str:
 
 
 def _update_soul(agent: Agent, registry: ActionRegistry, args: dict) -> str:
+    cost = config.ENERGY_COST_FLAT.get("update_soul", 5)
+    if cost > 0:
+        err = registry.charge(agent.handle, cost, "update_soul")
+        if err:
+            return err
     content = args.get("content", "")
     mem = registry.store.get(agent.handle, "memory")
     mem["soul"] = content
@@ -306,7 +314,6 @@ def create_registry(
             parameters={
                 "message": {"type": "string", "description": "The message to post"},
             },
-            cost_flat=25,
             handler=_post_to_board,
         )
     )
@@ -318,7 +325,7 @@ def create_registry(
                 "to": {"type": "string", "description": "Handle of the recipient"},
                 "message": {"type": "string", "description": "The message to send"},
             },
-            cost_flat=0,
+
             handler=_send_message,
         )
     )
@@ -327,7 +334,7 @@ def create_registry(
             name="wait",
             description="Do nothing this tick.",
             parameters={},
-            cost_flat=0,
+
             handler=_wait,
         )
     )
@@ -341,7 +348,6 @@ def create_registry(
                     "description": "Your new soul description",
                 },
             },
-            cost_flat=config.ENERGY_COST_FLAT.get("update_soul", 5),
             handler=_update_soul,
         )
     )
@@ -355,7 +361,7 @@ def create_registry(
                     "description": "Your journal content",
                 },
             },
-            cost_flat=0,
+
             handler=_update_journal,
         )
     )
@@ -369,7 +375,7 @@ def create_registry(
                     "description": "Handle of the agent to inspect",
                 },
             },
-            cost_flat=0,
+
             handler=_inspect,
         )
     )
@@ -384,7 +390,7 @@ def create_registry(
                     "description": "Amount of coins to pay",
                 },
             },
-            cost_flat=0,
+
             handler=_pay,
         )
     )
@@ -393,7 +399,7 @@ def create_registry(
             name="forage",
             description="Spend this tick searching for flour and water. Yield depends on your role. Consecutive forages build a streak bonus (up to 3x yield). Doing anything else resets the streak. THIS TAKES YOUR ENTIRE TICK.",
             parameters={},
-            cost_flat=0,
+
             handler=_forage,
         )
     )
@@ -402,7 +408,7 @@ def create_registry(
             name="bake",
             description=f"Turn {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water into bread. Bakers produce {config.BAKE_BAKER_YIELD}, others produce {config.BAKE_YIELD}.",
             parameters={},
-            cost_flat=0,
+
             handler=_bake,
         )
     )
@@ -421,7 +427,7 @@ def create_registry(
                     "description": "Amount to give",
                 },
             },
-            cost_flat=0,
+
             handler=_give,
         )
     )
@@ -435,7 +441,7 @@ def create_registry(
                     "description": "Your decoded plaintext answer",
                 },
             },
-            cost_flat=0,
+
             handler=_submit_code,
         )
     )
