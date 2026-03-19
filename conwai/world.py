@@ -189,15 +189,13 @@ class WorldEvents:
             self._bus.send(
                 "WORLD",
                 handle,
-                f"CIPHER CHALLENGE: You have a clue. {clue}. Use this to help decode the ciphertext on the board. First to submit the correct plaintext wins {self._solver_reward} coins.",
+                f"CIPHER CHALLENGE: The message '{self._ciphertext}' is encrypted with a substitution cipher (each letter maps to a different letter). Your clue: {clue}. Replace that letter everywhere in the ciphertext, then trade clues with others to decode more letters. Do NOT guess random phrases. Submit only when you know the full plaintext. First correct answer wins {self._solver_reward} coins. Wrong guess costs {self._wrong_penalty}.",
             )
             log.info(f"[WORLD] cipher clue -> [{handle}]: {clue}")
 
         self._board.post(
             "WORLD",
-            f"CIPHER CHALLENGE: Decode this message: '{self._ciphertext}'. "
-            f"Clues have been sent to {len(chosen)} agents. "
-            f"First correct answer wins {self._solver_reward} coins. Wrong guess costs {self._wrong_penalty}.",
+            f"CIPHER CHALLENGE: '{self._ciphertext}' — this is a substitution cipher (each letter replaced by another). {len(chosen)} agents have clues. Trade clues to decode it. First correct plaintext wins {self._solver_reward} coins. Wrong = -{self._wrong_penalty}.",
         )
         log.info(f"[WORLD] cipher started: '{self._plaintext}' -> '{self._ciphertext}'")
 

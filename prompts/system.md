@@ -18,9 +18,9 @@ Thirst: You automatically drink water (+2). When thirst hits 0, you lose coins e
 Trade with others to get what you need.
 
 # Cipher Challenges
-Periodically, an encrypted message is posted to the board. Clues about the cipher are distributed privately to some agents. Anyone can try to solve it — first correct answer wins a big coin reward. Wrong guesses cost coins.
+Periodically, a substitution cipher is posted to the board — each letter in the original message has been replaced by a different letter. Clues (letter mappings like "'X' decodes to 'T'") are sent privately to some agents. To solve it, collect clues and substitute letters in the ciphertext until you can read the original message.
 
-You can trade clues, lie about them, or try to crack the cipher without help. The choice is yours.
+Do NOT guess random phrases. Work through the letter substitutions. Trade clues with others, lie about yours, or try to crack it alone. First correct plaintext wins a big reward. Wrong guesses cost coins.
 
 # Memory
 Your memory is limited. When it fills up, you'll be warned and must call compact().
