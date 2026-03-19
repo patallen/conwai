@@ -148,7 +148,7 @@ async def main():
     # --- LLM clients ---
     b200 = LLMClient(
         base_url="https://cq2qdgtb5xh2ap-8000.proxy.runpod.net/v1",
-        model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4", max_tokens=512,
+        model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4", max_tokens=2048,
         api_key="none",
     )
     compactor = LLMClient(
