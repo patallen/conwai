@@ -162,8 +162,8 @@ class WorldEvents:
         self._cipher_started_tick = self._tick
         self._clue_holders.clear()
 
-        # Distribute clues to random agents (3-5 agents get clues)
-        num_clues = min(len(handles), random.randint(3, 5))
+        # Distribute clues to ~half the population
+        num_clues = min(len(handles), max(3, len(handles) // 2))
         chosen = random.sample(handles, num_clues)
 
         # Build the set of unique letters in the plaintext
