@@ -83,7 +83,7 @@ export function Sidebar() {
                 <div style={{ color: 'var(--text-secondary)', marginBottom: 2 }}>ATTEMPTS</div>
                 {data.cipher.attempts.map((a, i) => (
                   <div key={i} style={{ color: '#ef4444' }}>
-                    {a.handle}: "{a.guess}" ({a.correct_chars}/{data.cipher!.ciphertext.replace(/ /g, '').length})
+                    {a.handle}: "{a.guess}" ({a.correct_chars}/{data.cipher!.ciphertext.length})
                   </div>
                 ))}
               </div>
