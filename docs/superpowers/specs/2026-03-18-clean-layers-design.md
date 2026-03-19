@@ -2,17 +2,17 @@
 
 ## Problem
 
-Recent refactoring moved code between files but didn't change who knows about what. Agent is supposed to be data but has methods and ephemeral tick state. Brain reaches into agent internals for prompt assembly. Actions mutate everything directly. Context is a god object. There's no boundary between framework and simulation.
+Everything reaches into everything else's internals. Agent has methods and ephemeral tick state. Brain reads agent private fields to assemble prompts. Actions access `ctx.board._posts` and mutate agent fields directly. Context is a god object. No boundary between framework and simulation.
 
 ## Approach
 
-Enforce strict layers with clear dependency direction. Each layer has defined access and a defined output type. Mutation only happens through Effects applied by the Engine.
+Clean interfaces between layers. Things use public APIs instead of reaching into each other's guts. No grand abstractions — just boundaries that make sense for a ~2000 line codebase.
 
 ## Design
 
 ### Agent — Pure Identity
 
-Agent is a data bag with no methods. Only identity and role — no game state, no ephemeral buffers, no prompt logic.
+No methods. No game state. No ephemeral buffers.
 
 ```python
 @dataclass
@@ -25,84 +25,34 @@ class Agent:
     soul: str = ""
 ```
 
-All simulation state (coins, flour, hunger, etc.) lives in the ComponentStore, not on Agent. This means new systems can add state without editing Agent.
+### ComponentStore — Game State
 
-### ComponentStore — Simulation State
-
-Central state store keyed by (handle, component name). Systems register what components they need. When an agent spawns, the store initializes components with defaults. Persistence serializes the whole store.
+All simulation state lives here, keyed by (handle, component). New systems add new components without editing Agent.
 
 ```python
 class ComponentStore:
     def get(self, handle: str, component: str) -> dict: ...
     def set(self, handle: str, component: str, data: dict): ...
     def has(self, handle: str, component: str) -> bool: ...
+    def remove(self, handle: str): ...
+    def save(self): ...
+    def load(self, handle: str): ...
 ```
 
-Example components for the bread economy:
+Bread economy components:
 - `"hunger"`: `{"hunger": 100, "thirst": 100}`
 - `"economy"`: `{"coins": 500}`
 - `"inventory"`: `{"flour": 0, "water": 0, "bread": 0}`
 - `"memory"`: `{"memory": "", "code_fragment": None}`
 
-### Effects — The Only Way to Mutate
-
-Actions and systems never write to the store directly. They return Effects. The engine applies them.
-
-```python
-@dataclass
-class Effect:
-    handle: str
-    component: str
-    changes: dict[str, Any]
-```
-
-This means:
-- The engine is the single point of mutation — validates, applies, logs in one place
-- Logging is automatic — every Effect is visible
-- Testing is trivial — call a function, check returned Effects
-- Actions that affect multiple agents just return multiple Effects
-
-### Systems — World Mechanics
-
-Systems process agents each tick and return Effects. They read from the store and agent identity but never write directly.
-
-```python
-class DecaySystem:
-    def tick(self, agents: list[Agent], store: ComponentStore) -> list[Effect]:
-        effects = []
-        for agent in agents:
-            hunger = store.get(agent.handle, "hunger")
-            effects.append(Effect(agent.handle, "hunger", {
-                "hunger": max(0, hunger["hunger"] - 3),
-                "thirst": max(0, hunger["thirst"] - 3),
-            }))
-        return effects
-```
-
-Systems get whatever dependencies they need (agents, store, board, bus, etc.) — the engine wires them in. Systems that currently live as special cases (WorldEvents) become regular systems.
-
-### Perception — Read the World, Format for Brain
-
-Perception reads from everything (store, board, bus, event log) but writes nothing. It builds the tick message string that the brain receives.
-
-This is simulation-specific. The bread economy perception builds the current tick format with hunger warnings, board posts, DM history, inventory state, etc. A different simulation would build different perception.
-
-```python
-class Perception:
-    def build(self, agent: Agent, store: ComponentStore,
-              board: BulletinBoard, bus: MessageBus, tick: int) -> str:
-        # Reads whatever it needs, produces text
-        ...
-```
-
 ### Brain — Perception In, Decisions Out
 
-Brain receives the formatted perception text and returns a list of decisions. It owns its internal state (message history, system prompt, compaction) but doesn't know about world state.
+Brain receives a perception string, returns what the agent wants to do. Owns its internal state (message history, compaction). Doesn't know about the board, the bus, the store, or what flour is.
 
 ```python
 class Brain(Protocol):
-    async def decide(self, agent: Agent, perception: str) -> list[Decision]:
-        ...
+    async def decide(self, agent: Agent, perception: str) -> list[Decision]: ...
+    def observe(self, decision: Decision, result: str) -> None: ...
 
 @dataclass
 class Decision:
@@ -110,85 +60,124 @@ class Decision:
     args: dict[str, Any]
 ```
 
-The current LLMBrain becomes an implementation that internally manages conversation history, calls the LLM, handles compaction. From the outside it's just perception in, decisions out.
+`decide()` returns the LLM's tool calls as Decisions. The engine executes them and calls `observe()` with the result text so the brain can update its conversation history.
+
+Compaction is brain-internal. The brain decides when and how to compact based on its own context window. No `compact` action needed.
 
 A scripted brain is trivial:
 ```python
 class ScriptedBrain:
     async def decide(self, agent, perception):
         return [Decision("forage", {})]
+    def observe(self, decision, result):
+        pass
 ```
 
-Brain doesn't call actions. Brain doesn't read the board. Brain doesn't process inboxes.
+### Perception — Reads the World, Formats for Brain
 
-### Actions — Pure Functions Returning Effects
-
-Actions read from the store and return Effects. They never mutate directly.
+Simulation-specific. Reads from the store, board, bus — whatever it needs. Writes nothing.
 
 ```python
-def forage(agent: Agent, store: ComponentStore, args: dict) -> list[Effect]:
+class Perception:
+    def build(self, agent: Agent, store: ComponentStore,
+              board: BulletinBoard, bus: MessageBus, tick: int) -> str: ...
+```
+
+This is where `_rebuild_context`'s world-reading logic goes: reading new posts, DMs, formatting hunger warnings, building the tick message. Currently scattered between Brain and Agent.
+
+### Actions — Use Public Interfaces
+
+Actions take the agent, the store, and whatever infrastructure they need. They mutate through public APIs. They return feedback text for the brain.
+
+```python
+def forage(agent: Agent, store: ComponentStore, args: dict) -> str:
     skills = config.FORAGE_SKILL_BY_ROLE[agent.role]
     flour = random.randint(0, skills["flour"])
     water = random.randint(0, skills["water"])
-    return [Effect(agent.handle, "inventory", {"flour": flour, "water": water})]
+    inv = store.get(agent.handle, "inventory")
+    inv["flour"] += flour
+    inv["water"] += water
+    store.set(agent.handle, "inventory", inv)
+    return f"foraged {flour} flour, {water} water"
 
-def pay(agent: Agent, store: ComponentStore, args: dict) -> list[Effect]:
-    amount = args["amount"]
-    return [
-        Effect(agent.handle, "economy", {"coins": -amount}),
-        Effect(args["to"], "economy", {"coins": +amount}),
-    ]
+def post_to_board(agent: Agent, store: ComponentStore, board: BulletinBoard,
+                  args: dict) -> str:
+    board.post(agent.handle, args["message"])
+    return "posted"
 ```
+
+No reaching into `agent._action_log`. No accessing `ctx.board._posts`. Actions use `store.get()`/`store.set()` and `board.post()`. They return a string — the engine feeds it back to the brain via `observe()`.
+
+Actions that need the board get the board. Actions that need the bus get the bus. The ActionRegistry wires this — actions declare their dependencies.
+
+### Systems — Same Idea
+
+Systems read/write through the store and infrastructure APIs. No private field access.
+
+```python
+class DecaySystem:
+    name = "decay"
+
+    def tick(self, agents: list[Agent], store: ComponentStore):
+        for agent in agents:
+            h = store.get(agent.handle, "hunger")
+            h["hunger"] = max(0, h["hunger"] - 3)
+            h["thirst"] = max(0, h["thirst"] - 3)
+            store.set(agent.handle, "hunger", h)
+```
+
+WorldEvents becomes a system. DeathSystem uses the pool's public API to kill/spawn.
 
 ### Engine — Orchestration
 
-The engine owns the tick lifecycle and is the single point of mutation.
+Owns the tick lifecycle. Passes each layer only what it needs. No god object.
 
 ```
 Engine.tick():
-    tick_ctx = TickContext(tick=self.tick)
-
     # 1. Pre-brain systems
-    for system in [decay, tax, spoilage, death]:
-        effects = system.tick(agents, store)
-        self.apply(effects)
+    for system in [decay, tax, spoilage, death, world_events]:
+        system.tick(agents, store, ...)
 
     # 2. Brain loop (parallel per agent)
     for agent in alive_agents:
         text = perception.build(agent, store, board, bus, tick)
-        decisions = await brain.decide(agent, text)
+        decisions = brain.decide(agent, text)
         for decision in decisions:
-            effects = action_registry.execute(agent, store, decision)
-            self.apply(effects)
+            result = action_registry.execute(agent, store, decision)
+            brain.observe(decision, result)
 
     # 3. Post-brain systems
     for system in [consumption]:
-        effects = system.tick(agents, store)
-        self.apply(effects)
+        system.tick(agents, store, ...)
 
     # 4. Persist
-    store.save_dirty()
+    store.save()
 ```
 
-### Layer Access Summary
+### Tick-Scoped State
 
-| Layer | Reads | Writes | Produces |
-|---|---|---|---|
-| Agent | — | — | Identity data |
-| ComponentStore | handle + component | — | State lookups |
-| Systems | Agents, store, infrastructure | Nothing directly | Effects |
-| Perception | Agents, store, board, bus, anything | Nothing | Text for brain |
-| Brain | Agent identity, perception text | Own internal state | Decisions |
-| Actions | Agent identity, store | Nothing directly | Effects |
-| Engine | Everything | Applies Effects to store | Orchestration |
+Ephemeral per-tick state (`dm_sent_this_tick`, `foraging`) lives in a simple dict the engine creates and discards each tick. Actions that need it (send_message checks DM count, forage sets the lock) receive it as a parameter.
 
-### What Gets Deleted
+```python
+tick_state: dict[str, dict] = {handle: {} for handle in alive_handles}
+```
 
-- `Context` dataclass (god object) — engine wires dependencies directly
-- All methods on `Agent` (`_build_system_prompt`, `_build_identity_message`, `_format_state_sections`, `gain_coins`, `write_memory`, `record_*`)
-- All ephemeral fields on Agent (`_inbox`, `_action_log`, `_energy_log`, `_board_history`, `_dm_history`, `_ledger`, `_dm_sent_this_tick`, `_foraging`, `messages`, `system_prompt`)
-- Direct mutation in actions and systems
+No class needed. It's a dict. It dies at tick end.
+
+### What Changes
+
+| Current | New home |
+|---|---|
+| Agent methods (`_build_system_prompt`, etc.) | Perception |
+| Agent ephemeral fields (`_action_log`, etc.) | Tick-scoped dict or gone |
+| Agent game state (coins, flour, hunger) | ComponentStore |
+| Agent conversation state (messages, system_prompt) | Brain internals |
+| Brain._rebuild_context world-reading | Perception |
+| Brain._process_tool_calls | Engine orchestration + brain.observe() |
+| Context god object | Engine wires dependencies directly |
+| Actions mutating agent._fields | Actions use store.get()/set() |
+| Actions accessing ctx.board._posts | Actions use board's public API |
 
 ### Migration
 
-Clean break. Archive existing simulation data. Reimplement the bread economy simulation against the new architecture to validate it. Compare behavior against existing experimental findings.
+Clean break. Archive `data/`. Reimplement the bread economy against the new architecture. Validate against existing experimental findings.
