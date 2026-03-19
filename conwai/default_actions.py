@@ -177,7 +177,13 @@ def _forage(agent: Agent, registry: ActionRegistry, args: dict) -> str:
 
     # Streak bonus: consecutive forages increase yield
     forage_data = registry.store.get(agent.handle, "forage")
-    streak = forage_data.get("streak", 0)
+    last_tick = forage_data.get("last_tick", 0)
+    current_tick = getattr(registry, "current_tick", 0)
+    # Streak continues if last forage was the previous tick
+    if last_tick > 0 and current_tick - last_tick == 1:
+        streak = forage_data.get("streak", 0)
+    else:
+        streak = 0
     multiplier = 1.0 + streak * 0.5  # 1x, 1.5x, 2x, 2.5x, 3x cap
     multiplier = min(multiplier, 3.0)
 
@@ -188,8 +194,9 @@ def _forage(agent: Agent, registry: ActionRegistry, args: dict) -> str:
     inv["water"] += water
     registry.store.set(agent.handle, "inventory", inv)
 
-    # Increment streak
+    # Update streak
     forage_data["streak"] = streak + 1
+    forage_data["last_tick"] = current_tick
     registry.store.set(agent.handle, "forage", forage_data)
 
     tick_data = registry.tick_state.get(agent.handle, {})

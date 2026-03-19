@@ -51,6 +51,7 @@ class Engine:
 
         # Reset tick state
         self.actions.tick_state = {a.handle: {} for a in agents}
+        self.actions.current_tick = tick
 
         # Pre-brain systems
         for system in self._pre_brain_systems:

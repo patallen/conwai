@@ -131,7 +131,7 @@ async def main():
     store.register_component("inventory", {"flour": config.STARTING_FLOUR, "water": config.STARTING_WATER, "bread": config.STARTING_BREAD})
     store.register_component("hunger", {"hunger": config.STARTING_HUNGER, "thirst": config.STARTING_THIRST})
     store.register_component("memory", {"memory": "", "code_fragment": None, "soul": ""})
-    store.register_component("forage", {"streak": 0})
+    store.register_component("forage", {"streak": 0, "last_tick": 0})
 
     # --- Infrastructure ---
     board = BulletinBoard(max_posts=config.BOARD_MAX_POSTS, max_post_length=config.BOARD_MAX_POST_LENGTH)
