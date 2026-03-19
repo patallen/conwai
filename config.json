@@ -34,7 +34,7 @@
     "max": 100,
     "decay_per_tick": 2,
     "auto_drink_threshold": 80,
-    "drink_restore": 3,
+    "drink_restore": 10,
     "dehydration_coin_penalty": 10,
     "passive_water_per_tick": 0
   },
