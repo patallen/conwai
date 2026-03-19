@@ -165,6 +165,7 @@ class WorldEvents:
         # Distribute clues to ~half the population
         num_clues = min(len(handles), max(3, len(handles) // 2))
         chosen = random.sample(handles, num_clues)
+        log.info(f"[WORLD] cipher: {len(handles)} alive, distributing {num_clues} clues to {chosen}")
 
         # Build the set of unique letters in the plaintext
         unique_letters = list(set(c for c in self._plaintext if c.isalpha()))
