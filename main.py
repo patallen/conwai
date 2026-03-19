@@ -149,7 +149,7 @@ async def main():
 
     # --- Agents + Brains ---
     brains: dict[str, object] = {}
-    roles = ["flour_forager"] * 3 + ["water_forager"] * 3 + ["baker"] * 2
+    roles = ["flour_forager"] * 8 + ["water_forager"] * 8 + ["baker"] * 4
 
     compaction_prompt = (
         "COMPACTION REQUIRED. Write your compressed memory now. Target: 500-1500 characters. "
