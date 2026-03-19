@@ -2,27 +2,23 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 from conwai.agent import Agent
-from conwai.config import STARTING_BREAD
-from conwai.repository import AgentRepository
 
 if TYPE_CHECKING:
-    from conwai.bulletin_board import BulletinBoard
-    from conwai.events import EventLog
     from conwai.messages import MessageBus
+    from conwai.repository import AgentRepository
+    from conwai.store import ComponentStore
 
 log = logging.getLogger("conwai")
 
 
 class AgentPool:
-    def __init__(self, repo: AgentRepository, bus: MessageBus):
+    def __init__(self, repo: AgentRepository, bus: MessageBus, store: ComponentStore):
         self._repo = repo
         self._bus = bus
+        self._store = store
         self._agents: dict[str, Agent] = {}
-
-    # --- Queries ---
 
     def all(self) -> list[Agent]:
         return list(self._agents.values())
@@ -36,25 +32,31 @@ class AgentPool:
     def handles(self) -> list[str]:
         return [h for h, a in self._agents.items() if a.alive]
 
-    # --- Lifecycle ---
-
-    def load_or_create(self, handle: str, role: str, born_tick: int) -> Agent:
-        if self._repo.exists(handle):
-            agent = self._repo.load(handle)
+    def load_or_create(
+        self, agent: Agent,
+        component_overrides: dict[str, dict] | None = None,
+    ) -> Agent:
+        if self._repo.exists(agent.handle):
+            agent = self._repo.load_agent(agent.handle)
+            self._repo.load_components(agent.handle, self._store)
         else:
-            agent = Agent(handle=handle, role=role, born_tick=born_tick, bread=STARTING_BREAD)
-            self._repo.create(agent)
-        self._agents[handle] = agent
+            self._store.init_agent(agent.handle, overrides=component_overrides)
+            self._repo.save_agent(agent)
+            self._repo.save_components(agent.handle, self._store)
+        self._agents[agent.handle] = agent
         if agent.alive:
-            self._bus.register(handle)
+            self._bus.register(agent.handle)
         return agent
 
-    def spawn(self, role: str, born_tick: int, prefix: str = "A") -> Agent:
-        handle = self._generate_handle(prefix)
-        agent = Agent(handle=handle, role=role, born_tick=born_tick, bread=STARTING_BREAD)
-        self._repo.create(agent)
-        self._agents[handle] = agent
-        self._bus.register(handle)
+    def add(
+        self, agent: Agent,
+        component_overrides: dict[str, dict] | None = None,
+    ) -> Agent:
+        self._store.init_agent(agent.handle, overrides=component_overrides)
+        self._agents[agent.handle] = agent
+        self._bus.register(agent.handle)
+        self._repo.save_agent(agent)
+        self._repo.save_components(agent.handle, self._store)
         return agent
 
     def kill(self, handle: str) -> None:
@@ -63,37 +65,19 @@ class AgentPool:
             agent.alive = False
             self._bus.unregister(handle)
 
-    def replace_dead(self, board: BulletinBoard, events: EventLog, born_tick: int) -> list[Agent]:
-        new_agents = []
-        dead = [a for a in self._agents.values() if not a.alive]
-        for agent in dead:
-            self._bus.unregister(agent.handle)
-            del self._agents[agent.handle]
-            board.post("WORLD", f"{agent.handle} has died. A new member is joining.")
-            log.info(f"[WORLD] {agent.handle} DIED")
-
-            replacement = self.spawn(agent.role, born_tick, prefix=agent.handle[0])
-            board.post("WORLD", f"New member {replacement.handle} has joined.")
-            events.log("WORLD", "agent_spawned", {"handle": replacement.handle, "replaced": agent.handle})
-            log.info(f"[WORLD] {replacement.handle} spawned (replacing {agent.handle})")
-            new_agents.append(replacement)
-        return new_agents
-
-    # --- Persistence ---
-
     def save(self, handle: str) -> None:
         agent = self._agents.get(handle)
         if agent:
-            self._repo.save(agent)
+            self._repo.save_agent(agent)
+            self._repo.save_components(handle, self._store)
 
     def save_all(self) -> None:
-        for agent in self._agents.values():
-            self._repo.save(agent)
+        for handle in self._agents:
+            self.save(handle)
 
-    # --- Internal ---
+    def save_brain_state(self, handle: str, state: dict) -> None:
+        self._repo.save_brain_state(handle, state)
 
-    def _generate_handle(self, prefix: str = "A") -> str:
-        while True:
-            handle = f"{prefix}{uuid4().hex[:3]}"
-            if not self._repo.exists(handle):
-                return handle
+    def load_brain_state(self, handle: str) -> dict | None:
+        return self._repo.load_brain_state(handle)
+

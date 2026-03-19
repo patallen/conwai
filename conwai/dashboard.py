@@ -24,30 +24,37 @@ def read_agents() -> list[dict]:
     for d in sorted(AGENTS_DIR.iterdir()):
         if not d.is_dir():
             continue
-        handle = d.name
-        agent = {"handle": handle}
-        for f in ["personality.md", "soul.md", "memory.md"]:
-            p = d / f
-            agent[f.replace(".md", "")] = p.read_text() if p.exists() else ""
-        ep = d / "energy"
-        agent["energy"] = int(float(ep.read_text().strip())) if ep.exists() else None
-        rp = d / "role"
-        agent["role"] = rp.read_text().strip() if rp.exists() else None
-        for resource in ["flour", "water", "bread"]:
-            rp = d / resource
-            agent[resource] = int(rp.read_text().strip()) if rp.exists() else 0
-        hp = d / "hunger"
-        agent["hunger"] = int(hp.read_text().strip()) if hp.exists() else None
-        tp = d / "thirst"
-        agent["thirst"] = int(tp.read_text().strip()) if tp.exists() else None
-        bp = d / "born_tick"
-        agent["born_tick"] = int(bp.read_text().strip()) if bp.exists() else 0
-        alive_path = d / "alive"
-        agent["alive"] = (
-            alive_path.read_text().strip() == "true" if alive_path.exists() else True
-        )
-        if not agent["alive"]:
+        identity_path = d / "identity.json"
+        if not identity_path.exists():
             continue
+        identity = json.loads(identity_path.read_text())
+        if not identity.get("alive", True):
+            continue
+
+        agent = {
+            "handle": identity["handle"],
+            "role": identity.get("role"),
+            "personality": identity.get("personality", ""),
+            "soul": "",
+            "born_tick": identity.get("born_tick", 0),
+            "alive": True,
+        }
+
+        for comp_name, fields in [
+            ("economy", ["coins"]),
+            ("inventory", ["flour", "water", "bread"]),
+            ("hunger", ["hunger", "thirst"]),
+            ("memory", ["memory", "soul"]),
+        ]:
+            comp_path = d / f"{comp_name}.json"
+            if comp_path.exists():
+                data = json.loads(comp_path.read_text())
+                for f in fields:
+                    if f == "coins":
+                        agent["energy"] = int(data.get(f, 0))
+                    else:
+                        agent[f] = data.get(f, 0)
+
         agents.append(agent)
     return agents
 
@@ -69,9 +76,11 @@ def api_status():
     if AGENTS_DIR.exists():
         for d in AGENTS_DIR.iterdir():
             if d.is_dir():
-                alive_path = d / "alive"
-                if not alive_path.exists() or alive_path.read_text().strip() == "true":
-                    alive += 1
+                identity_path = d / "identity.json"
+                if identity_path.exists():
+                    identity = json.loads(identity_path.read_text())
+                    if identity.get("alive", True):
+                        alive += 1
     return {"tick": tick, "alive": alive, "total_events": _events.count()}
 
 

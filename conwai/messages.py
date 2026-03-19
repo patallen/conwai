@@ -37,10 +37,3 @@ class MessageBus:
     def receive(self, handle: str) -> list[DirectMessage]:
         msgs = self._queues.pop(handle, [])
         return msgs
-
-    def format_new(self, handle: str) -> str | None:
-        msgs = self.receive(handle)
-        if not msgs:
-            return None
-        lines = [f"DM from {m.from_handle}: {m.content}" for m in msgs]
-        return "\n\n".join(lines)

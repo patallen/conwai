@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from conwai.agent import Agent
+    from conwai.bulletin_board import BulletinBoard
+    from conwai.events import EventLog
+    from conwai.messages import MessageBus
+    from conwai.perception import Perception
+    from conwai.pool import AgentPool
+    from conwai.store import ComponentStore
 
 
 @dataclass
@@ -9,15 +18,8 @@ class Action:
     name: str
     description: str
     parameters: dict = field(default_factory=dict)
-    cost_per_word: float | None = None
     cost_flat: int = 0
     handler: Callable | None = None
-
-    def cost(self, args: dict) -> int:
-        if self.cost_per_word is not None:
-            text = " ".join(str(v) for v in args.values())
-            return max(1, int(len(text.split()) * self.cost_per_word))
-        return self.cost_flat
 
     def tool_schema(self) -> dict:
         return {
@@ -35,8 +37,25 @@ class Action:
 
 
 class ActionRegistry:
-    def __init__(self):
+    def __init__(
+        self,
+        store: ComponentStore,
+        board: BulletinBoard,
+        bus: MessageBus,
+        events: EventLog,
+        pool: AgentPool | None = None,
+        perception: Perception | None = None,
+        world: Any = None,
+    ):
         self._actions: dict[str, Action] = {}
+        self.store = store
+        self.board = board
+        self.bus = bus
+        self.events = events
+        self.pool = pool
+        self.perception = perception
+        self.world = world
+        self.tick_state: dict[str, dict] = {}
 
     def register(self, action: Action):
         self._actions[action.name] = action
@@ -47,45 +66,29 @@ class ActionRegistry:
     def tool_definitions(self) -> list[dict]:
         return [a.tool_schema() for a in self._actions.values()]
 
-    def execute(self, agent: Any, ctx: Any, name: str, args: dict) -> None:
+    def execute(self, agent: Agent, name: str, args: dict) -> str:
         action = self._actions.get(name)
         if not action:
-            return
-        cost = action.cost(args)
-        if cost > agent.coins:
-            agent._action_log.append(
-                f"not enough coins for {name} ({cost} needed, have {int(agent.coins)})"
-            )
-            print(
-                f"[{agent.handle}] NOT ENOUGH ENERGY for {name} ({cost} needed)",
-                flush=True,
-            )
-            return
-        agent.coins -= cost
-        if cost > 0:
-            agent._action_log.append(
-                f"{name}: {cost} coins spent, {int(agent.coins)} remaining"
-            )
-        else:
-            agent._action_log.append(
-                f"{name}: free, {int(agent.coins)} coins remaining"
-            )
-        if action.handler:
-            action.handler(agent, ctx, args)
+            return f"unknown action: {name}"
 
-    def cost_description(self) -> str:
-        paid = []
-        free = []
-        for a in self._actions.values():
-            if a.cost_per_word:
-                paid.append(f"{a.name}: {a.cost_per_word}/word")
-            elif a.cost_flat > 0:
-                paid.append(f"{a.name}: {a.cost_flat} flat")
-            else:
-                free.append(a.name)
-        lines = []
-        if paid:
-            lines.append("Costs: " + ", ".join(paid))
-        if free:
-            lines.append("Free: " + ", ".join(free))
-        return "\n".join(lines)
+        ts = self.tick_state.get(agent.handle, {})
+        if ts.get("foraging"):
+            return "You are foraging this tick and cannot take other actions."
+
+        eco = self.store.get(agent.handle, "economy")
+        if action.cost_flat > eco["coins"]:
+            return f"not enough coins for {name} ({action.cost_flat} needed, have {int(eco['coins'])})"
+
+        eco["coins"] -= action.cost_flat
+        self.store.set(agent.handle, "economy", eco)
+
+        cost_msg = (
+            f"{name}: {action.cost_flat} coins spent, {int(eco['coins'])} remaining"
+            if action.cost_flat > 0
+            else ""
+        )
+
+        result = action.handler(agent, self, args) if action.handler else "ok"
+        if cost_msg and result:
+            return f"{cost_msg}. {result}"
+        return cost_msg or result or "ok"

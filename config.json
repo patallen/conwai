@@ -1,38 +1,66 @@
 {
-  "energy_max": 500,
-  "energy_cost_flat": {
-    "update_soul": 0
+  "starting": {
+    "coins": 500,
+    "flour": 50,
+    "water": 50,
+    "bread": 20,
+    "hunger": 100,
+    "thirst": 100
   },
-  "energy_gain": {
-    "referenced": 5,
-    "dm_received": 0
+  "economy": {
+    "max_coins": 500,
+    "cost_flat": {
+      "update_soul": 0,
+      "post_to_board": 25
+    },
+    "gain": {
+      "referenced": 5,
+      "dm_received": 0
+    }
   },
-  "board_max_posts": 30,
-  "board_max_post_length": 200,
-  "hunger_max": 100,
-  "hunger_decay_per_tick": 3,
-  "hunger_auto_eat_threshold": 80,
-  "hunger_eat_restore": 5,
-  "hunger_eat_raw_restore": 2,
-  "hunger_starve_coin_penalty": 10,
-  "thirst_decay_per_tick": 3,
-  "thirst_auto_drink_threshold": 80,
-  "thirst_drink_restore": 2,
-  "thirst_dehydration_coin_penalty": 10,
-  "passive_water_per_tick": 1,
-  "forage_skill_by_role": {
-    "flour_forager": {"flour": 36, "water": 12},
-    "water_forager": {"flour": 12, "water": 40},
-    "baker": {"flour": 3, "water": 3}
+  "board": {
+    "max_posts": 30,
+    "max_post_length": 200
   },
-  "starting_bread": 15,
-  "bake_cost": {"flour": 6, "water": 6},
-  "bake_yield": 9,
-  "bread_spoil_interval": 12,
-  "bread_spoil_amount": 3,
-  "state_board_length": 10,
-  "state_interactions_length": 10,
-  "state_ledger_length": 10,
-  "context_window": 10000,
-  "memory_max": 1000
+  "hunger": {
+    "max": 100,
+    "decay_per_tick": 3,
+    "auto_eat_threshold": 80,
+    "eat_restore": 5,
+    "eat_raw_restore": 2,
+    "starve_coin_penalty": 10
+  },
+  "thirst": {
+    "max": 100,
+    "decay_per_tick": 2,
+    "auto_drink_threshold": 80,
+    "drink_restore": 3,
+    "dehydration_coin_penalty": 10,
+    "passive_water_per_tick": 1
+  },
+  "foraging": {
+    "roles": ["flour_forager", "water_forager", "baker"],
+    "skill_by_role": {
+      "flour_forager": {"flour": 36, "water": 12},
+      "water_forager": {"flour": 12, "water": 36},
+      "baker": {"flour": 3, "water": 3}
+    }
+  },
+  "baking": {
+    "cost": {"flour": 6, "water": 6},
+    "yield": 9
+  },
+  "spoilage": {
+    "interval": 12,
+    "amount": 3
+  },
+  "brain": {
+    "context_window": 10000,
+    "memory_max": 1000
+  },
+  "perception": {
+    "board_length": 10,
+    "interactions_length": 10,
+    "ledger_length": 10
+  }
 }

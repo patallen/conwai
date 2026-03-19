@@ -4,17 +4,20 @@ import os
 import time
 from pathlib import Path
 
-from conwai.config import ENERGY_GAIN, ENERGY_MAX
+from conwai.agent import Agent
+from conwai.config import ENERGY_GAIN, ENERGY_MAX, assign_traits
 import conwai.config as config
+from conwai.bulletin_board import BulletinBoard
 from conwai.default_actions import create_registry
-from conwai.app import Context
-
-from conwai.brain import LLMBrain
 from conwai.engine import Engine
+from conwai.events import EventLog
+from conwai.brain import LLMBrain
 from conwai.llm import LLMClient
+from conwai.messages import MessageBus
+from conwai.perception import Perception
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
-from conwai.systems.brain import BrainSystem
+from conwai.store import ComponentStore
 from conwai.systems.consumption import ConsumptionSystem
 from conwai.systems.death import DeathSystem
 from conwai.systems.decay import DecaySystem
@@ -28,7 +31,8 @@ log = logging.getLogger("conwai")
 HANDLER_FILE = Path("handler_input.txt")
 
 
-async def watch_handler_file(ctx: Context):
+async def watch_handler_file(pool, store, board, bus, events, perception):
+    """Process admin commands from the handler file. Used by dashboard."""
     if not HANDLER_FILE.exists():
         HANDLER_FILE.write_text("")
     last_size = 0
@@ -43,159 +47,167 @@ async def watch_handler_file(ctx: Context):
                     continue
                 if line.startswith("!drain "):
                     parts = line.split()
-                    agent = ctx.pool.by_handle(parts[1]) if len(parts) >= 3 else None
-                    if agent:
+                    if len(parts) >= 3:
                         handle, amount = parts[1], int(parts[2])
-                        agent.coins = max(0, agent.coins - amount)
-                        ctx.log(
-                            "HANDLER",
-                            "drain",
-                            {
-                                "handle": handle,
-                                "amount": amount,
-                                "remaining": agent.coins,
-                            },
-                        )
-                        log.info(f"[HANDLER] drained {handle} by {amount}, now {agent.coins}")
+                        agent = pool.by_handle(handle)
+                        if agent and store.has(handle, "economy"):
+                            eco = store.get(handle, "economy")
+                            eco["coins"] = max(0, eco["coins"] - amount)
+                            store.set(handle, "economy", eco)
+                            events.log("HANDLER", "drain", {"handle": handle, "amount": amount, "remaining": eco["coins"]})
+                            log.info(f"[HANDLER] drained {handle} by {amount}, now {eco['coins']}")
                 elif line.startswith("!set_energy "):
                     parts = line.split()
-                    agent = ctx.pool.by_handle(parts[1]) if len(parts) >= 3 else None
-                    if agent:
+                    if len(parts) >= 3:
                         handle, amount = parts[1], int(parts[2])
-                        agent.coins = min(ENERGY_MAX, max(0, amount))
-                        ctx.log(
-                            "HANDLER",
-                            "set_energy",
-                            {"handle": handle, "energy": agent.coins},
-                        )
-                        log.info(f"[HANDLER] set {handle} energy to {agent.coins}")
+                        agent = pool.by_handle(handle)
+                        if agent and store.has(handle, "economy"):
+                            eco = store.get(handle, "economy")
+                            eco["coins"] = min(ENERGY_MAX, max(0, amount))
+                            store.set(handle, "economy", eco)
+                            events.log("HANDLER", "set_energy", {"handle": handle, "energy": eco["coins"]})
+                            log.info(f"[HANDLER] set {handle} energy to {eco['coins']}")
                 elif line.startswith("!secret "):
                     parts = line.split(" ", 2)
-                    if len(parts) >= 3 and ctx.pool.by_handle(parts[1]):
+                    if len(parts) >= 3 and pool.by_handle(parts[1]):
                         handle, content = parts[1], parts[2]
-                        ctx.bus.send("WORLD", handle, content)
-                        ctx.log("WORLD", "secret_dropped", {"to": handle, "content": content})
+                        bus.send("WORLD", handle, content)
+                        events.log("WORLD", "secret_dropped", {"to": handle, "content": content})
                         log.info(f"[HANDLER] dropped secret to {handle}: {content}")
                 elif line.startswith("@"):
                     parts = line.split(" ", 1)
                     handle = parts[0][1:]
                     msg = parts[1] if len(parts) > 1 else ""
-                    ctx.bus.send("HANDLER", handle, msg)
-                    ctx.log("HANDLER", "dm_sent", {"to": handle, "content": msg})
+                    bus.send("HANDLER", handle, msg)
+                    events.log("HANDLER", "dm_sent", {"to": handle, "content": msg})
                     log.info(f"[HANDLER] -> [{handle}]: {msg}")
-                    agent = ctx.pool.by_handle(handle)
-                    if agent:
-                        agent.gain_coins("HANDLER attention", ENERGY_GAIN["dm_received"])
+                    if store.has(handle, "economy"):
+                        eco = store.get(handle, "economy")
+                        eco["coins"] += ENERGY_GAIN.get("dm_received", 0)
+                        store.set(handle, "economy", eco)
+                        perception.notify(handle, f"coins +{ENERGY_GAIN.get('dm_received', 0)} (HANDLER attention)")
                 else:
-                    ctx.board.post("HANDLER", line)
-                    ctx.log("HANDLER", "board_post", {"content": line})
+                    board.post("HANDLER", line)
+                    events.log("HANDLER", "board_post", {"content": line})
                     log.info(f"[HANDLER]: {line}")
             last_size = current_size
         await asyncio.sleep(0.5)
 
 
+async def wait_for_llm(client):
+    """Block until the inference endpoint is reachable."""
+    import httpx
+    while True:
+        try:
+            async with httpx.AsyncClient(timeout=5) as http:
+                resp = await http.get(f"{client.base_url}/models")
+                if resp.status_code == 200:
+                    return
+        except Exception:
+            pass
+        log.warning("[WORLD] LLM unreachable, waiting 10s...")
+        await asyncio.sleep(10)
+
+
 async def main():
     setup_logging()
-    ctx = Context()
-    tick_path = Path("data/tick")
-    if tick_path.exists():
-        ctx.tick = int(tick_path.read_text().strip())
 
-    registry = create_registry()
-    qwen4b0 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-4B-AWQ"
-    )
-    qwen4b1 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-4B-AWQ"
-    )
-    qwen9b0 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048
-    )
-    qwen9b1 = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048
-    )
-    qwen14b = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3-14B-AWQ"
-    )
-    qwen14b_think = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8081/v1",
-        model="/mnt/models/Qwen3-14B-AWQ",
-    )
-    flash = LLMClient(  # noqa: F841
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        model="gemini-2.5-flash-lite",
-        api_key=os.environ.get("GOOGLE_AI_API_KEY", ""),
-        extra_body={},
-    )
-    qwen27b = LLMClient(  # noqa: F841
-        base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-27B-GPTQ-Int4", max_tokens=2048
-    )
-    b200 = LLMClient(
-        base_url="https://cq2qdgtb5xh2ap-8000.proxy.runpod.net/v1",
-        model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4", max_tokens=512,
-        api_key="none",
-    )
-    h200 = LLMClient(
-        base_url="https://ykwnq4rjufjojf-8000.proxy.runpod.net/v1",
-        model="QuantTrio/Qwen3.5-9B-AWQ", max_tokens=512,
-        api_key="none",
-    )
+    # --- State ---
+    store = ComponentStore()
+    store.register_component("economy", {"coins": config.STARTING_COINS})
+    store.register_component("inventory", {"flour": config.STARTING_FLOUR, "water": config.STARTING_WATER, "bread": config.STARTING_BREAD})
+    store.register_component("hunger", {"hunger": config.STARTING_HUNGER, "thirst": config.STARTING_THIRST})
+    store.register_component("memory", {"memory": "", "code_fragment": None, "soul": ""})
+
+    # --- Infrastructure ---
+    board = BulletinBoard(max_posts=config.BOARD_MAX_POSTS, max_post_length=config.BOARD_MAX_POST_LENGTH)
+    bus = MessageBus()
+    events = EventLog()
+    perception = Perception()
+
+    # --- Persistence ---
     repo = AgentRepository()
-    pool = AgentPool(repo, ctx.bus)
-    ctx.pool = pool
+    pool = AgentPool(repo, bus, store)
 
-    def wire_agent(agent, core=qwen9b0):
-        agent.brain = LLMBrain(core=core, compactor=qwen9b1, actions=registry)
+    # --- LLM clients ---
+    qwen4b0 = LLMClient(base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-4B-AWQ")  # noqa: F841
+    qwen4b1 = LLMClient(base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-4B-AWQ")  # noqa: F841
+    qwen9b0 = LLMClient(base_url="http://ai-lab.lan:8080/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048)
+    qwen9b1 = LLMClient(base_url="http://ai-lab.lan:8081/v1", model="/mnt/models/Qwen3.5-9B-AWQ", max_tokens=2048)
 
-    roles = (
-        ["flour_forager"] * 3 +
-        ["water_forager"] * 3 +
-        ["baker"] * 2
+    # --- World Events ---
+    world = WorldEvents(board=board, bus=bus, pool=pool, store=store, perception=perception)
+
+    # --- Actions ---
+    registry = create_registry(store=store, board=board, bus=bus, events=events, pool=pool, perception=perception, world=world)
+
+    # --- Agents + Brains ---
+    brains: dict[str, object] = {}
+    roles = ["flour_forager"] * 3 + ["water_forager"] * 3 + ["baker"] * 2
+
+    compaction_prompt = (
+        "COMPACTION REQUIRED. Write your compressed memory now. Target: 500-1500 characters. "
+        "The system already provides your coins, inventory, hunger, thirst, recent transactions, board posts, and DMs each tick — do NOT repeat any of that. "
+        "Write ONLY: AGENTS (who you trust/distrust and why, 1 sentence each), "
+        "DEALS (active promises or debts), LESSONS (hard-won knowledge), GOALS (current plans). "
+        "Anything you don't write here will be lost forever. Be concise but complete."
     )
-    cores = [qwen9b0] * 6
-    for i, (role, core) in enumerate(zip(roles, cores), 1):
-        agent = pool.load_or_create(f"A{i}", role, ctx.tick)
+
+    def make_brain(core=qwen9b0):
+        return LLMBrain(
+            core=core,
+            compactor=qwen9b1,
+            tools=registry.tool_definitions(),
+            system_prompt=perception.build_system_prompt(),
+            context_window=config.CONTEXT_WINDOW,
+            compaction_prompt=compaction_prompt,
+        )
+
+    for i, role in enumerate(roles, 1):
+        agent = Agent(handle=f"A{i}", role=role, born_tick=0, personality=", ".join(assign_traits()))
+        agent = pool.load_or_create(agent)
         if agent.alive:
-            wire_agent(agent, core=core)
+            brain = make_brain(core=qwen9b0)
+            saved_state = pool.load_brain_state(agent.handle)
+            if saved_state:
+                brain.load_state(saved_state)
+            brains[agent.handle] = brain
 
-    ctx.bus.register("HANDLER")
-    ctx.bus.register("WORLD")
-    world = WorldEvents()
-    ctx.world = world
+    bus.register("HANDLER")
+    bus.register("WORLD")
 
-    engine = Engine()
-    engine.register(DecaySystem())
-    engine.register(TaxSystem())
-    engine.register(SpoilageSystem())
-    engine.register(DeathSystem(on_spawn=wire_agent))
-    engine.register(BrainSystem())
-    engine.register(ConsumptionSystem())
+    # --- Death system needs brain factory ---
+    def on_spawn(agent):
+        brain = make_brain()
+        brains[agent.handle] = brain
 
-    asyncio.create_task(watch_handler_file(ctx))
+    # --- Engine ---
+    engine = Engine(
+        pool=pool, store=store, perception=perception,
+        actions=registry, brains=brains, board=board, bus=bus,
+    )
+    engine.register_pre_brain(DecaySystem())
+    engine.register_pre_brain(TaxSystem())
+    engine.register_pre_brain(SpoilageSystem())
+    engine.register_pre_brain(DeathSystem(pool=pool, board=board, events=events, on_spawn=on_spawn))
+    engine.register_pre_brain(world)
+    engine.register_post_brain(ConsumptionSystem())
 
-    async def wait_for_llm():
-        """Block until the inference endpoint is reachable."""
-        import httpx
-        while True:
-            try:
-                async with httpx.AsyncClient(timeout=5) as client:
-                    resp = await client.get(f"{qwen9b0.base_url}/models")
-                    if resp.status_code == 200:
-                        return
-            except Exception:
-                pass
-            log.warning("[WORLD] LLM unreachable, waiting 10s...")
-            await asyncio.sleep(10)
+    asyncio.create_task(watch_handler_file(pool, store, board, bus, events, perception))
+
+    # --- Tick loop ---
+    tick_path = Path("data/tick")
+    tick = int(tick_path.read_text().strip()) if tick_path.exists() else 0
 
     while True:
         config.reload()
-        await wait_for_llm()
-        ctx.tick += 1
+        await wait_for_llm(qwen9b0)
+        tick += 1
         tick_start = time.monotonic()
-        Path("data/tick").write_text(str(ctx.tick))
-        world.tick(ctx)
-        await engine.tick(ctx)
-        log.info(f"[WORLD] tick {ctx.tick} completed in {time.monotonic() - tick_start:.1f}s")
+        Path("data").mkdir(exist_ok=True)
+        tick_path.write_text(str(tick))
+        await engine.tick(tick)
+        log.info(f"[WORLD] tick {tick} completed in {time.monotonic() - tick_start:.1f}s")
 
 
 if __name__ == "__main__":

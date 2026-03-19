@@ -31,9 +31,6 @@ class BulletinBoard:
         self._cursors[handle] = len(self._posts)
         return new_posts
 
-    def format_new(self, handle: str) -> str:
-        posts = self.read_new(handle)
-        if not posts:
-            return "No new activity on the board."
-        lines = [f"{p.handle}: {p.content}" for p in posts]
-        return "New activity on the board:\n\n" + "\n\n".join(lines)
+    def recent_by_handle(self, handle: str, n: int = 10) -> list[Post]:
+        """Return the last n posts by a specific handle."""
+        return [p for p in self._posts[-n:] if p.handle == handle]

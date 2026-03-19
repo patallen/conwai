@@ -1,7 +1,18 @@
+from __future__ import annotations
+
 import logging
 import random
 import string
 from time import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from conwai.agent import Agent
+    from conwai.bulletin_board import BulletinBoard
+    from conwai.messages import MessageBus
+    from conwai.perception import Perception
+    from conwai.pool import AgentPool
+    from conwai.store import ComponentStore
 
 log = logging.getLogger("conwai")
 
@@ -20,11 +31,23 @@ QUESTIONS = [
 
 
 class WorldEvents:
+    name = "world"
+
     def __init__(
         self,
+        board: BulletinBoard,
+        bus: MessageBus,
+        pool: AgentPool,
+        store: ComponentStore,
+        perception: Perception,
         question_interval: int = 60,
         code_interval: int = 30,
     ):
+        self._board = board
+        self._bus = bus
+        self._pool = pool
+        self._store = store
+        self._perception = perception
         self.question_interval = question_interval
         self.code_interval = code_interval
         self._tick = 0
@@ -36,22 +59,23 @@ class WorldEvents:
         self._code_started_tick: int = 0
         self._code_started_time: float = 0
 
-    def tick(self, ctx) -> None:
-        self._tick += 1
+    def tick(self, agents: list[Agent], store: ComponentStore, perception: Perception, **kwargs) -> None:
+        tick = kwargs.get("tick", 0)
+        self._tick = tick
 
         if self._active_code:
-            self._check_code_expiry(ctx)
+            self._check_code_expiry()
 
-        if self._tick % self.question_interval == 0:
-            self._ask_question(ctx)
+        if self._tick % self.question_interval == 0 and self._tick > 0:
+            self._ask_question()
 
         if not self._active_code:
             first = self._tick == 10
             recurring = self._tick > 10 and self._tick % self.code_interval == 0
             if first or recurring:
-                self._start_code_challenge(ctx)
+                self._start_code_challenge()
 
-    def _ask_question(self, ctx):
+    def _ask_question(self):
         available = [i for i in range(len(QUESTIONS)) if i not in self._used_questions]
         if not available:
             self._used_questions.clear()
@@ -61,12 +85,11 @@ class WorldEvents:
         self._used_questions.add(idx)
 
         question = QUESTIONS[idx]
-        ctx.board.post("WORLD", f"QUESTION FOR ALL: {question}")
-        ctx.log("WORLD", "question_posted", {"question": question})
+        self._board.post("WORLD", f"QUESTION FOR ALL: {question}")
         log.info(f"[WORLD] question: {question}")
 
-    def _start_code_challenge(self, ctx):
-        handles = ctx.pool.handles()
+    def _start_code_challenge(self):
+        handles = self._pool.handles()
         if len(handles) < 4:
             return
 
@@ -82,56 +105,46 @@ class WorldEvents:
             self._code_fragments[handle] = (i + 1, code[i])
             mask = ["_"] * 4
             mask[i] = code[i]
-            agent = ctx.pool.by_handle(handle)
-            if agent:
-                agent.code_fragment = (
+            if self._store.has(handle, "memory"):
+                mem = self._store.get(handle, "memory")
+                mem["code_fragment"] = (
                     f"'{code[i]}' at position {i + 1} (pattern: {''.join(mask)})"
                 )
-            ctx.bus.send(
+                self._store.set(handle, "memory", mem)
+            self._bus.send(
                 "WORLD",
                 handle,
                 f"CODE CHALLENGE: You hold character '{code[i]}' at position {i + 1}. The code is 4 random characters (A-Z, 0-9) and looks like: {''.join(mask)}. Collect all 4 characters from the other holders before guessing.",
             )
-            ctx.log(
-                "WORLD",
-                "code_fragment",
-                {"to": handle, "position": i + 1, "char": code[i]},
-            )
-            print(
-                f"[WORLD] code fragment -> [{handle}]: pos {i + 1} = '{code[i]}'",
-                flush=True,
+            log.info(
+                f"[WORLD] code fragment -> [{handle}]: pos {i + 1} = '{code[i]}'"
             )
 
-        ctx.board.post(
+        self._board.post(
             "WORLD",
             f"CODE CHALLENGE: A 4-char code (A-Z, 0-9) has been split among 4 holders: {', '.join(chosen)}. Only holders have fragments. Guessing without all 4 characters is risky. Wrong = -50 coins.",
         )
-        ctx.log(
-            "WORLD",
-            "code_challenge_started",
-            {"code": code, "holders": chosen},
-        )
         log.info(f"[WORLD] code challenge started: {code}")
 
-    def _clear_fragments(self, ctx):
+    def _clear_fragments(self):
         for handle in self._code_fragments:
-            agent = ctx.pool.by_handle(handle)
-            if agent:
-                agent.code_fragment = None
+            if self._store.has(handle, "memory"):
+                mem = self._store.get(handle, "memory")
+                mem["code_fragment"] = None
+                self._store.set(handle, "memory", mem)
         self._code_fragments.clear()
 
-    def _check_code_expiry(self, ctx):
+    def _check_code_expiry(self):
         if self._tick - self._code_started_tick > 80:
-            ctx.board.post(
+            self._board.post(
                 "WORLD",
                 "CODE CHALLENGE EXPIRED. No one claimed it.",
             )
-            ctx.log("WORLD", "code_expired", {"code": self._active_code})
             log.info(f"[WORLD] code challenge expired: {self._active_code}")
             self._active_code = None
-            self._clear_fragments(ctx)
+            self._clear_fragments()
 
-    def submit_code(self, agent, ctx, guess: str) -> str:
+    def submit_code(self, agent: Agent, guess: str) -> str:
         if not self._active_code:
             return "No active code challenge."
 
@@ -140,47 +153,35 @@ class WorldEvents:
             solver_reward = 200
             holder_penalty = 25
 
-            agent.gain_coins("solved code challenge", solver_reward)
+            if self._store.has(agent.handle, "economy"):
+                eco = self._store.get(agent.handle, "economy")
+                eco["coins"] += solver_reward
+                self._store.set(agent.handle, "economy", eco)
+                self._perception.notify(agent.handle, f"+{solver_reward} coins (solved code challenge)")
 
             for handle in self._code_fragments:
-                other = ctx.pool.by_handle(handle)
-                if other and handle != agent.handle:
-                    other.coins = max(0, other.coins - holder_penalty)
-                    other._energy_log.append(
-                        f"coins -{holder_penalty} (code solved by {agent.handle})"
-                    )
+                if handle != agent.handle and self._store.has(handle, "economy"):
+                    other_eco = self._store.get(handle, "economy")
+                    other_eco["coins"] = max(0, other_eco["coins"] - holder_penalty)
+                    self._store.set(handle, "economy", other_eco)
+                    self._perception.notify(handle, f"-{holder_penalty} coins (code solved by {agent.handle})")
 
-            ctx.board.post(
+            self._board.post(
                 "WORLD",
                 f"CODE CHALLENGE SOLVED by {agent.handle}! {agent.handle} earned {solver_reward} coins. Fragment holders lost {holder_penalty} each.",
             )
-            ctx.log(
-                "WORLD",
-                "code_solved",
-                {
-                    "code": self._active_code,
-                    "solver": agent.handle,
-                    "holders": list(self._code_fragments.keys()),
-                },
-            )
-            print(
-                f"[WORLD] CODE SOLVED by {agent.handle}: {self._active_code}",
-                flush=True,
-            )
+            log.info(f"[WORLD] CODE SOLVED by {agent.handle}: {self._active_code}")
             self._active_code = None
-            self._clear_fragments(ctx)
+            self._clear_fragments()
             return f"CORRECT! You solved the code and earned {solver_reward} coins."
         else:
             correct = sum(a == b for a, b in zip(guess, self._active_code))
             penalty = 50
-            agent.coins = max(0, agent.coins - penalty)
-            ctx.log(
-                agent.handle,
-                "code_wrong_guess",
-                {"guess": guess, "correct_positions": correct},
-            )
-            print(
-                f"[WORLD] WRONG GUESS by {agent.handle}: {guess} ({correct}/4 correct)",
-                flush=True,
+            if self._store.has(agent.handle, "economy"):
+                eco = self._store.get(agent.handle, "economy")
+                eco["coins"] = max(0, eco["coins"] - penalty)
+                self._store.set(agent.handle, "economy", eco)
+            log.info(
+                f"[WORLD] WRONG GUESS by {agent.handle}: {guess} ({correct}/4 correct)"
             )
             return f"WRONG. {correct} of 4 characters are in the right position. You lost {penalty} coins."
