@@ -13,6 +13,7 @@ import argparse
 import tempfile
 from pathlib import Path
 from conwai.agent import Agent
+from conwai.brain import LLMBrain
 from conwai.app import Context
 from conwai.default_actions import create_registry
 from conwai.llm import LLMClient
@@ -411,11 +412,10 @@ async def run_test(scenario: str):
     registry = create_registry()
     agent = Agent(
         handle="TEST.1",
-        core=client,
-        actions=registry,
         personality="cautious, analytical",
         context_window=24_000,
     )
+    agent.brain = LLMBrain(core=client, compactor=client, actions=registry)
 
     ctx = Context()
     bus = MessageBus()
@@ -439,7 +439,7 @@ async def run_test(scenario: str):
 
     # Build system prompt and run two-pass compaction
     agent.system_prompt = agent._build_system_prompt()
-    await agent._do_compaction(ctx)
+    await agent.brain.compact(agent, ctx, len(agent.messages))
 
     print_summary(agent, f"AFTER COMPACTION (scenario={scenario})")
 

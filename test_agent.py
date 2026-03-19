@@ -22,6 +22,7 @@ import asyncio
 from uuid import uuid4
 
 from conwai.agent import Agent
+from conwai.brain import LLMBrain
 from conwai.default_actions import create_registry
 from conwai.app import Context
 from conwai.llm import LLMClient
@@ -48,7 +49,8 @@ async def run(args):
     ctx.pool = pool
 
     handle = args.handle or uuid4().hex[:3]
-    agent = Agent(core=client, actions=registry, handle=handle)
+    agent = Agent(handle=handle)
+    agent.brain = LLMBrain(core=client, actions=registry)
     repo.save(agent)
     pool._agents[handle] = agent
     pool._bus.register(handle)
@@ -59,7 +61,8 @@ async def run(args):
     ctx.world = world
 
     for name in ["alice", "bob", "carol"]:
-        fake = Agent(core=client, actions=registry, handle=name)
+        fake = Agent(handle=name)
+        fake.brain = LLMBrain(core=client, actions=registry)
         repo.save(fake)
         pool._agents[name] = fake
         pool._bus.register(name)

@@ -9,6 +9,7 @@ import conwai.config as config
 from conwai.default_actions import create_registry
 from conwai.app import Context
 
+from conwai.brain import LLMBrain
 from conwai.llm import LLMClient
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
@@ -136,11 +137,8 @@ async def main():
     pool = AgentPool(repo, ctx.bus)
     ctx.pool = pool
 
-    def wire_agent(agent, core=b200):
-        agent.core = core
-        agent.compactor = qwen9b1
-        agent.actions = registry
-        agent.context_window = 10_000
+    def wire_agent(agent, core=qwen9b0):
+        agent.brain = LLMBrain(core=core, compactor=qwen9b1, actions=registry)
 
     roles = (
         ["flour_forager"] * 3 +

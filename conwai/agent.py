@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from conwai.actions import ActionRegistry
 import conwai.config as config
 from conwai.config import (
     CONTEXT_WINDOW,
@@ -18,12 +16,11 @@ from conwai.config import (
 )
 import logging
 
-from conwai.llm import LLMClient, LLMResponse
-
 log = logging.getLogger("conwai")
 
 if TYPE_CHECKING:
     from conwai.app import Context
+    from conwai.brain import Brain
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 SYSTEM_TEMPLATE = (PROMPTS_DIR / "system.md").read_text()
@@ -49,9 +46,7 @@ MAX_REASONING = 200
 @dataclass
 class Agent:
     handle: str = field(default_factory=lambda: uuid4().hex[:8])
-    core: LLMClient = field(default_factory=LLMClient)
-    compactor: LLMClient | None = field(default=None, repr=False)
-    actions: ActionRegistry = field(default=None, repr=False)
+    brain: Brain | None = field(default=None, repr=False)
     coins: float = ENERGY_MAX
     role: str = ""  # flour_forager, water_forager, baker
     flour: int = 0
@@ -157,12 +152,11 @@ class Agent:
                 ctx.log(self.handle, "agent_died", {"reason": "starved"})
                 return
 
-            self._rebuild_context(ctx)
+            # Brain decides and acts
             msg_count_before = len(self.messages)
-            llm_response = await self._get_response(ctx)
-            if not llm_response:
+            resp = await self.brain.decide(self, ctx)
+            if not resp:
                 return
-            self._process_tool_calls(llm_response, ctx)
 
             # Auto-eat AFTER acting so agents can trade first
             if self.hunger <= config.HUNGER_AUTO_EAT_THRESHOLD:
@@ -191,88 +185,19 @@ class Agent:
             if self._compact_needed and not self._pending_compaction:
                 snapshot_idx = len(self.messages)
                 self._pending_compaction = asyncio.create_task(
-                    self._do_compaction_bg(ctx, snapshot_idx)
+                    self.brain.compact(self, ctx, snapshot_idx)
                 )
 
             # Fire off summary in background (only if previous one finished)
             if not self._pending_summary and not self._pending_compaction:
-                self._pending_summary = asyncio.create_task(self._summarize_tick(ctx, msg_count_before))
+                self._pending_summary = asyncio.create_task(
+                    self.brain.summarize(self, ctx, msg_count_before)
+                )
 
         except Exception as e:
             log.error(f"[{self.handle}] ERROR: {e}")
         finally:
             self._running = False
-
-
-    async def _summarize_tick(self, ctx: Context, msg_count_before: int) -> None:
-        """Use the compactor model to condense this tick's messages into a brief summary."""
-        compactor = self.compactor
-        if not compactor:
-            return
-        # Collect the tick input + all assistant/tool messages from this tick
-        tick_messages = self.messages[msg_count_before - 1:]  # include the tick user msg
-        if len(tick_messages) <= 1:
-            return
-        text = "\n".join(
-            m.get("content", "") or ""
-            for m in tick_messages
-            if m.get("content")
-        )
-        import time as _time
-        _start = _time.monotonic()
-        resp = await compactor.call(
-            "Summarize what you did this tick as a short memory. Write in first person. 1-3 sentences. Include actions, results, and anything important you learned.",
-            [{"role": "user", "content": text}],
-            tools=None,
-        )
-        if resp and resp.text:
-            summary = resp.text.strip()
-            log.info(f"[{self.handle}] tick summarized ({len(summary)} chars, {_time.monotonic() - _start:.1f}s)")
-            # Replace tick messages with the summary
-            del self.messages[msg_count_before - 1:]
-            self.messages.append({"role": "user", "content": f"[{self._tick_to_timestamp(ctx.tick)}] {summary}"})
-
-    _COMPACTION_PERSONA = (
-        "You are a meticulous archivist. Your job is to preserve important information "
-        "with thoroughness and precision. You never rush. You never skip details that matter. "
-        "You write clearly and concisely but never sacrifice completeness for brevity."
-    )
-
-    async def _do_compaction_bg(self, ctx: Context, snapshot_idx: int) -> None:
-        """Background compaction: summarize messages up to snapshot, preserve newer ones."""
-        async with ctx.compact_semaphore:
-            await self._do_compaction_inner(ctx, snapshot_idx)
-
-    async def _do_compaction_inner(self, ctx: Context, snapshot_idx: int) -> None:
-        log.info(f"[{self.handle}] compacting (snapshot at {snapshot_idx} msgs)...")
-
-        compact_system = self._COMPACTION_PERSONA + "\n\n" + self.system_prompt
-        snapshot_messages = self.messages[:snapshot_idx]
-
-        snapshot_messages.append({
-            "role": "user",
-            "content": (
-                "COMPACTION REQUIRED. Write your compressed memory now. Target: 500-1500 characters. "
-                "The system already provides your coins, inventory, hunger, thirst, recent transactions, board posts, and DMs each tick — do NOT repeat any of that. "
-                "Write ONLY: AGENTS (who you trust/distrust and why, 1 sentence each), "
-                "DEALS (active promises or debts), LESSONS (hard-won knowledge), GOALS (current plans). "
-                "Anything you don't write here will be lost forever. Be concise but complete."
-            ),
-        })
-        compact_response = await (self.compactor or self.core).call(
-            compact_system,
-            snapshot_messages,
-            tools=None,
-        )
-        if compact_response and compact_response.text:
-            summary = compact_response.text.strip()
-            # Splice: replace messages before snapshot with compacted memory, keep newer ones
-            new_messages = self.messages[snapshot_idx:]
-            self.messages = [
-                {"role": "user", "content": f"=== YOUR COMPACTED MEMORY ===\n{summary}\n=== END COMPACTED MEMORY ==="}
-            ] + new_messages
-            self._compact_needed = False
-            log.info(f"[{self.handle}] compacted ({len(summary)} chars, kept {len(new_messages)} newer msgs)")
 
     def _context_chars(self) -> int:
         return sum(len(m.get("content", "")) for m in self.messages)
@@ -350,67 +275,6 @@ class Agent:
         )
         self.messages.append({"role": "user", "content": tick_content})
         log.info(f"[{self.handle}] context: {len(self.messages)} msgs ({self._context_chars()} chars), coins: {self.coins}{' [COMPACT NEEDED]' if self._compact_needed else ''}")
-
-    async def _get_response(self, ctx: Context) -> LLMResponse | None:
-        try:
-            resp = await self.core.call(
-                self.system_prompt,
-                self.messages,
-                tools=self.actions.tool_definitions(),
-            )
-        except Exception as e:
-            log.error(f"[{self.handle}] LLM call failed: {e}")
-            self._llm_failed = True
-            return None
-        if not resp.text and not resp.tool_calls:
-            log.info(f"[{self.handle}] empty response, skipping")
-            return None
-
-        assistant_msg: dict = {"role": "assistant"}
-        if resp.text:
-            assistant_msg["content"] = resp.text
-        if resp.tool_calls:
-            assistant_msg["tool_calls"] = [
-                {
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {"name": tc.name, "arguments": json.dumps(tc.args)},
-                }
-                for tc in resp.tool_calls
-            ]
-        self.messages.append(assistant_msg)
-
-        log.info(f"[{self.handle}] ({resp.prompt_tokens}+{resp.completion_tokens} tok): {resp.text[:200] if resp.text else '(no text)'}")
-        if resp.completion_tokens >= 2000:
-            log.warning(f"[{self.handle}] RUNAWAY ({resp.completion_tokens} tok): {resp.text[:500]}")
-        if resp.tool_calls:
-            names = [tc.name for tc in resp.tool_calls]
-            log.info(f"[{self.handle}] tools: {names}")
-        return resp
-
-    def _process_tool_calls(self, resp: LLMResponse, ctx: Context) -> None:
-        for tc in resp.tool_calls:
-            if self._foraging and tc.name != "compact":
-                self.messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "name": tc.name,
-                        "content": "You are foraging this tick and cannot take other actions.",
-                    }
-                )
-                continue
-            self.actions.execute(self, ctx, tc.name, tc.args)
-            result = ". ".join(self._action_log) if self._action_log else "ok"
-            self.messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "name": tc.name,
-                    "content": result,
-                }
-            )
-            self._action_log.clear()
 
     @staticmethod
     def _tick_to_timestamp(tick: int) -> str:
