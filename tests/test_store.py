@@ -1,6 +1,5 @@
-import json
 import pytest
-from pathlib import Path
+
 from conwai.store import ComponentStore
 
 

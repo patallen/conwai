@@ -20,15 +20,6 @@ class EventLog:
                 data TEXT NOT NULL DEFAULT '{}'
             )
         """)
-        self._conn.execute("""
-            CREATE TABLE IF NOT EXISTS stats (
-                handle TEXT PRIMARY KEY,
-                events INTEGER NOT NULL DEFAULT 0,
-                posts INTEGER NOT NULL DEFAULT 0,
-                dms_sent INTEGER NOT NULL DEFAULT 0,
-                dms_received INTEGER NOT NULL DEFAULT 0
-            )
-        """)
         self._conn.execute("CREATE INDEX IF NOT EXISTS idx_entity ON events(entity)")
         self._conn.execute("CREATE INDEX IF NOT EXISTS idx_type ON events(type)")
         self._conn.execute("CREATE INDEX IF NOT EXISTS idx_entity_type ON events(entity, type)")
@@ -40,30 +31,6 @@ class EventLog:
             "INSERT INTO events (t, entity, type, data) VALUES (?, ?, ?, ?)",
             (time(), entity_id, event_type, json.dumps(data or {})),
         )
-        # Update pre-computed stats
-        if entity_id not in ("HANDLER", "WORLD"):
-            self._conn.execute(
-                "INSERT INTO stats (handle, events) VALUES (?, 1) "
-                "ON CONFLICT(handle) DO UPDATE SET events = events + 1",
-                (entity_id,),
-            )
-            if event_type == "board_post":
-                self._conn.execute(
-                    "UPDATE stats SET posts = posts + 1 WHERE handle = ?",
-                    (entity_id,),
-                )
-            elif event_type == "dm_sent":
-                self._conn.execute(
-                    "UPDATE stats SET dms_sent = dms_sent + 1 WHERE handle = ?",
-                    (entity_id,),
-                )
-                to = (data or {}).get("to", "")
-                if to:
-                    self._conn.execute(
-                        "INSERT INTO stats (handle, dms_received) VALUES (?, 1) "
-                        "ON CONFLICT(handle) DO UPDATE SET dms_received = dms_received + 1",
-                        (to,),
-                    )
         self._conn.commit()
 
     def _row_to_dict(self, r: tuple) -> dict:
@@ -85,55 +52,6 @@ class EventLog:
             (entity, event_type),
         ).fetchone()[0]
 
-    def board_posts(self, limit: int = 30) -> list[dict]:
-        rows = self._conn.execute(
-            "SELECT id, t, entity, type, data FROM events WHERE type = 'board_post' ORDER BY id DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        return [self._row_to_dict(r) for r in reversed(rows)]
-
-    def recent_conversations(self, since_t: float | None = None) -> dict[str, list[dict]]:
-        """Return conversations with activity since since_t (default: last hour)."""
-        if since_t is None:
-            since_t = time() - 3600
-        rows = self._conn.execute(
-            "SELECT id, t, entity, type, data FROM events WHERE type = 'dm_sent' AND t > ? ORDER BY id",
-            (since_t,),
-        ).fetchall()
-        pairs: dict[str, list[dict]] = {}
-        for r in rows:
-            event = self._row_to_dict(r)
-            key = "-".join(sorted([r[2], event["data"].get("to", "")]))
-            pairs.setdefault(key, []).append(event)
-        return dict(sorted(pairs.items(), key=lambda x: len(x[1]), reverse=True))
-
-    def agent_stats(self) -> list[dict]:
-        """Read pre-computed stats — O(agents), not O(events)."""
-        rows = self._conn.execute(
-            "SELECT handle, events, posts, dms_sent, dms_received FROM stats"
-        ).fetchall()
-        return [
-            {"handle": r[0], "events": r[1], "posts": r[2], "dms_sent": r[3], "dms_received": r[4]}
-            for r in rows
-        ]
-
-    def economy_counts(self) -> dict:
-        rows = self._conn.execute(
-            "SELECT type, COUNT(*) FROM events WHERE type IN ('bake', 'give', 'payment', 'forage') GROUP BY type"
-        ).fetchall()
-        counts = {r[0]: r[1] for r in rows}
-        bread_baked = self._conn.execute(
-            "SELECT COALESCE(SUM(json_extract(data, '$.bread')), 0) FROM events WHERE type = 'bake'"
-        ).fetchone()[0]
-        counts["bread_baked"] = bread_baked
-        return counts
-
-    def trade_volume(self) -> list[dict]:
-        rows = self._conn.execute(
-            "SELECT id, t, entity, type, data FROM events WHERE type = 'give' ORDER BY id"
-        ).fetchall()
-        return [self._row_to_dict(r) for r in rows]
-
     def agent_events(self, handle: str, event_type: str | None = None, limit: int = 50) -> list[dict]:
         if event_type:
             rows = self._conn.execute(
@@ -145,11 +63,4 @@ class EventLog:
                 "SELECT id, t, entity, type, data FROM events WHERE entity = ? ORDER BY id DESC LIMIT ?",
                 (handle, limit),
             ).fetchall()
-        return [self._row_to_dict(r) for r in reversed(rows)]
-
-    def agent_dms(self, handle: str, limit: int = 30) -> list[dict]:
-        rows = self._conn.execute(
-            "SELECT id, t, entity, type, data FROM events WHERE type = 'dm_sent' AND (entity = ? OR json_extract(data, '$.to') = ?) ORDER BY id DESC LIMIT ?",
-            (handle, handle, limit),
-        ).fetchall()
         return [self._row_to_dict(r) for r in reversed(rows)]

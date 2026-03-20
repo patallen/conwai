@@ -8,19 +8,20 @@ Usage:
     python test_compaction.py [--scenario first|re-compact]
 """
 
-import asyncio
 import argparse
+import asyncio
 import tempfile
 from pathlib import Path
-from conwai.agent import Agent
-from conwai.brain import LLMBrain
+
 from conwai.app import Context
 from conwai.default_actions import create_registry
+
+from conwai.agent import Agent
+from conwai.brain import LLMBrain
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
-
 
 # --- Fake history builders ---
 
@@ -398,7 +399,7 @@ def print_summary(agent: Agent, label: str):
             end = first.index("\n=== END COMPACTED MEMORY ===")
             compact_content = first[start:end]
             print(f"Compacted memory chars: {len(compact_content)}")
-            print(f"\n--- Compacted Memory Content ---")
+            print("\n--- Compacted Memory Content ---")
             print(compact_content)
         else:
             print(f"\nFirst message (first 200 chars): {first[:200]}")

@@ -4,6 +4,7 @@
 import json
 from pathlib import Path
 
+
 def load_config():
     return json.loads(Path("config.json").read_text())
 
@@ -47,7 +48,7 @@ def main():
     # Basic survival math
     ticks_to_starve = max_h // decay_h
     ticks_to_dehydrate = max_h // decay_t
-    print(f"\n--- Survival Bars ---")
+    print("\n--- Survival Bars ---")
     print(f"Hunger: {max_h} max, -{decay_h}/tick, eat threshold ≤{threshold_h}")
     print(f"  Ticks to starve (no food):    {ticks_to_starve}")
     print(f"  Bread restore: +{restore_bread}  Raw flour: +{restore_raw}")
@@ -56,7 +57,7 @@ def main():
     print(f"  Water restore: +{restore_water}")
 
     # Consumption rates via simulation
-    print(f"\n--- Consumption Rates (auto-eat/drink sim) ---")
+    print("\n--- Consumption Rates (auto-eat/drink sim) ---")
     for food, restore, label in [("bread", restore_bread, "Bread"), ("flour", restore_raw, "Raw flour")]:
         _, rate = sim_survival(max_h, decay_h, threshold_h, restore, 99)
         print(f"  {label}: ~{rate:.2f}/tick to sustain hunger")
@@ -82,7 +83,7 @@ def main():
     _, flour_rate = sim_survival(max_h, decay_h, threshold_h, restore_raw, 99)
     _, water_rate = sim_survival(max_h, decay_t, threshold_t, restore_water, 99)
 
-    print(f"\n--- Self-Sufficiency (foraging every tick, raw eating) ---")
+    print("\n--- Self-Sufficiency (foraging every tick, raw eating) ---")
     for role, yields in roles.items():
         flour_surplus = yields["flour"] - flour_rate
         water_surplus = yields["water"] - water_rate
@@ -92,7 +93,7 @@ def main():
         print(f"  {'':15s}  thirst={status_t} (surplus {water_surplus:+.2f} water)")
 
     # Baking economics
-    print(f"\n--- Baking ---")
+    print("\n--- Baking ---")
     print(f"  Cost: {bake_cost['flour']} flour + {bake_cost['water']} water")
     print(f"  Yield: {bake_yield} bread")
     raw_hunger = bake_cost["flour"] * restore_raw
@@ -100,17 +101,17 @@ def main():
     print(f"  Hunger from raw eating inputs: {raw_hunger} ({bake_cost['flour']} flour × {restore_raw})")
     print(f"  Hunger from baked bread:       {bread_hunger} ({bake_yield} bread × {restore_bread})")
     print(f"  Baking multiplier:             {bread_hunger/raw_hunger:.1f}x")
-    print(f"  (water inputs don't help hunger, only thirst)")
+    print("  (water inputs don't help hunger, only thirst)")
 
     # Spoilage
     if spoil_interval > 0:
         spoil_rate = spoil_amount / spoil_interval
-        print(f"\n--- Spoilage ---")
+        print("\n--- Spoilage ---")
         print(f"  {spoil_amount} bread lost every {spoil_interval} ticks ({spoil_rate:.2f}/tick)")
         print(f"  Bread must be consumed within ~{spoil_interval} ticks or it rots")
 
     # System-level flows for a given population
-    print(f"\n--- Population Flows (current: 6 flour, 6 water, 4 bakers) ---")
+    print("\n--- Population Flows (current: 6 flour, 6 water, 4 bakers) ---")
     n_flour, n_water, n_baker = 6, 6, 4
     total_flour_in = n_flour * roles["flour_forager"]["flour"] + n_water * roles["water_forager"]["flour"]
     total_water_in = n_flour * roles["flour_forager"]["water"] + n_water * roles["water_forager"]["water"]
@@ -141,7 +142,7 @@ def main():
         print(f"  Spoilage loss:       {spoil_loss:.1f}/tick")
 
     # Baker sustainability
-    print(f"\n--- Baker Dependency ---")
+    print("\n--- Baker Dependency ---")
     baker_flour_need = bake_cost["flour"] * bread_rate / bake_yield
     baker_water_need = bake_cost["water"] * bread_rate / bake_yield
     baker_sk = skills["baker"]

@@ -30,10 +30,8 @@ class AgentRepository:
         d.mkdir(parents=True, exist_ok=True)
         (d / "identity.json").write_text(json.dumps({
             "handle": agent.handle,
-            "role": agent.role,
             "alive": agent.alive,
             "born_tick": agent.born_tick,
-            "personality": agent.personality,
         }))
 
     def load_agent(self, handle: str) -> Agent | None:
@@ -45,7 +43,10 @@ class AgentRepository:
         if not id_path.exists():
             return None
         data = json.loads(id_path.read_text())
-        data.pop("soul", None)
+        # Strip legacy fields that are no longer on Agent
+        for key in list(data.keys()):
+            if key not in ("handle", "alive", "born_tick"):
+                data.pop(key)
         return Agent(**data)
 
     def save_components(self, handle: str, store: ComponentStore) -> None:

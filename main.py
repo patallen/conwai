@@ -1,30 +1,38 @@
 import asyncio
 import logging
-import os
+import random
 import time
 from pathlib import Path
+from uuid import uuid4
 
+import scenarios.bread_economy.config as config
 from conwai.agent import Agent
-from conwai.config import ENERGY_GAIN, ENERGY_MAX, assign_traits
-import conwai.config as config
-from conwai.bulletin_board import BulletinBoard
-from conwai.default_actions import create_registry
-from conwai.engine import Engine
-from conwai.events import EventLog
 from conwai.brain import LLMBrain
+from conwai.bulletin_board import BulletinBoard
+from conwai.engine import BrainPhase, Engine
+from conwai.events import EventLog
+from conwai.infra.logging import setup_logging
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
-from conwai.perception import Perception
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
 from conwai.store import ComponentStore
-from conwai.systems.consumption import ConsumptionSystem
-from conwai.systems.death import DeathSystem
-from conwai.systems.decay import DecaySystem
-from conwai.systems.spoilage import SpoilageSystem
-from conwai.systems.tax import TaxSystem
-from conwai.world import WorldEvents
-from conwai.infra.logging import setup_logging
+from scenarios.bread_economy.actions import create_registry
+from scenarios.bread_economy.config import (
+    ENERGY_GAIN,
+    ENERGY_MAX,
+    assign_traits,
+    register_components,
+)
+from scenarios.bread_economy.perception import make_bread_perception, tick_to_timestamp
+from scenarios.bread_economy.systems import (
+    ConsumptionSystem,
+    DeathSystem,
+    DecaySystem,
+    SpoilageSystem,
+    TaxSystem,
+)
+from scenarios.bread_economy.world_events import WorldEvents
 
 log = logging.getLogger("conwai")
 
@@ -80,8 +88,11 @@ async def watch_handler_file(pool, store, board, bus, events, perception, brains
                         if pool.by_handle(handle):
                             log.warning(f"[HANDLER] spawn failed: {handle} already exists")
                         else:
-                            agent = Agent(handle=handle, role=role, personality=personality)
-                            pool.add(agent)
+                            agent = Agent(handle=handle)
+                            pool.add(
+                                agent,
+                                component_overrides={"agent_info": {"role": role, "personality": personality}},
+                            )
                             if brains is not None and brain_factory:
                                 brain = brain_factory()
                                 brains[handle] = brain
@@ -132,16 +143,17 @@ async def main():
     store.register_component("hunger", {"hunger": config.STARTING_HUNGER, "thirst": config.STARTING_THIRST})
     store.register_component("memory", {"memory": "", "code_fragment": None, "soul": ""})
     store.register_component("forage", {"streak": 0, "last_tick": 0})
+    register_components(store)
 
     # --- Infrastructure ---
     board = BulletinBoard(max_posts=config.BOARD_MAX_POSTS, max_post_length=config.BOARD_MAX_POST_LENGTH)
     bus = MessageBus()
     events = EventLog()
-    perception = Perception()
+    perception = make_bread_perception()
 
     # --- Persistence ---
     repo = AgentRepository()
-    pool = AgentPool(repo, bus, store)
+    pool = AgentPool(repo, store, bus=bus)
 
     # --- LLM clients ---
     b200 = LLMClient(
@@ -159,12 +171,17 @@ async def main():
     world = WorldEvents(board=board, bus=bus, pool=pool, store=store, perception=perception)
 
     # --- Actions ---
-    registry = create_registry(store=store, board=board, bus=bus, events=events, pool=pool, perception=perception, world=world)
+    registry = create_registry(world=world)
 
     # --- Agents + Brains ---
     brains: dict[str, object] = {}
     roles = ["flour_forager"] * 8 + ["water_forager"] * 8 + ["baker"] * 4
 
+    compaction_system = (
+        "You are a meticulous archivist. Your job is to preserve important information "
+        "with thoroughness and precision. You never rush. You never skip details that matter. "
+        "You write clearly and concisely but never sacrifice completeness for brevity."
+    )
     compaction_prompt = (
         "COMPACTION REQUIRED. Write your compressed memory now. Target: 500-1500 characters. "
         "The system already provides your coins, inventory, hunger, thirst, recent transactions, board posts, and DMs each tick — do NOT repeat any of that. "
@@ -180,15 +197,17 @@ async def main():
             tools=registry.tool_definitions(),
             system_prompt=perception.build_system_prompt(),
             context_window=config.CONTEXT_WINDOW,
+            compaction_system=compaction_system,
             compaction_prompt=compaction_prompt,
+            timestamp_formatter=tick_to_timestamp,
         )
 
     # Load all existing agents from disk
     for handle in repo.list_handles():
-        agent = pool.load_or_create(Agent(handle=handle, role=""))
+        agent = pool.load_or_create(Agent(handle=handle))
         if agent.alive:
             brain = make_brain()
-            saved_state = pool.load_brain_state(agent.handle)
+            saved_state = repo.load_brain_state(agent.handle)
             if saved_state:
                 brain.load_state(saved_state)
             brains[agent.handle] = brain
@@ -198,8 +217,12 @@ async def main():
     alive_count = len(pool.alive())
     for i in range(alive_count, target):
         role = roles[i % len(roles)]
-        agent = Agent(handle=f"A{i+1}", role=role, born_tick=0, personality=", ".join(assign_traits()))
-        agent = pool.load_or_create(agent)
+        personality = ", ".join(assign_traits())
+        agent = Agent(handle=f"A{i+1}", born_tick=0)
+        agent = pool.load_or_create(
+            agent,
+            component_overrides={"agent_info": {"role": role, "personality": personality}},
+        )
         if agent.alive:
             brain = make_brain()
             brains[agent.handle] = brain
@@ -207,22 +230,40 @@ async def main():
     bus.register("HANDLER")
     bus.register("WORLD")
 
-    # --- Death system needs brain factory ---
-    def on_spawn(agent):
+    # --- Death callback (spawn replacement) ---
+    def on_death(dead_agent, ctx):
+        role = random.choice(config.ROLES)
+        handle = f"{dead_agent.handle[0]}{uuid4().hex[:3]}"
+        personality = ", ".join(assign_traits())
+        new_agent = Agent(handle=handle, born_tick=ctx.tick)
+        pool.add(
+            new_agent,
+            component_overrides={"agent_info": {"role": role, "personality": personality}},
+        )
+        board.post("WORLD", f"{dead_agent.handle} has died of starvation.")
+        board.post("WORLD", f"A new agent {new_agent.handle} ({role}) has arrived.")
+        events.log("WORLD", "agent_died", {"handle": dead_agent.handle, "cause": "starvation"})
+        events.log("WORLD", "agent_spawned", {"handle": new_agent.handle, "role": role, "replaced": dead_agent.handle})
+        log.info(f"[{new_agent.handle}] spawned as {role} (replacing {dead_agent.handle})")
+
         brain = make_brain()
-        brains[agent.handle] = brain
+        brains[new_agent.handle] = brain
+
+    # --- Brain phase ---
+    brain_phase = BrainPhase(actions=registry, brains=brains, perception=perception)
 
     # --- Engine ---
     engine = Engine(
-        pool=pool, store=store, perception=perception,
-        actions=registry, brains=brains, board=board, bus=bus,
+        pool=pool, store=store, perception=perception, repo=repo,
+        brains=brains, board=board, bus=bus, events=events,
     )
-    engine.register_pre_brain(DecaySystem())
-    engine.register_pre_brain(TaxSystem())
-    engine.register_pre_brain(SpoilageSystem())
-    engine.register_pre_brain(DeathSystem(pool=pool, board=board, events=events, on_spawn=on_spawn))
-    engine.register_pre_brain(world)
-    engine.register_post_brain(ConsumptionSystem())
+    engine.add_phase(DecaySystem())
+    engine.add_phase(TaxSystem())
+    engine.add_phase(SpoilageSystem())
+    engine.add_phase(DeathSystem(on_death=on_death))
+    engine.add_phase(world)
+    engine.add_phase(brain_phase)
+    engine.add_phase(ConsumptionSystem())
 
     asyncio.create_task(watch_handler_file(pool, store, board, bus, events, perception, brains=brains, brain_factory=make_brain))
 

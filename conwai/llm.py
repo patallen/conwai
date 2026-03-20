@@ -35,7 +35,7 @@ class LLMClient:
     def __post_init__(self):
         self._client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
 
-    max_tokens: int | None = 8192
+    max_tokens: int | None = 2048
 
     async def call(
         self, system: str, messages: list[dict], tools: list[dict] | None = None

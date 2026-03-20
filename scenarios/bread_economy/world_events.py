@@ -7,11 +7,12 @@ import string
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import conwai.config as config
+import scenarios.bread_economy.config as config
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
     from conwai.bulletin_board import BulletinBoard
+    from conwai.engine import TickContext
     from conwai.messages import MessageBus
     from conwai.perception import Perception
     from conwai.pool import AgentPool
@@ -146,8 +147,10 @@ class WorldEvents:
         self._used_questions = set(state.get("used_questions", []))
         self._used_phrases = set(state.get("used_phrases", []))
 
-    def tick(self, agents: list[Agent], store: ComponentStore, perception: Perception, **kwargs) -> None:
-        tick = kwargs.get("tick", 0)
+    async def run(self, ctx: TickContext) -> None:
+        self._run_tick(ctx.tick)
+
+    def _run_tick(self, tick: int) -> None:
         self._tick = tick
 
         # Hot-reload cipher config

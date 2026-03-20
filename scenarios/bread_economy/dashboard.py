@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from conwai.events import EventLog
+from scenarios.bread_economy import queries
 
 app = FastAPI()
 
@@ -34,12 +35,20 @@ def read_agents() -> list[dict]:
 
         agent = {
             "handle": identity["handle"],
-            "role": identity.get("role"),
-            "personality": identity.get("personality", ""),
             "soul": "",
             "born_tick": identity.get("born_tick", 0),
             "alive": True,
         }
+
+        # Read agent_info component for role/personality
+        info_path = d / "agent_info.json"
+        if info_path.exists():
+            info = json.loads(info_path.read_text())
+            agent["role"] = info.get("role", "")
+            agent["personality"] = info.get("personality", "")
+        else:
+            agent["role"] = identity.get("role", "")
+            agent["personality"] = identity.get("personality", "")
 
         for comp_name, fields in [
             ("economy", ["coins"]),
@@ -94,23 +103,23 @@ def api_cipher():
 
 @app.get("/api/board")
 def api_board():
-    return _events.board_posts(30)
+    return queries.board_posts(_events, 30)
 
 
 @app.get("/api/conversations")
 def api_conversations(since: float = Query(0)):
-    return _events.recent_conversations(since if since > 0 else None)
+    return queries.recent_conversations(_events, since if since > 0 else None)
 
 
 @app.get("/api/stats")
 def api_stats():
-    return _events.agent_stats()
+    return queries.agent_stats(_events)
 
 
 @app.get("/api/economy")
 def api_economy():
-    counts = _events.economy_counts()
-    trades = _events.trade_volume()
+    counts = queries.economy_counts(_events)
+    trades = queries.trade_volume(_events)
     volume: dict[str, int] = {}
     for e in trades:
         resource = e["data"].get("resource", "")
@@ -187,7 +196,7 @@ def api_agent_detail(handle: str):
     if not agent:
         return {"error": "not found"}
     agent["board_posts"] = _events.agent_events(handle, "board_post", 20)
-    agent["dms"] = _events.agent_dms(handle, 30)
+    agent["dms"] = queries.agent_dms(_events, handle, 30)
     agent["soul_updates"] = _events.agent_events(handle, "soul_updated", 5)
     return agent
 

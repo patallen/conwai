@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
-    from conwai.bulletin_board import BulletinBoard
-    from conwai.events import EventLog
-    from conwai.messages import MessageBus
-    from conwai.perception import Perception
-    from conwai.pool import AgentPool
-    from conwai.store import ComponentStore
+    from conwai.engine import TickContext
 
 
 @dataclass
@@ -36,25 +31,9 @@ class Action:
 
 
 class ActionRegistry:
-    def __init__(
-        self,
-        store: ComponentStore,
-        board: BulletinBoard,
-        bus: MessageBus,
-        events: EventLog,
-        pool: AgentPool | None = None,
-        perception: Perception | None = None,
-        world: Any = None,
-    ):
+    def __init__(self):
         self._actions: dict[str, Action] = {}
-        self.store = store
-        self.board = board
-        self.bus = bus
-        self.events = events
-        self.pool = pool
-        self.perception = perception
-        self.world = world
-        self.tick_state: dict[str, dict] = {}
+        self._current_tick: int = 0
 
     def register(self, action: Action):
         self._actions[action.name] = action
@@ -65,14 +44,18 @@ class ActionRegistry:
     def tool_definitions(self) -> list[dict]:
         return [a.tool_schema() for a in self._actions.values()]
 
-    def execute(self, agent: Agent, name: str, args: dict) -> str:
+    def begin_tick(self, ctx: TickContext, handles: list[str]) -> None:
+        self._current_tick = ctx.tick
+        ctx.tick_state = {h: {} for h in handles}
+
+    def execute(self, agent: Agent, name: str, args: dict, ctx: TickContext) -> str:
         action = self._actions.get(name)
         if not action:
             return f"unknown action: {name}"
 
-        ts = self.tick_state.get(agent.handle, {})
+        ts = ctx.tick_state.get(agent.handle, {})
         if ts.get("blocked"):
             return ts["blocked"]
 
-        result = action.handler(agent, self, args) if action.handler else "ok"
+        result = action.handler(agent, ctx, args) if action.handler else "ok"
         return result or "ok"

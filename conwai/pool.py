@@ -14,7 +14,7 @@ log = logging.getLogger("conwai")
 
 
 class AgentPool:
-    def __init__(self, repo: AgentRepository, bus: MessageBus, store: ComponentStore):
+    def __init__(self, repo: AgentRepository, store: ComponentStore, bus: MessageBus | None = None):
         self._repo = repo
         self._bus = bus
         self._store = store
@@ -44,7 +44,7 @@ class AgentPool:
             self._repo.save_agent(agent)
             self._repo.save_components(agent.handle, self._store)
         self._agents[agent.handle] = agent
-        if agent.alive:
+        if agent.alive and self._bus:
             self._bus.register(agent.handle)
         return agent
 
@@ -54,7 +54,8 @@ class AgentPool:
     ) -> Agent:
         self._store.init_agent(agent.handle, overrides=component_overrides)
         self._agents[agent.handle] = agent
-        self._bus.register(agent.handle)
+        if self._bus:
+            self._bus.register(agent.handle)
         self._repo.save_agent(agent)
         self._repo.save_components(agent.handle, self._store)
         return agent
@@ -63,7 +64,8 @@ class AgentPool:
         agent = self._agents.get(handle)
         if agent:
             agent.alive = False
-            self._bus.unregister(handle)
+            if self._bus:
+                self._bus.unregister(handle)
 
     def save(self, handle: str) -> None:
         agent = self._agents.get(handle)
@@ -74,10 +76,3 @@ class AgentPool:
     def save_all(self) -> None:
         for handle in self._agents:
             self.save(handle)
-
-    def save_brain_state(self, handle: str, state: dict) -> None:
-        self._repo.save_brain_state(handle, state)
-
-    def load_brain_state(self, handle: str) -> dict | None:
-        return self._repo.load_brain_state(handle)
-

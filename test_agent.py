@@ -21,18 +21,19 @@ import argparse
 import asyncio
 from uuid import uuid4
 
-from conwai.agent import Agent
-from conwai.brain import LLMBrain
-from conwai.default_actions import create_registry
-from conwai.engine import Engine
 from conwai.app import Context
-from conwai.llm import LLMClient
-from conwai.pool import AgentPool
-from conwai.repository import AgentRepository
+from conwai.default_actions import create_registry
 from conwai.systems.brain import BrainSystem
 from conwai.systems.consumption import ConsumptionSystem
 from conwai.systems.decay import DecaySystem
 from conwai.world import WorldEvents
+
+from conwai.agent import Agent
+from conwai.brain import LLMBrain
+from conwai.engine import Engine
+from conwai.llm import LLMClient
+from conwai.pool import AgentPool
+from conwai.repository import AgentRepository
 
 repo = AgentRepository()
 
