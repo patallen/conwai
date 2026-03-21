@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useSendAction } from '../../api/hooks'
+import { useSendAction, useSimulation } from '../../api/hooks'
 import { getAgentColor } from '../../api/colors'
 
 interface InboxMessage {
@@ -16,9 +16,11 @@ interface ThreadMessage {
 
 export function HandlerInbox() {
   const sendAction = useSendAction()
+  const { agents } = useSimulation()
 
   const [threads, setThreads] = useState<Record<string, InboxMessage[]>>({})
   const [selectedHandle, setSelectedHandle] = useState<string | null>(null)
+  const [showNewThread, setShowNewThread] = useState(false)
   const [threadMessages, setThreadMessages] = useState<ThreadMessage[]>([])
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
@@ -93,11 +95,51 @@ export function HandlerInbox() {
       }}>
         <div style={{
           padding: '12px 16px', borderBottom: '1px solid var(--border)',
-          color: 'var(--accent)', fontWeight: 600, fontSize: 13,
-          fontFamily: 'var(--font-mono)', letterSpacing: 0.5,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          INBOX
+          <span style={{
+            color: 'var(--accent)', fontWeight: 600, fontSize: 13,
+            fontFamily: 'var(--font-mono)', letterSpacing: 0.5,
+          }}>
+            INBOX
+          </span>
+          <button
+            onClick={() => setShowNewThread(!showNewThread)}
+            style={{
+              background: 'transparent', border: '1px solid var(--accent)',
+              borderRadius: 4, padding: '2px 8px',
+              color: 'var(--accent)', cursor: 'pointer',
+              fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+            }}
+          >
+            NEW
+          </button>
         </div>
+        {showNewThread && (
+          <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)' }}>
+            <select
+              onChange={e => {
+                if (e.target.value) {
+                  setSelectedHandle(e.target.value)
+                  setShowNewThread(false)
+                }
+              }}
+              defaultValue=""
+              style={{
+                width: '100%', background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border)', borderRadius: 4,
+                padding: '6px 10px', color: 'var(--text-primary)',
+                fontFamily: 'var(--font-mono)', fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              <option value="" disabled>Select agent...</option>
+              {agents.map(a => (
+                <option key={a.handle} value={a.handle}>{a.handle}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {sortedHandles.length === 0 && (
             <div style={{
