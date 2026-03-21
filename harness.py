@@ -9,11 +9,11 @@ Usage:
     uv run python harness.py [--model MODEL] [--base-url URL] [--handle NAME]
 
 Commands:
-    (any text)          — post to board as WORLD
-    @HANDLE message     — simulate a DM from HANDLE to the agent
-    !dm HANDLE message  — send a DM from the agent's perspective (via handler)
+    (any text)          — post to board as WORLD, then tick
+    @HANDLE message     — simulate a DM from HANDLE to the agent, then tick
     !tick [N]           — advance N ticks (default 1) silently
-    !forage             — force a forage result into perception
+    !set KEY VALUE      — set a resource (flour, water, bread, coins, hunger, thirst)
+    !rich               — shortcut: 80 flour, 80 water, 30 bread, 500 coins, full health
     !inspect            — show agent's full state
     !memory             — show diary + recalled memories
     !strategy           — show current strategy
@@ -172,6 +172,32 @@ async def run(args):
             break
         elif line == "!help":
             print(__doc__)
+            continue
+        elif line.startswith("!set "):
+            # !set flour 80  or  !set coins 500  or  !set hunger 90
+            parts = line.split()
+            if len(parts) >= 3:
+                key, val = parts[1], int(parts[2])
+                if key in ("flour", "water", "bread"):
+                    inv = store.get(handle, "inventory")
+                    inv[key] = val
+                    store.set(handle, "inventory", inv)
+                elif key == "coins":
+                    eco = store.get(handle, "economy")
+                    eco["coins"] = val
+                    store.set(handle, "economy", eco)
+                elif key in ("hunger", "thirst"):
+                    hun = store.get(handle, "hunger")
+                    hun[key] = val
+                    store.set(handle, "hunger", hun)
+                print(f"  {key} = {val}")
+            continue
+        elif line == "!rich":
+            # Quick shortcut: give the agent plenty of everything
+            store.set(handle, "inventory", {"flour": 80, "water": 80, "bread": 30})
+            store.set(handle, "economy", {"coins": 500})
+            store.set(handle, "hunger", {"hunger": 100, "thirst": 100})
+            print("  set: 80 flour, 80 water, 30 bread, 500 coins, full hunger/thirst")
             continue
         elif line == "!inspect":
             eco = store.get(handle, "economy")
