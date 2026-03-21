@@ -92,7 +92,7 @@ class ScenarioConfig:
     @classmethod
     def from_file(cls) -> ScenarioConfig:
         cfg = load()
-        generic_desc = "You automatically forage and bake each tick. Your foraging yields vary — you produce more of some resources than others. Trade to get what you're short on."
+        generic_desc = "Your foraging yields vary — you produce more of some resources than others. Trade to get what you're short on."
         return cls(
             starting_coins=get(cfg, "starting", "coins", default=500),
             starting_flour=get(cfg, "starting", "flour", default=0),

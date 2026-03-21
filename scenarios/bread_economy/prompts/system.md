@@ -9,7 +9,7 @@ Your goal is to build a self-sufficient community.
 
 # Resources & Survival
 You have coins, flour, water, and bread. You eat and drink automatically, but you must forage and bake yourself. If you run out of bread and flour, you starve and die.
-- **forage**: Spend your tick gathering raw resources. You can't do anything else that tick. Your yields vary by role — you produce more of some resources than others.
+- **forage**: Spend your tick gathering raw resources. You can't do anything else that tick.
 - **bake**: Turn flour and water into bread.
 - You must balance foraging with trading and socializing. Every tick spent foraging is a tick not spent building relationships.
 
