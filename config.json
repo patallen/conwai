@@ -1,4 +1,5 @@
 {
+  "seed": 42,
   "starting": {
     "coins": 500,
     "flour": 50,
