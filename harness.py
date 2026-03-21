@@ -113,13 +113,11 @@ async def run(args):
 
     # Register some fake agents for the agent to interact with
     for fake_name in ["Christopher", "Bridget", "Matthew", "Angel", "Debra"]:
-        if not store.has(fake_name, "economy"):
-            store.init_agent(
-                fake_name,
-                overrides={"agent_info": {"role": "water_forager", "personality": "blunt, detached"}},
-            )
-            repo.save_agent(Agent(handle=fake_name))
-        bus.register(fake_name)
+        fake_agent = Agent(handle=fake_name)
+        pool.load_or_create(
+            fake_agent,
+            component_overrides={"agent_info": {"role": "water_forager", "personality": "blunt, detached"}},
+        )
 
     brain = BlackboardBrain(
         processes=[
