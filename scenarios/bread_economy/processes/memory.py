@@ -11,6 +11,9 @@ if TYPE_CHECKING:
 
 _HANDLE_RE = re.compile(r"\b[A-Z](?=[a-z0-9]*\d)[a-z0-9]{1,5}\b")
 
+# Actions that add no information to diary entries
+_NOISE_ACTIONS = {"update_journal", "wait"}
+
 
 class MemoryCompression:
     """Collapse the previous tick's raw messages into a compact diary entry,
@@ -68,20 +71,22 @@ class MemoryCompression:
             elif msg.get("role") == "tool":
                 name = msg.get("name", "?")
                 result = msg.get("content", "ok")
-                action_results.append(f"{name}→{result}")
+                if name not in _NOISE_ACTIONS:
+                    action_results.append(f"{name}→{result}")
 
         # Include deferred action feedback (from BrainPhase)
         if feedback:
             for fb in feedback:
-                action_results.append(f"{fb.action}→{fb.result}")
+                if fb.action not in _NOISE_ACTIONS:
+                    action_results.append(f"{fb.action}→{fb.result}")
 
         timestamp = self._fmt(tick)
         parts = []
         if action_results:
             parts.append(", ".join(action_results))
         if reasoning:
-            trimmed = reasoning[:150].rstrip()
-            if len(reasoning) > 150:
+            trimmed = reasoning[:300].rstrip()
+            if len(reasoning) > 300:
                 trimmed += "..."
             parts.append(trimmed)
 

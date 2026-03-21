@@ -196,8 +196,8 @@ class TestMemoryCompression:
         assert not any(m.get("_tick_summary") for m in msgs)
 
     def test_collapse_truncates_reasoning(self):
-        """Reasoning over 150 chars is truncated with '...'."""
-        long_reasoning = "x" * 200
+        """Reasoning over 300 chars is truncated with '...'."""
+        long_reasoning = "x" * 400
         messages = [
             {"role": "user", "content": "perception"},
             {"role": "assistant", "content": long_reasoning},
@@ -211,10 +211,10 @@ class TestMemoryCompression:
             m for m in board["state"]["messages"] if m.get("_tick_summary")
         ]
         content = summaries[0]["content"]
-        # The reasoning portion should be exactly 150 chars + "..."
+        # The reasoning portion should be exactly 300 chars + "..."
         assert content.endswith("...")
-        assert "x" * 150 in content
-        assert "x" * 151 not in content
+        assert "x" * 300 in content
+        assert "x" * 301 not in content
 
 
 # ===========================================================================
