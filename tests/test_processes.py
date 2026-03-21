@@ -284,6 +284,78 @@ class TestMemoryRecall:
         # "Day" / "The" don't match _HANDLE_RE (need a digit in the match)
         assert board.get("recalled") is None
 
+    def test_vector_recall_finds_semantically_similar(self):
+        """With an embedder, recall finds entries by meaning, not just handles."""
+
+        class FakeEmbedder:
+            """Returns fixed vectors so we can control similarity."""
+
+            def embed(self, texts):
+                vecs = []
+                for t in texts:
+                    if "trade" in t or "flour" in t:
+                        vecs.append([1.0, 0.0, 0.0])  # trade cluster
+                    elif "election" in t or "vote" in t:
+                        vecs.append([0.0, 1.0, 0.0])  # politics cluster
+                    else:
+                        vecs.append([0.0, 0.0, 1.0])  # other
+                return vecs
+
+        diary = [
+            {"content": "traded flour with A1", "handles": ["A1"], "embedding": [1.0, 0.0, 0.0]},
+            {"content": "voted in the election", "handles": [], "embedding": [0.0, 1.0, 0.0]},
+            {"content": "watched the sunset", "handles": [], "embedding": [0.0, 0.0, 1.0]},
+        ]
+        # Perception about trading — should recall the trade entry, not election/sunset
+        percept = FakePercept(prompt_text="I need to trade flour for water")
+        board = _make_board(diary=diary, percept=percept)
+
+        recall = MemoryRecall(recall_limit=1, embedder=FakeEmbedder())
+        asyncio.run(recall.run(board))
+
+        recalled = board.get("recalled", [])
+        assert len(recalled) == 1
+        assert "traded flour" in recalled[0]
+
+    def test_vector_recall_falls_back_without_embeddings(self):
+        """When diary entries lack embeddings, falls back to handle matching."""
+
+        class FakeEmbedder:
+            def embed(self, texts):
+                return [[1.0, 0.0] for _ in texts]
+
+        diary = [
+            {"content": "met A1 at market", "handles": ["A1"]},  # no embedding
+        ]
+        percept = FakePercept(prompt_text="A1 wants to trade")
+        board = _make_board(diary=diary, percept=percept)
+
+        recall = MemoryRecall(recall_limit=5, embedder=FakeEmbedder())
+        asyncio.run(recall.run(board))
+
+        recalled = board.get("recalled", [])
+        assert len(recalled) == 1
+        assert "A1" in recalled[0]
+
+    def test_compression_embeds_on_archive(self):
+        """When an embedder is provided, archived entries get embedding vectors."""
+
+        class FakeEmbedder:
+            def embed(self, texts):
+                return [[0.1, 0.2, 0.3] for _ in texts]
+
+        messages = [{"role": "user", "content": f"summary {i}", "_tick_summary": True} for i in range(5)]
+        board = _make_board(messages=messages)
+
+        mc = MemoryCompression(recent_ticks=2, embedder=FakeEmbedder())
+        asyncio.run(mc.run(board))
+
+        diary = board["state"]["diary"]
+        assert len(diary) == 3  # 5 - 2 recent = 3 archived
+        for entry in diary:
+            assert "embedding" in entry
+            assert entry["embedding"] == [0.1, 0.2, 0.3]
+
 
 # ===========================================================================
 # ContextAssembly tests

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from conwai.embeddings import Embedder
 
 _HANDLE_RE = re.compile(r"\b[A-Z](?=[a-z0-9]*\d)[a-z0-9]{1,5}\b")
 
@@ -18,10 +21,12 @@ class MemoryCompression:
         recent_ticks: int = 16,
         diary_max: int = 500,
         timestamp_formatter: Callable[[int], str] | None = None,
+        embedder: Embedder | None = None,
     ):
         self.recent_ticks = recent_ticks
         self.diary_max = diary_max
         self._fmt = timestamp_formatter or str
+        self._embedder = embedder
 
     async def run(self, board: dict[str, Any]) -> None:
         state = board.setdefault("state", {})
@@ -91,11 +96,22 @@ class MemoryCompression:
         if len(indices) <= self.recent_ticks:
             return
         to_archive = indices[: len(indices) - self.recent_ticks]
+        new_entries = []
         for idx in reversed(to_archive):
             msg = messages.pop(idx)
             content = msg["content"]
             handles = sorted(set(_HANDLE_RE.findall(content)))
-            diary.append({"content": content, "handles": handles})
+            new_entries.append({"content": content, "handles": handles})
+        new_entries.reverse()  # restore chronological order
+
+        # Batch-embed new entries
+        if self._embedder and new_entries:
+            texts = [e["content"] for e in new_entries]
+            vectors = self._embedder.embed(texts)
+            for entry, vec in zip(new_entries, vectors):
+                entry["embedding"] = vec
+
+        diary.extend(new_entries)
         if len(diary) > self.diary_max:
             diary[:] = diary[-self.diary_max :]
 
@@ -103,8 +119,9 @@ class MemoryCompression:
 class MemoryRecall:
     """Surface diary entries relevant to the current percept."""
 
-    def __init__(self, recall_limit: int = 5):
+    def __init__(self, recall_limit: int = 5, embedder: Embedder | None = None):
         self.recall_limit = recall_limit
+        self._embedder = embedder
 
     async def run(self, board: dict[str, Any]) -> None:
         state = board.setdefault("state", {})
@@ -114,6 +131,20 @@ class MemoryRecall:
 
         percept = board.get("percept")
         perception_text = getattr(percept, "to_prompt", lambda: "")()
+
+        # Vector recall: embed perception, find most similar diary entries
+        if self._embedder:
+            candidates = [e for e in diary if "embedding" in e]
+            if candidates:
+                from conwai.embeddings import cosine_topk
+
+                query_vec = self._embedder.embed([perception_text])[0]
+                candidate_vecs = [e["embedding"] for e in candidates]
+                top_indices = cosine_topk(query_vec, candidate_vecs, k=self.recall_limit)
+                board["recalled"] = [candidates[i]["content"] for i in top_indices]
+                return
+
+        # Fallback: handle-based recall
         triggers = set(_HANDLE_RE.findall(perception_text))
         if not triggers:
             return

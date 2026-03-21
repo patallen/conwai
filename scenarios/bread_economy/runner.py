@@ -198,6 +198,11 @@ async def run():
     # --- Actions ---
     registry = create_registry(world=world)
 
+    # --- Embedder (shared across all agents, stateless) ---
+    from conwai.embeddings import FastEmbedder
+
+    embedder = FastEmbedder()
+
     # --- Brain pipeline: round-robin across LLM clients ---
     _brain_counter = 0
 
@@ -210,8 +215,9 @@ async def run():
                 MemoryCompression(
                     recent_ticks=16,
                     timestamp_formatter=tick_to_timestamp,
+                    embedder=embedder,
                 ),
-                MemoryRecall(recall_limit=5),
+                MemoryRecall(recall_limit=5, embedder=embedder),
                 ContextAssembly(
                     context_window=get_config().context_window,
                     system_prompt=perception.build_system_prompt(),
