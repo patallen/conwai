@@ -135,6 +135,10 @@ async def run():
     """Run the bread economy scenario."""
     cfg = get_config()
 
+    if cfg.seed is not None:
+        random.seed(cfg.seed)
+        log.info(f"[WORLD] random seed: {cfg.seed}")
+
     # --- Storage ---
     storage = SQLiteStorage()
 

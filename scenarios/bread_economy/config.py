@@ -85,6 +85,8 @@ class ScenarioConfig:
         }
     )
 
+    seed: int | None = None
+
     raw_cfg: dict = field(default_factory=dict, repr=False)
 
     @classmethod
@@ -172,6 +174,7 @@ class ScenarioConfig:
                     "water_forager": generic_desc,
                 },
             ),
+            seed=get(cfg, "seed", default=None),
             raw_cfg=cfg,
         )
 
