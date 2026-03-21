@@ -22,16 +22,25 @@ export function AgentDetail() {
   const boardPosts = agentEvents.filter(e => e.type === 'board_post').slice(-10)
   const dms = agentEvents.filter(e => e.type === 'dm_sent').slice(-20)
 
-  // Trade history: gives + atomic trades where this agent is involved
-  const gives = events.filter(e =>
-    (e.type === 'give' && (e.entity === selectedAgent || e.data.to === selectedAgent)) ||
-    (e.type === 'trade' && e.entity === selectedAgent)
-  ).slice(-30)
+  // Trade history: gives + atomic trades where this agent is involved (deduplicate by trade id)
+  const seenTradeIds = new Set<number>()
+  const gives = events.filter(e => {
+    if (e.type === 'give' && (e.entity === selectedAgent || e.data.to === selectedAgent)) return true
+    if (e.type === 'trade' && (e.entity === selectedAgent || e.data.with === selectedAgent)) {
+      const tid = e.data.id
+      if (tid != null && seenTradeIds.has(tid)) return false
+      if (tid != null) seenTradeIds.add(tid)
+      return true
+    }
+    return false
+  }).slice(-30)
 
   // Trading partners summary
   const partnerCounts: Record<string, number> = {}
   for (const g of gives) {
-    const partner = g.type === 'trade' ? g.data.with : (g.entity === selectedAgent ? g.data.to : g.entity)
+    const partner = g.type === 'trade'
+      ? (g.entity === selectedAgent ? g.data.with : g.entity)
+      : (g.entity === selectedAgent ? g.data.to : g.entity)
     if (partner) partnerCounts[partner] = (partnerCounts[partner] || 0) + 1
   }
   const topPartners = Object.entries(partnerCounts)
