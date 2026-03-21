@@ -14,6 +14,14 @@ if TYPE_CHECKING:
 log = logging.getLogger("conwai")
 
 
+def _capped_add(inv: dict, resource: str, amount: int) -> int:
+    """Add to inventory respecting cap. Returns actual amount added."""
+    cap = config.INVENTORY_CAP
+    actual = min(amount, max(0, cap - inv.get(resource, 0)))
+    inv[resource] = inv.get(resource, 0) + actual
+    return actual
+
+
 def charge(store, handle: str, amount: int, reason: str) -> str | None:
     """Deduct coins. Returns error string if insufficient, None on success."""
     eco = store.get(handle, "economy")
@@ -25,19 +33,18 @@ def charge(store, handle: str, amount: int, reason: str) -> str | None:
 
 
 def _post_to_board(agent: Agent, ctx: TickContext, args: dict) -> str:
+    # Cooldown: 6 ticks between board posts
+    mem = ctx.store.get(agent.handle, "memory")
+    last_post_tick = mem.get("last_board_post", 0)
+    if last_post_tick and ctx.tick - last_post_tick < 6:
+        return f"You posted recently. Wait {6 - (ctx.tick - last_post_tick)} more ticks."
     err = charge(ctx.store, agent.handle, 25, "post_to_board")
     if err:
         return err
     content = args.get("message", "")
-    recent = ctx.board.recent_by_handle(agent.handle, n=10)
-    if any(p.content == content for p in recent):
-        eco = ctx.store.get(agent.handle, "economy")
-        penalty = 50
-        eco["coins"] = max(0, eco["coins"] - penalty)
-        ctx.store.set(agent.handle, "economy", eco)
-        log.info(f"[{agent.handle}] DUPLICATE POST penalty: -{penalty}")
-        return f"duplicate post penalty: -{penalty} coins"
     ctx.board.post(agent.handle, content)
+    mem["last_board_post"] = ctx.tick
+    ctx.store.set(agent.handle, "memory", mem)
     ctx.events.log(agent.handle, "board_post", {"content": content})
     log.info(f"[{agent.handle}] posted: {content}")
     if ctx.pool:
@@ -211,8 +218,8 @@ def _forage(agent: Agent, ctx: TickContext, args: dict) -> str:
     flour = int(random.randint(0, skills["flour"]) * multiplier)
     water = int(random.randint(0, skills["water"]) * multiplier)
     inv = ctx.store.get(agent.handle, "inventory")
-    inv["flour"] += flour
-    inv["water"] += water
+    flour = _capped_add(inv, "flour", flour)
+    water = _capped_add(inv, "water", water)
     ctx.store.set(agent.handle, "inventory", inv)
 
     # Update streak
@@ -230,8 +237,8 @@ def _forage(agent: Agent, ctx: TickContext, args: dict) -> str:
         parts.append(f"{water} water")
     streak_msg = f" (streak {streak + 1}, {multiplier}x bonus)" if streak > 0 else ""
     if parts:
-        return f"foraged {', '.join(parts)}{streak_msg}. Foraging takes your full attention — no other actions this tick."
-    return f"foraged but found nothing{streak_msg}. Foraging takes your full attention — no other actions this tick."
+        return f"foraged {', '.join(parts)}{streak_msg}"
+    return f"found nothing{streak_msg}"
 
 
 def _bake(agent: Agent, ctx: TickContext, args: dict) -> str:
@@ -244,7 +251,7 @@ def _bake(agent: Agent, ctx: TickContext, args: dict) -> str:
     bread_yield = config.BAKE_BAKER_YIELD if info["role"] == "baker" else config.BAKE_YIELD
     inv["flour"] -= flour_needed
     inv["water"] -= water_needed
-    inv["bread"] += bread_yield
+    bread_yield = _capped_add(inv, "bread", bread_yield)
     ctx.store.set(agent.handle, "inventory", inv)
     ctx.events.log(
         agent.handle,
@@ -280,7 +287,7 @@ def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
     inv[resource] -= amount
     ctx.store.set(agent.handle, "inventory", inv)
     other_inv = ctx.store.get(to, "inventory")
-    other_inv[resource] += amount
+    _capped_add(other_inv, resource, amount)
     ctx.store.set(to, "inventory", other_inv)
     if ctx.perception:
         ctx.perception.notify(to, f"received {amount} {resource} from {agent.handle}")
@@ -291,6 +298,168 @@ def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
     return f"gave {amount} {resource} to {to}"
 
 
+_next_offer_id = 1
+_pending_offers: dict[int, dict] = {}  # offer_id -> {from, to, give_type, give_amount, want_type, want_amount, tick}
+OFFER_EXPIRY = 12
+VALID_RESOURCES = ("coins", "flour", "water", "bread")
+
+
+def _expire_offers(tick: int) -> None:
+    expired = [oid for oid, o in _pending_offers.items() if tick - o["tick"] >= OFFER_EXPIRY]
+    for oid in expired:
+        del _pending_offers[oid]
+
+
+def _offer(agent: Agent, ctx: TickContext, args: dict) -> str:
+    global _next_offer_id
+    _expire_offers(ctx.tick)
+
+    to = args.get("to", "")
+    give_type = args.get("give_type", "")
+    give_amount = int(args.get("give_amount", 0))
+    want_type = args.get("want_type", "")
+    want_amount = int(args.get("want_amount", 0))
+
+    if not to or not give_type or not want_type:
+        return "missing fields: to, give_type, give_amount, want_type, want_amount"
+    if give_type not in VALID_RESOURCES or want_type not in VALID_RESOURCES:
+        return f"invalid resource. Must be one of: {', '.join(VALID_RESOURCES)}"
+    if give_amount <= 0 or want_amount <= 0:
+        return "amounts must be positive"
+    if to == agent.handle:
+        return "cannot trade with yourself"
+    if not ctx.pool or not ctx.pool.by_handle(to):
+        return f"unknown agent: {to}"
+
+    # Check the offerer actually has the resources
+    if give_type == "coins":
+        eco = ctx.store.get(agent.handle, "economy")
+        if give_amount > eco["coins"]:
+            return f"not enough coins (have {int(eco['coins'])})"
+    else:
+        inv = ctx.store.get(agent.handle, "inventory")
+        if give_amount > inv.get(give_type, 0):
+            return f"not enough {give_type} (have {inv.get(give_type, 0)})"
+
+    # Max 3 pending offers per agent
+    my_offers = [o for o in _pending_offers.values() if o["from"] == agent.handle]
+    if len(my_offers) >= 3:
+        return "you already have 3 pending offers. Wait for them to be accepted or expire."
+
+    oid = _next_offer_id
+    _next_offer_id += 1
+    _pending_offers[oid] = {
+        "from": agent.handle, "to": to,
+        "give_type": give_type, "give_amount": give_amount,
+        "want_type": want_type, "want_amount": want_amount,
+        "tick": ctx.tick,
+    }
+
+    if ctx.perception:
+        ctx.perception.notify(
+            to,
+            f"Trade offer #{oid} from {agent.handle}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
+        )
+
+    ctx.events.log(agent.handle, "offer", {
+        "id": oid, "to": to, "give_type": give_type, "give_amount": give_amount,
+        "want_type": want_type, "want_amount": want_amount,
+    })
+    log.info(f"[{agent.handle}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}")
+    return f"Offer #{oid} sent to {to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {OFFER_EXPIRY} ticks."
+
+
+def _accept(agent: Agent, ctx: TickContext, args: dict) -> str:
+    _expire_offers(ctx.tick)
+
+    oid = int(args.get("offer_id", 0))
+    offer = _pending_offers.get(oid)
+    if not offer:
+        return f"Offer #{oid} not found or expired."
+    if offer["to"] != agent.handle:
+        return f"Offer #{oid} is not for you."
+
+    offerer = offer["from"]
+    give_type = offer["give_type"]
+    give_amount = offer["give_amount"]
+    want_type = offer["want_type"]
+    want_amount = offer["want_amount"]
+
+    # Verify offerer still has resources
+    if give_type == "coins":
+        off_eco = ctx.store.get(offerer, "economy")
+        if give_amount > off_eco["coins"]:
+            del _pending_offers[oid]
+            return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
+    else:
+        off_inv = ctx.store.get(offerer, "inventory")
+        if give_amount > off_inv.get(give_type, 0):
+            del _pending_offers[oid]
+            return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
+
+    # Verify accepter has the wanted resources
+    if want_type == "coins":
+        acc_eco = ctx.store.get(agent.handle, "economy")
+        if want_amount > acc_eco["coins"]:
+            return f"You don't have enough coins (have {int(acc_eco['coins'])}, need {want_amount})."
+    else:
+        acc_inv = ctx.store.get(agent.handle, "inventory")
+        if want_amount > acc_inv.get(want_type, 0):
+            return f"You don't have enough {want_type} (have {acc_inv.get(want_type, 0)}, need {want_amount})."
+
+    # Execute the swap atomically
+    # Offerer gives give_type, accepter receives it
+    if give_type == "coins":
+        off_eco = ctx.store.get(offerer, "economy")
+        off_eco["coins"] -= give_amount
+        ctx.store.set(offerer, "economy", off_eco)
+        acc_eco = ctx.store.get(agent.handle, "economy")
+        acc_eco["coins"] += give_amount
+        ctx.store.set(agent.handle, "economy", acc_eco)
+    else:
+        off_inv = ctx.store.get(offerer, "inventory")
+        off_inv[give_type] -= give_amount
+        ctx.store.set(offerer, "inventory", off_inv)
+        acc_inv = ctx.store.get(agent.handle, "inventory")
+        _capped_add(acc_inv, give_type, give_amount)
+        ctx.store.set(agent.handle, "inventory", acc_inv)
+
+    # Accepter gives want_type, offerer receives it
+    if want_type == "coins":
+        acc_eco = ctx.store.get(agent.handle, "economy")
+        acc_eco["coins"] -= want_amount
+        ctx.store.set(agent.handle, "economy", acc_eco)
+        off_eco = ctx.store.get(offerer, "economy")
+        off_eco["coins"] += want_amount
+        ctx.store.set(offerer, "economy", off_eco)
+    else:
+        acc_inv = ctx.store.get(agent.handle, "inventory")
+        acc_inv[want_type] -= want_amount
+        ctx.store.set(agent.handle, "inventory", acc_inv)
+        off_inv = ctx.store.get(offerer, "inventory")
+        _capped_add(off_inv, want_type, want_amount)
+        ctx.store.set(offerer, "inventory", off_inv)
+
+    del _pending_offers[oid]
+
+    if ctx.perception:
+        ctx.perception.notify(offerer, f"Offer #{oid} accepted by {agent.handle}: gave {give_amount} {give_type}, received {want_amount} {want_type}")
+        ctx.perception.notify(agent.handle, f"Accepted offer #{oid} from {offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}")
+
+    ctx.events.log(agent.handle, "trade", {
+        "id": oid, "with": offerer,
+        "received_type": give_type, "received_amount": give_amount,
+        "gave_type": want_type, "gave_amount": want_amount,
+    })
+    ctx.events.log(offerer, "trade", {
+        "id": oid, "with": agent.handle,
+        "received_type": want_type, "received_amount": want_amount,
+        "gave_type": give_type, "gave_amount": give_amount,
+    })
+    log.info(f"[TRADE] #{oid}: {offerer} gave {give_amount} {give_type}, {agent.handle} gave {want_amount} {want_type}")
+    return f"Trade complete: received {give_amount} {give_type} from {offerer}, gave {want_amount} {want_type}."
+
+
 def create_registry(world=None) -> ActionRegistry:
     registry = ActionRegistry()
 
@@ -299,6 +468,12 @@ def create_registry(world=None) -> ActionRegistry:
             return "No active code challenge."
         guess = args.get("code", "")
         return world.submit_code(agent, guess)
+
+    def _vote(agent: Agent, ctx: TickContext, args: dict) -> str:
+        if world is None:
+            return "No active election."
+        candidate = args.get("candidate", "")
+        return world.cast_vote(agent, candidate)
 
     registry.register(
         Action(
@@ -320,15 +495,6 @@ def create_registry(world=None) -> ActionRegistry:
             },
 
             handler=_send_message,
-        )
-    )
-    registry.register(
-        Action(
-            name="wait",
-            description="Do nothing this tick.",
-            parameters={},
-
-            handler=_wait,
         )
     )
     registry.register(
@@ -389,24 +555,6 @@ def create_registry(world=None) -> ActionRegistry:
     )
     registry.register(
         Action(
-            name="forage",
-            description="Spend this tick searching for flour and water. Yield depends on your role. Consecutive forages build a streak bonus (up to 3x yield). Doing anything else resets the streak. THIS TAKES YOUR ENTIRE TICK.",
-            parameters={},
-
-            handler=_forage,
-        )
-    )
-    registry.register(
-        Action(
-            name="bake",
-            description=f"Turn {config.BAKE_COST['flour']} flour + {config.BAKE_COST['water']} water into bread. Bakers produce {config.BAKE_BAKER_YIELD}, others produce {config.BAKE_YIELD}.",
-            parameters={},
-
-            handler=_bake,
-        )
-    )
-    registry.register(
-        Action(
             name="give",
             description="Give flour, water, or bread to another agent.",
             parameters={
@@ -436,6 +584,43 @@ def create_registry(world=None) -> ActionRegistry:
             },
 
             handler=_submit_code,
+        )
+    )
+    registry.register(
+        Action(
+            name="vote",
+            description="Vote for an agent to win the election reward. You can change your vote before the election ends. You cannot vote for yourself.",
+            parameters={
+                "candidate": {
+                    "type": "string",
+                    "description": "Handle of the agent you're voting for",
+                },
+            },
+            handler=_vote,
+        )
+    )
+    registry.register(
+        Action(
+            name="offer",
+            description="Propose a trade to another agent. They must accept for the trade to happen. Offers expire after 12 ticks. Max 3 pending offers.",
+            parameters={
+                "to": {"type": "string", "description": "Handle of the agent to trade with"},
+                "give_type": {"type": "string", "description": "What you're offering: coins, flour, water, or bread"},
+                "give_amount": {"type": "integer", "description": "How much you're offering"},
+                "want_type": {"type": "string", "description": "What you want in return: coins, flour, water, or bread"},
+                "want_amount": {"type": "integer", "description": "How much you want"},
+            },
+            handler=_offer,
+        )
+    )
+    registry.register(
+        Action(
+            name="accept",
+            description="Accept a pending trade offer. Both sides transfer atomically.",
+            parameters={
+                "offer_id": {"type": "integer", "description": "The offer number to accept"},
+            },
+            handler=_accept,
         )
     )
     return registry

@@ -51,6 +51,9 @@ def reload():
         "baker": {"flour": 1, "water": 1},
     })
 
+    # Inventory
+    g["INVENTORY_CAP"] = get(cfg, "inventory", "cap", default=100)
+
     # Baking
     g["BAKE_COST"] = get(cfg, "baking", "cost", default={"flour": 3, "water": 3})
     g["BAKE_YIELD"] = get(cfg, "baking", "yield", default=2)
@@ -69,16 +72,13 @@ def reload():
     g["STATE_INTERACTIONS_LENGTH"] = get(cfg, "perception", "interactions_length", default=10)
     g["STATE_LEDGER_LENGTH"] = get(cfg, "perception", "ledger_length", default=10)
 
-    # Role descriptions (derived from foraging/baking config above)
-    fs = g["FORAGE_SKILL_BY_ROLE"]
+    # Role descriptions — agents discover their strengths through experience
     bc = g["BAKE_COST"]
     by = g["BAKE_YIELD"]
-    bby = g["BAKE_BAKER_YIELD"]
-    bake_desc = f"Anyone can bake ({bc['flour']} flour + {bc['water']} water → {by} bread), but bakers produce {bby}."
+    generic_desc = "You automatically forage and bake each tick. Your foraging yields vary — you produce more of some resources than others. Trade to get what you're short on."
     g["ROLE_DESCRIPTIONS"] = get(cfg, "roles", "descriptions", default={
-        "flour_forager": f"You are a flour forager. When you forage you find 0-{fs['flour_forager']['flour']} flour and 0-{fs['flour_forager']['water']} water. {bake_desc}",
-        "water_forager": f"You are a water forager. When you forage you find 0-{fs['water_forager']['flour']} flour and 0-{fs['water_forager']['water']} water. {bake_desc}",
-        "baker": f"You are a baker. When you forage you find 0-{fs['baker']['flour']} flour and 0-{fs['baker']['water']} water. You bake efficiently: {bc['flour']} flour + {bc['water']} water → {bby} bread (others produce {by}).",
+        "flour_forager": generic_desc,
+        "water_forager": generic_desc,
     })
 
 

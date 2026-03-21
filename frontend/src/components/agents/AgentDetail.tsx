@@ -22,15 +22,16 @@ export function AgentDetail() {
   const boardPosts = agentEvents.filter(e => e.type === 'board_post').slice(-10)
   const dms = agentEvents.filter(e => e.type === 'dm_sent').slice(-20)
 
-  // Trade history: gives where this agent is sender or receiver
+  // Trade history: gives + atomic trades where this agent is involved
   const gives = events.filter(e =>
-    e.type === 'give' && (e.entity === selectedAgent || e.data.to === selectedAgent)
+    (e.type === 'give' && (e.entity === selectedAgent || e.data.to === selectedAgent)) ||
+    (e.type === 'trade' && e.entity === selectedAgent)
   ).slice(-30)
 
   // Trading partners summary
   const partnerCounts: Record<string, number> = {}
   for (const g of gives) {
-    const partner = g.entity === selectedAgent ? g.data.to : g.entity
+    const partner = g.type === 'trade' ? g.data.with : (g.entity === selectedAgent ? g.data.to : g.entity)
     if (partner) partnerCounts[partner] = (partnerCounts[partner] || 0) + 1
   }
   const topPartners = Object.entries(partnerCounts)
@@ -137,6 +138,26 @@ export function AgentDetail() {
       {/* Trade History */}
       <Section title={`trade history (${gives.length})`}>
         {gives.length === 0 ? <Muted>(none)</Muted> : gives.slice().reverse().map((e, i) => {
+          if (e.type === 'trade') {
+            const partner = e.data.with
+            return (
+              <div key={`trade-${e.idx}-${i}`} style={{
+                padding: '3px 0', borderBottom: '1px solid var(--border)', fontSize: 12,
+              }}>
+                <span style={{ color: '#8b5cf6' }}>swap</span>
+                {' '}
+                <span
+                  style={{ color: getAgentColor(partner), cursor: 'pointer' }}
+                  onClick={() => dispatch({ type: 'SELECT_AGENT', handle: partner })}
+                >
+                  {partner}
+                </span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  {' '}gave {e.data.gave_amount} {e.data.gave_type}, got {e.data.received_amount} {e.data.received_type}
+                </span>
+              </div>
+            )
+          }
           const outgoing = e.entity === selectedAgent
           const partner = outgoing ? e.data.to : e.entity
           const item = e.data.resource && e.data.amount

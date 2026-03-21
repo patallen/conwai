@@ -95,6 +95,51 @@ export function Sidebar() {
         )
       })()}
 
+      {data.election && (() => {
+        const entries = Object.entries(data.election.tally).sort((a, b) => b[1].count - a[1].count)
+        const totalVoters = data.agents.length
+        return (
+          <div style={{
+            padding: '8px 16px',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 11,
+            fontFamily: 'var(--font-mono)',
+          }}>
+            <div style={{ color: 'var(--accent)', fontWeight: 600, marginBottom: 6 }}>
+              ELECTION · {data.election.ticks_left} ticks left · {data.election.total_votes}/{totalVoters} voted
+            </div>
+            {entries.length > 0 ? entries.map(([candidate, info]) => (
+              <div key={candidate} style={{
+                display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3,
+              }}>
+                <span
+                  style={{ color: 'var(--text-primary)', cursor: 'pointer' }}
+                  onClick={() => dispatch({ type: 'SELECT_AGENT', handle: candidate })}
+                >
+                  {candidate}
+                </span>
+                <div style={{
+                  flex: 1, height: 6, background: 'var(--bg-surface)', borderRadius: 3,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    width: `${(info.count / totalVoters) * 100}%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    borderRadius: 3,
+                  }} />
+                </div>
+                <span style={{ color: 'var(--text-secondary)', minWidth: 16, textAlign: 'right' }}>
+                  {info.count}
+                </span>
+              </div>
+            )) : (
+              <div style={{ color: 'var(--text-secondary)' }}>No votes yet</div>
+            )}
+          </div>
+        )
+      })()}
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
         {sorted.map(agent => (
           <AgentCard

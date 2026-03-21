@@ -63,6 +63,49 @@ class SpoilageSystem:
                 ctx.perception.notify(agent.handle, f"{spoiled} bread spoiled (bread left: {inv['bread']})")
 
 
+class AutoForageSystem:
+    """Automatically forages for each agent every tick. Agents don't choose to forage."""
+    name = "auto_forage"
+
+    async def run(self, ctx: TickContext) -> None:
+        import random
+        for agent in ctx.pool.alive():
+            info = ctx.store.get(agent.handle, "agent_info")
+            skills = config.FORAGE_SKILL_BY_ROLE.get(info["role"], {"flour": 1, "water": 1})
+            inv = ctx.store.get(agent.handle, "inventory")
+            cap = config.INVENTORY_CAP
+            flour = random.randint(0, skills["flour"])
+            water = random.randint(0, skills["water"])
+            flour = min(flour, max(0, cap - inv["flour"]))
+            water = min(water, max(0, cap - inv["water"]))
+            inv["flour"] += flour
+            inv["water"] += water
+            ctx.store.set(agent.handle, "inventory", inv)
+
+
+class AutoBakeSystem:
+    """Automatically bakes bread when agent has enough ingredients and bread is low."""
+    name = "auto_bake"
+
+    async def run(self, ctx: TickContext) -> None:
+        flour_cost = config.BAKE_COST["flour"]
+        water_cost = config.BAKE_COST["water"]
+        bread_yield = config.BAKE_YIELD
+        cap = config.INVENTORY_CAP
+
+        for agent in ctx.pool.alive():
+            inv = ctx.store.get(agent.handle, "inventory")
+            # Bake when bread is low and we have ingredients
+            while inv["bread"] < 20 and inv["flour"] >= flour_cost and inv["water"] >= water_cost:
+                inv["flour"] -= flour_cost
+                inv["water"] -= water_cost
+                actual = min(bread_yield, max(0, cap - inv["bread"]))
+                inv["bread"] += actual
+                if actual == 0:
+                    break
+            ctx.store.set(agent.handle, "inventory", inv)
+
+
 class ConsumptionSystem:
     name = "consumption"
 
@@ -72,7 +115,7 @@ class ConsumptionSystem:
             inv = ctx.store.get(agent.handle, "inventory")
             eco = ctx.store.get(agent.handle, "economy")
 
-            # Auto-eat (consume until above threshold or out of food)
+            # Auto-eat bread
             if h["hunger"] <= config.HUNGER_AUTO_EAT_THRESHOLD:
                 bread_eaten = 0
                 while h["hunger"] <= config.HUNGER_AUTO_EAT_THRESHOLD and inv["bread"] > 0:
@@ -82,6 +125,7 @@ class ConsumptionSystem:
                 if bread_eaten:
                     ctx.perception.notify(agent.handle, f"ate {bread_eaten} bread (hunger now {h['hunger']}, bread left: {inv['bread']})")
 
+                # Fall back to raw flour only if no bread
                 flour_eaten = 0
                 while h["hunger"] <= config.HUNGER_AUTO_EAT_THRESHOLD and inv["flour"] > 0:
                     inv["flour"] -= 1

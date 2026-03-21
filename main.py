@@ -26,6 +26,8 @@ from scenarios.bread_economy.config import (
 )
 from scenarios.bread_economy.perception import make_bread_perception, tick_to_timestamp
 from scenarios.bread_economy.systems import (
+    AutoBakeSystem,
+    AutoForageSystem,
     ConsumptionSystem,
     DeathSystem,
     DecaySystem,
@@ -158,14 +160,11 @@ async def main():
     # --- LLM clients ---
     b200 = LLMClient(
         base_url="https://cq2qdgtb5xh2ap-8000.proxy.runpod.net/v1",
-        model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4", max_tokens=2048,
+        model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
+        max_tokens=2048,
         api_key="none",
     )
-    compactor = LLMClient(
-        base_url="https://0t8o4r6o90m1v9-8000.proxy.runpod.net/v1",
-        model="Qwen/Qwen3.5-35B-A3B-GPTQ-Int4", max_tokens=2048,
-        api_key="none",
-    )
+    clients = [b200]
 
     # --- World Events ---
     world = WorldEvents(board=board, bus=bus, pool=pool, store=store, perception=perception)
@@ -175,30 +174,20 @@ async def main():
 
     # --- Agents + Brains ---
     brains: dict[str, object] = {}
-    roles = ["flour_forager"] * 8 + ["water_forager"] * 8 + ["baker"] * 4
+    roles = ["flour_forager"] * 12 + ["water_forager"] * 12
 
-    compaction_system = (
-        "You are a meticulous archivist. Your job is to preserve important information "
-        "with thoroughness and precision. You never rush. You never skip details that matter. "
-        "You write clearly and concisely but never sacrifice completeness for brevity."
-    )
-    compaction_prompt = (
-        "COMPACTION REQUIRED. Write your compressed memory now. Target: 500-1500 characters. "
-        "The system already provides your coins, inventory, hunger, thirst, recent transactions, board posts, and DMs each tick — do NOT repeat any of that. "
-        "Write ONLY: AGENTS (who you trust/distrust and why, 1 sentence each), "
-        "DEALS (active promises or debts), LESSONS (hard-won knowledge), GOALS (current plans). "
-        "Anything you don't write here will be lost forever. Be concise but complete."
-    )
+    _brain_counter = 0
 
-    def make_brain(core=b200):
+    def make_brain():
+        nonlocal _brain_counter
+        core = clients[_brain_counter % len(clients)]
+        _brain_counter += 1
         return LLMBrain(
             core=core,
-            compactor=compactor,
             tools=registry.tool_definitions(),
             system_prompt=perception.build_system_prompt(),
             context_window=config.CONTEXT_WINDOW,
-            compaction_system=compaction_system,
-            compaction_prompt=compaction_prompt,
+            recent_ticks=16,
             timestamp_formatter=tick_to_timestamp,
         )
 
@@ -257,6 +246,8 @@ async def main():
         pool=pool, store=store, perception=perception, repo=repo,
         brains=brains, board=board, bus=bus, events=events,
     )
+    engine.add_phase(AutoForageSystem())
+    engine.add_phase(AutoBakeSystem())
     engine.add_phase(DecaySystem())
     engine.add_phase(TaxSystem())
     engine.add_phase(SpoilageSystem())

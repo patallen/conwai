@@ -15,6 +15,7 @@ AGENTS_DIR = Path("data/agents")
 HANDLER_FILE = Path("handler_input.txt")
 TICK_PATH = Path("data/tick")
 CIPHER_PATH = Path("data/cipher.json")
+WORLD_STATE_PATH = Path("data/world_state.json")
 
 _events = EventLog()
 
@@ -101,6 +102,28 @@ def api_cipher():
     return json.loads(CIPHER_PATH.read_text())
 
 
+@app.get("/api/election")
+def api_election():
+    if not WORLD_STATE_PATH.exists():
+        return None
+    state = json.loads(WORLD_STATE_PATH.read_text())
+    if not state.get("election_active"):
+        return None
+    tick = int(TICK_PATH.read_text().strip()) if TICK_PATH.exists() else 0
+    votes = state.get("votes", {})
+    # Tally
+    tally: dict[str, list[str]] = {}
+    for voter, candidate in votes.items():
+        tally.setdefault(candidate, []).append(voter)
+    return {
+        "active": True,
+        "started_tick": state.get("election_started_tick", 0),
+        "ticks_left": max(0, state.get("election_started_tick", 0) + 15 - tick),
+        "total_votes": len(votes),
+        "tally": {c: {"count": len(v), "voters": v} for c, v in sorted(tally.items(), key=lambda x: -len(x[1]))},
+    }
+
+
 @app.get("/api/board")
 def api_board():
     return queries.board_posts(_events, 30)
@@ -122,10 +145,18 @@ def api_economy():
     trades = queries.trade_volume(_events)
     volume: dict[str, int] = {}
     for e in trades:
-        resource = e["data"].get("resource", "")
-        amount = e["data"].get("amount", 0)
-        if resource and amount:
-            volume[resource] = volume.get(resource, 0) + amount
+        d = e["data"]
+        if e["type"] == "give":
+            resource = d.get("resource", "")
+            amount = d.get("amount", 0)
+            if resource and amount:
+                volume[resource] = volume.get(resource, 0) + amount
+        elif e["type"] == "trade":
+            for key in ("received_type", "gave_type"):
+                resource = d.get(key, "")
+                amount = d.get(key.replace("_type", "_amount"), 0)
+                if resource and amount:
+                    volume[resource] = volume.get(resource, 0) + amount
     return {"counts": counts, "trade_volume": volume}
 
 
@@ -177,16 +208,11 @@ def api_agent_memory(handle: str):
     if not ctx_path.exists():
         return {"memory": ""}
     context = json.loads(ctx_path.read_text())
+    diary = []
     for m in context.get("messages", []):
-        content = m.get("content", "")
-        if "COMPACTED MEMORY" in content:
-            # Extract just the memory content between the markers
-            start = content.find("=== YOUR COMPACTED MEMORY ===")
-            end = content.find("=== END COMPACTED MEMORY ===")
-            if start >= 0 and end >= 0:
-                return {"memory": content[start + 29:end].strip()}
-            return {"memory": content.strip()}
-    return {"memory": ""}
+        if m.get("_tick_summary"):
+            diary.append(m["content"])
+    return {"memory": "\n".join(diary) if diary else ""}
 
 
 @app.get("/api/agent/{handle}")

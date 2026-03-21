@@ -50,18 +50,6 @@ def _make_registry():
     return create_registry()
 
 
-def test_forage_updates_store():
-    store, board, bus, events, perception, pool = _setup()
-    agent = _add(pool, store, "A1", "flour_forager")
-    registry = _make_registry()
-    ctx = _make_ctx(store, board, bus, events, perception, pool)
-    registry.begin_tick(ctx, [agent.handle])
-    result = registry.execute(agent, "forage", {}, ctx)
-    inv = store.get("A1", "inventory")
-    assert isinstance(result, str)
-    assert inv["flour"] >= 0
-
-
 def test_pay_transfers_coins():
     store, board, bus, events, perception, pool = _setup()
     _add(pool, store, "A1", "baker")
@@ -110,18 +98,6 @@ def test_give_updates_both_stores():
     registry.execute(pool.by_handle("A1"), "give", {"to": "A2", "resource": "flour", "amount": 5}, ctx)
     assert store.get("A1", "inventory")["flour"] == 5
     assert store.get("A2", "inventory")["flour"] == 5
-
-
-def test_bake():
-    store, board, bus, events, perception, pool = _setup()
-    _add(pool, store, "A1", "baker")
-    store.set("A1", "inventory", {"flour": 10, "water": 10, "bread": 0})
-    registry = _make_registry()
-    ctx = _make_ctx(store, board, bus, events, perception, pool)
-    registry.begin_tick(ctx, ["A1"])
-    registry.execute(pool.by_handle("A1"), "bake", {}, ctx)
-    inv = store.get("A1", "inventory")
-    assert inv["bread"] > 0
 
 
 def test_inspect():

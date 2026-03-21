@@ -174,16 +174,16 @@ class LLMBrain:
                 result = msg.get("content", "ok")
                 action_results.append(f"{name}→{result}")
 
-        # Build compact entry
+        # Build compact entry — actions first, then reasoning
         timestamp = self._timestamp_formatter(tick)
         parts = []
+        if action_results:
+            parts.append(", ".join(action_results))
         if reasoning:
-            trimmed = reasoning[:200].rstrip()
-            if len(reasoning) > 200:
+            trimmed = reasoning[:150].rstrip()
+            if len(reasoning) > 150:
                 trimmed += "..."
             parts.append(trimmed)
-        if action_results:
-            parts.append("Actions: " + ", ".join(action_results))
 
         if not parts:
             del self.messages[start:]

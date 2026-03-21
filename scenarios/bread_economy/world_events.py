@@ -76,6 +76,8 @@ class WorldEvents:
         perception: Perception,
         question_interval: int = 60,
         cipher_interval: int = 40,
+        election_interval: int = 50,
+        election_duration: int = 15,
     ):
         self._board = board
         self._bus = bus
@@ -84,6 +86,8 @@ class WorldEvents:
         self._perception = perception
         self.question_interval = question_interval
         self.cipher_interval = cipher_interval
+        self.election_interval = election_interval
+        self.election_duration = election_duration
         self._tick = 0
         self._used_questions: set[int] = set()
         self._used_phrases: set[int] = set()
@@ -97,6 +101,12 @@ class WorldEvents:
         self._solver_reward: int = 300
         self._wrong_penalty: int = 10
         self._attempts: list[dict] = []  # {"handle": ..., "guess": ..., "correct_chars": ...}
+
+        # Election state
+        self._election_active: bool = False
+        self._election_started_tick: int = 0
+        self._election_reward: int = 200
+        self._votes: dict[str, str] = {}  # voter_handle -> candidate_handle
 
         self._load_state()
 
@@ -124,6 +134,9 @@ class WorldEvents:
             "attempts": self._attempts,
             "used_questions": list(self._used_questions),
             "used_phrases": list(self._used_phrases),
+            "election_active": self._election_active,
+            "election_started_tick": self._election_started_tick,
+            "votes": self._votes,
         }
         p = Path("data/world_state.json")
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -146,6 +159,9 @@ class WorldEvents:
         self._attempts = state.get("attempts", [])
         self._used_questions = set(state.get("used_questions", []))
         self._used_phrases = set(state.get("used_phrases", []))
+        self._election_active = state.get("election_active", False)
+        self._election_started_tick = state.get("election_started_tick", 0)
+        self._votes = state.get("votes", {})
 
     async def run(self, ctx: TickContext) -> None:
         self._run_tick(ctx.tick)
@@ -164,11 +180,18 @@ class WorldEvents:
         if self._tick % self.question_interval == 0 and self._tick > 0:
             self._ask_question()
 
-        if not self._plaintext:
-            first = self._tick == 10
-            recurring = self._tick > 10 and self._tick % self.cipher_interval == 0
-            if first or recurring:
-                self._start_cipher()
+        # Cipher disabled — causes 9B models to death-spiral on reasoning
+        # if not self._plaintext:
+        #     first = self._tick == 10
+        #     recurring = self._tick > 10 and self._tick % self.cipher_interval == 0
+        #     if first or recurring:
+        #         self._start_cipher()
+
+        # Elections
+        if self._election_active:
+            self._check_election_end()
+        elif self._tick == 10 or (self._tick > 10 and self._tick % self.election_interval == 0):
+            self._start_election()
 
         self._save_state()
 
@@ -260,6 +283,75 @@ class WorldEvents:
             )
             log.info(f"[WORLD] cipher expired: {self._plaintext}")
             self._clear_cipher()
+
+    # --- Elections ---
+
+    def _start_election(self):
+        self._election_active = True
+        self._election_started_tick = self._tick
+        self._votes.clear()
+        self._board.post(
+            "WORLD",
+            f"ELECTION: Vote for one agent to receive {self._election_reward} coins. "
+            f"Use the vote action. You can change your vote. "
+            f"Voting ends in {self.election_duration} ticks. Most votes wins.",
+        )
+        log.info(f"[WORLD] election started (reward: {self._election_reward}, ends tick {self._tick + self.election_duration})")
+
+    def _check_election_end(self):
+        if self._tick - self._election_started_tick < self.election_duration:
+            return
+
+        self._election_active = False
+
+        if not self._votes:
+            self._board.post("WORLD", "ELECTION ENDED: No votes cast. No winner.")
+            log.info("[WORLD] election ended with no votes")
+            return
+
+        # Count votes
+        tally: dict[str, list[str]] = {}
+        for voter, candidate in self._votes.items():
+            tally.setdefault(candidate, []).append(voter)
+
+        # Find winner (most votes, random tiebreak)
+        max_votes = max(len(v) for v in tally.values())
+        winners = [c for c, v in tally.items() if len(v) == max_votes]
+        winner = random.choice(winners)
+        vote_count = len(tally[winner])
+
+        # Award coins
+        if self._store.has(winner, "economy"):
+            eco = self._store.get(winner, "economy")
+            eco["coins"] += self._election_reward
+            self._store.set(winner, "economy", eco)
+            self._perception.notify(winner, f"+{self._election_reward} coins (won election)")
+
+        # Announce results
+        results = ", ".join(f"{c}: {len(v)} votes" for c, v in sorted(tally.items(), key=lambda x: -len(x[1])))
+        self._board.post(
+            "WORLD",
+            f"ELECTION WON by {winner} with {vote_count} votes! "
+            f"They receive {self._election_reward} coins. Results: {results}",
+        )
+        log.info(f"[WORLD] election won by {winner} ({vote_count} votes). Tally: {results}")
+
+        self._votes.clear()
+
+    def cast_vote(self, agent: Agent, candidate: str) -> str:
+        if not self._election_active:
+            return "No active election."
+        candidate = candidate.strip()
+        if not self._pool.by_handle(candidate):
+            return f"Unknown agent: {candidate}"
+        if candidate == agent.handle:
+            return "You cannot vote for yourself."
+        old = self._votes.get(agent.handle)
+        self._votes[agent.handle] = candidate
+        ticks_left = self.election_duration - (self._tick - self._election_started_tick)
+        if old and old != candidate:
+            return f"Vote changed from {old} to {candidate}. {ticks_left} ticks left."
+        return f"Voted for {candidate}. {ticks_left} ticks left in the election."
 
     def submit_code(self, agent: Agent, guess: str) -> str:
         if not self._plaintext:

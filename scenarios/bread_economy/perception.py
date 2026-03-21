@@ -23,6 +23,7 @@ def make_bread_perception(prompts_dir: Path | None = None) -> Perception:
     d = prompts_dir or _DEFAULT_PROMPTS_DIR
     identity_tpl = (d / "identity.md").read_text()
     soul_tpl = (d / "soul.md").read_text()
+    memory_tpl = (d / "memory.md").read_text()
     tick_tpl = (d / "tick.md").read_text()
     system_prompt = (d / "system.md").read_text()
 
@@ -33,12 +34,14 @@ def make_bread_perception(prompts_dir: Path | None = None) -> Perception:
         mem = store.get(agent.handle, "memory")
         soul = mem.get("soul", "") or "(empty)"
         soul_block = soul_tpl.format(soul=soul)
+        journal = mem.get("memory", "") or "(empty)"
+        journal_block = memory_tpl.format(memory=journal)
         return identity_tpl.format(
             handle=agent.handle,
             personality=info["personality"],
             role_description=role_desc,
             soul=soul_block,
-        )
+        ) + "\n\n" + journal_block
 
     def build_tick(agent, store, board, bus, tick, notifications):
         eco = store.get(agent.handle, "economy")

@@ -73,6 +73,19 @@ export interface EconomyData {
   trade_volume: Record<string, number>
 }
 
+export interface ElectionTallyEntry {
+  count: number
+  voters: string[]
+}
+
+export interface ElectionData {
+  active: boolean
+  started_tick: number
+  ticks_left: number
+  total_votes: number
+  tally: Record<string, ElectionTallyEntry>
+}
+
 export interface SimulationData {
   agents: Agent[]
   events: SimEvent[]
@@ -81,6 +94,7 @@ export interface SimulationData {
   stats: AgentStats[]
   economy: EconomyData
   cipher: CipherData | null
+  election: ElectionData | null
   tick: number
   aliveCount: number
   totalEvents: number

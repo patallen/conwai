@@ -58,7 +58,7 @@ def agent_stats(events: EventLog) -> list[dict]:
 
 def economy_counts(events: EventLog) -> dict:
     rows = events._conn.execute(
-        "SELECT type, COUNT(*) FROM events WHERE type IN ('bake', 'give', 'payment', 'forage') GROUP BY type"
+        "SELECT type, COUNT(*) FROM events WHERE type IN ('bake', 'give', 'payment', 'forage', 'trade', 'offer') GROUP BY type"
     ).fetchall()
     counts = {r[0]: r[1] for r in rows}
     bread_baked = events._conn.execute(
@@ -70,7 +70,7 @@ def economy_counts(events: EventLog) -> dict:
 
 def trade_volume(events: EventLog) -> list[dict]:
     rows = events._conn.execute(
-        "SELECT id, t, entity, type, data FROM events WHERE type = 'give' ORDER BY id"
+        "SELECT id, t, entity, type, data FROM events WHERE type IN ('give', 'trade') ORDER BY id"
     ).fetchall()
     return [events._row_to_dict(r) for r in rows]
 
