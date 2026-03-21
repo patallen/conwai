@@ -25,7 +25,7 @@ def create_registry(world=None) -> ActionRegistry:
     registry.register(
         Action(
             name="bake",
-            description="Bake bread from flour and water. Requires flour and water (check your inventory).",
+            description="Bake bread from flour and water. You can bake AND take other actions in the same tick. You eat bread, not raw flour — bake regularly or starve.",
             parameters={},
             handler=_bake,
         )

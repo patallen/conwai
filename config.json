@@ -2,9 +2,9 @@
   "seed": 42,
   "starting": {
     "coins": 500,
-    "flour": 50,
-    "water": 50,
-    "bread": 20,
+    "flour": 10,
+    "water": 10,
+    "bread": 5,
     "hunger": 100,
     "thirst": 100
   },
