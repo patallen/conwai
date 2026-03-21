@@ -90,9 +90,16 @@ class MemoryCompression:
                 trimmed += "..."
             parts.append(trimmed)
 
+        # Count how many actions were taken (including noise ones)
+        total_actions = sum(1 for m in tick_messages if m.get("role") == "tool")
+        total_actions += len(feedback) if feedback else 0
+
         del messages[start:]
 
-        if parts:
+        # Drop ticks where actions were taken but all were noise (e.g. only update_journal)
+        # Keep ticks with meaningful actions, or ticks with no actions at all (pure reasoning)
+        only_noise = total_actions > 0 and not action_results
+        if parts and not only_noise:
             summary = f"[{timestamp}] " + "\n".join(parts)
             messages.append({"role": "user", "content": summary, "_tick_summary": True})
 
