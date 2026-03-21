@@ -173,7 +173,10 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
     def _accept(agent: Agent, ctx: TickContext, args: dict) -> str:
         offer_book.expire(ctx.tick)
 
-        oid = int(args.get("offer_id", 0))
+        try:
+            oid = int(args.get("offer_id", 0))
+        except (ValueError, TypeError):
+            return f"Invalid offer_id: {args.get('offer_id')}. Use the numeric offer ID (e.g. 5)."
         offer = offer_book.get(oid)
         if not offer:
             return f"Offer #{oid} not found or expired."
