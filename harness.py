@@ -159,6 +159,7 @@ async def run(args):
 
     while True:
         try:
+            import readline  # noqa: F811 — enables line editing in input()
             line = await asyncio.get_event_loop().run_in_executor(None, lambda: input(f"[tick {tick}] > "))
         except (EOFError, KeyboardInterrupt):
             break
