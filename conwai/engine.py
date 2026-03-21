@@ -6,15 +6,17 @@ import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+from conwai.cognition.percept import ActionFeedback
+from conwai.cognition.perception import PerceptionBuilder
+
 if TYPE_CHECKING:
     from conwai.actions import ActionRegistry
-    from conwai.brain import Brain
+    from conwai.agent import Agent
     from conwai.bulletin_board import BulletinBoard
+    from conwai.cognition import Brain
     from conwai.events import EventLog
     from conwai.messages import MessageBus
-    from conwai.perception import Perception
     from conwai.pool import AgentPool
-    from conwai.repository import AgentRepository
     from conwai.store import ComponentStore
 
 log = logging.getLogger("conwai")
@@ -25,7 +27,7 @@ class TickContext:
     tick: int
     pool: AgentPool
     store: ComponentStore
-    perception: Perception
+    perception: PerceptionBuilder
     tick_state: dict = field(default_factory=dict)
     board: BulletinBoard | None = None
     bus: MessageBus | None = None
@@ -46,14 +48,17 @@ class BrainPhase:
         self,
         actions: ActionRegistry,
         brains: dict[str, Brain],
-        perception: Perception,
+        perception: PerceptionBuilder,
     ):
         self.actions = actions
         self.brains = brains
         self.perception = perception
+        self._action_feedback: dict[str, list[ActionFeedback]] = {}
 
     async def run(self, ctx: TickContext) -> None:
         agents = ctx.pool.alive()
+        alive_handles = {a.handle for a in agents}
+        self._action_feedback = {h: fb for h, fb in self._action_feedback.items() if h in alive_handles}
         self.actions.begin_tick(ctx, [a.handle for a in agents])
         tasks = [
             asyncio.create_task(self._tick_agent(a, ctx))
@@ -62,15 +67,30 @@ class BrainPhase:
         ]
         await asyncio.gather(*tasks)
 
-    async def _tick_agent(self, agent, ctx: TickContext) -> None:
+    async def _tick_agent(self, agent: Agent, ctx: TickContext) -> None:
         start = time.monotonic()
         brain = self.brains[agent.handle]
-        identity = self.perception.build_identity(agent, ctx.store)
-        text = self.perception.build(agent, ctx.store, ctx.board, ctx.bus, ctx.tick)
-        decisions = await brain.decide(agent, text, identity=identity, tick=ctx.tick)
+        feedback = self._action_feedback.pop(agent.handle, [])
+
+        percept = self.perception.build(
+            agent, ctx.store, ctx.board, ctx.bus, ctx.tick,
+            action_feedback=feedback,
+        )
+
+        decisions = await brain.think(percept)
+
+        tick_feedback: list[ActionFeedback] = []
         for decision in decisions:
             result = self.actions.execute(agent, decision.action, decision.args, ctx)
-            await brain.observe(decision, result)
+            tick_feedback.append(ActionFeedback(
+                action=decision.action,
+                args=decision.args,
+                result=result,
+            ))
+
+        if tick_feedback:
+            self._action_feedback[agent.handle] = tick_feedback
+
         log.info(f"[{agent.handle}] tick {ctx.tick} took {time.monotonic() - start:.1f}s")
 
 
@@ -79,9 +99,7 @@ class Engine:
         self,
         pool: AgentPool,
         store: ComponentStore,
-        perception: Perception,
-        repo: AgentRepository,
-        brains: dict[str, Brain],
+        perception: PerceptionBuilder,
         board: BulletinBoard | None = None,
         bus: MessageBus | None = None,
         events: EventLog | None = None,
@@ -92,8 +110,6 @@ class Engine:
         self.board = board
         self.bus = bus
         self.events = events
-        self.repo = repo
-        self.brains = brains
         self._phases: list[Phase] = []
 
     def add_phase(self, phase: Phase) -> None:
@@ -113,12 +129,3 @@ class Engine:
 
         for phase in self._phases:
             await phase.run(ctx)
-
-        # Persist
-        self.pool.save_all()
-        self._save_brain_states()
-
-    def _save_brain_states(self):
-        for handle, brain in self.brains.items():
-            if hasattr(brain, 'get_state'):
-                self.repo.save_brain_state(handle, brain.get_state())

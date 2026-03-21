@@ -8,6 +8,7 @@ from conwai.events import EventLog
 from conwai.messages import MessageBus
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
+from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
 from scenarios.bread_economy.actions import create_registry
 from scenarios.bread_economy.perception import make_bread_perception
@@ -26,7 +27,8 @@ def _setup():
     events = EventLog(path=Path(":memory:"))
     perception = make_bread_perception()
     tmp = Path(tempfile.mkdtemp())
-    repo = AgentRepository(base_dir=tmp / "agents")
+    storage = SQLiteStorage(tmp / "test.db")
+    repo = AgentRepository(storage=storage)
     pool = AgentPool(repo, store, bus=bus)
     return store, board, bus, events, perception, pool
 

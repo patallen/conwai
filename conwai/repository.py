@@ -1,67 +1,45 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
+    from conwai.storage import Storage
     from conwai.store import ComponentStore
 
 
 class AgentRepository:
-    def __init__(self, base_dir: Path = Path("data/agents")):
-        self._base_dir = base_dir
-
-    def _agent_dir(self, handle: str) -> Path:
-        return self._base_dir / handle
+    def __init__(self, storage: Storage):
+        self._storage = storage
 
     def exists(self, handle: str) -> bool:
-        return self._agent_dir(handle).exists()
+        return self._storage.load_component(handle, "_identity") is not None
 
     def list_handles(self) -> list[str]:
-        if not self._base_dir.exists():
-            return []
-        return [d.name for d in sorted(self._base_dir.iterdir())
-                if d.is_dir() and (d / "identity.json").exists()]
+        return [e for e in self._storage.list_entities()
+                if self._storage.load_component(e, "_identity") is not None]
 
     def save_agent(self, agent: Agent) -> None:
-        d = self._agent_dir(agent.handle)
-        d.mkdir(parents=True, exist_ok=True)
-        (d / "identity.json").write_text(json.dumps({
+        self._storage.save_component(agent.handle, "_identity", {
             "handle": agent.handle,
             "alive": agent.alive,
             "born_tick": agent.born_tick,
-        }))
+        })
 
     def load_agent(self, handle: str) -> Agent | None:
         from conwai.agent import Agent
-        d = self._agent_dir(handle)
-        if not d.exists():
+        data = self._storage.load_component(handle, "_identity")
+        if data is None:
             return None
-        id_path = d / "identity.json"
-        if not id_path.exists():
-            return None
-        data = json.loads(id_path.read_text())
-        # Strip legacy fields that are no longer on Agent
         for key in list(data.keys()):
             if key not in ("handle", "alive", "born_tick"):
                 data.pop(key)
         return Agent(**data)
 
     def save_components(self, handle: str, store: ComponentStore) -> None:
-        store.save(handle, self._agent_dir(handle))
+        # No-op: ComponentStore now writes through to storage on set()
+        pass
 
     def load_components(self, handle: str, store: ComponentStore) -> None:
-        store.load(handle, self._agent_dir(handle))
-
-    def save_brain_state(self, handle: str, state: dict) -> None:
-        d = self._agent_dir(handle)
-        d.mkdir(parents=True, exist_ok=True)
-        (d / "context.json").write_text(json.dumps(state, indent=2))
-
-    def load_brain_state(self, handle: str) -> dict | None:
-        ctx_path = self._agent_dir(handle) / "context.json"
-        if not ctx_path.exists():
-            return None
-        return json.loads(ctx_path.read_text())
+        # No-op: ComponentStore loads everything on startup via load_all()
+        pass

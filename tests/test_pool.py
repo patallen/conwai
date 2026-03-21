@@ -5,15 +5,17 @@ from conwai.agent import Agent
 from conwai.messages import MessageBus
 from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
+from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
 
 
 def _make_pool(tmp_path=None):
     if tmp_path is None:
         tmp_path = Path(tempfile.mkdtemp())
-    repo = AgentRepository(base_dir=tmp_path / "agents")
+    storage = SQLiteStorage(tmp_path / "test.db")
+    repo = AgentRepository(storage=storage)
     bus = MessageBus()
-    store = ComponentStore()
+    store = ComponentStore(storage=storage)
     store.register_component("economy", {"coins": 500})
     store.register_component("inventory", {"flour": 0, "water": 0, "bread": 0})
     pool = AgentPool(repo, store, bus=bus)
@@ -53,8 +55,9 @@ def test_queries():
 def test_pool_without_bus():
     """Pool works when bus is None."""
     tmp_path = Path(tempfile.mkdtemp())
-    repo = AgentRepository(base_dir=tmp_path / "agents")
-    store = ComponentStore()
+    storage = SQLiteStorage(tmp_path / "test.db")
+    repo = AgentRepository(storage=storage)
+    store = ComponentStore(storage=storage)
     store.register_component("economy", {"coins": 500})
     pool = AgentPool(repo, store)
     agent = pool.load_or_create(Agent(handle="A1"))

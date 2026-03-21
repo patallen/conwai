@@ -52,21 +52,6 @@ class TestComponentStore:
         store.init_agent("A2")
         assert set(store.handles()) == {"A1", "A2"}
 
-    def test_save_and_load(self, tmp_path):
-        store = ComponentStore()
-        store.register_component("economy", {"coins": 500})
-        store.register_component("inventory", {"flour": 0})
-        store.init_agent("A1")
-        store.set("A1", "economy", {"coins": 123})
-        store.save("A1", tmp_path / "A1")
-
-        store2 = ComponentStore()
-        store2.register_component("economy", {"coins": 500})
-        store2.register_component("inventory", {"flour": 0})
-        store2.load("A1", tmp_path / "A1")
-        assert store2.get("A1", "economy") == {"coins": 123}
-        assert store2.get("A1", "inventory") == {"flour": 0}
-
     def test_init_agent_with_overrides(self):
         store = ComponentStore()
         store.register_component("economy", {"coins": 500})

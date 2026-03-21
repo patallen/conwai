@@ -28,7 +28,8 @@ def test_perception_includes_board_posts():
     board.post("A2", "hello world")
 
     p = make_bread_perception()
-    text = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    text = percept.to_prompt()
     assert "hello world" in text
     assert "A2" in text
 
@@ -42,7 +43,8 @@ def test_perception_includes_dms():
     bus.send("A2", "A1", "secret message")
 
     p = make_bread_perception()
-    text = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    text = percept.to_prompt()
     assert "secret message" in text
 
 
@@ -55,7 +57,8 @@ def test_perception_includes_hunger_warning():
     bus.register("A1")
 
     p = make_bread_perception()
-    text = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    text = percept.to_prompt()
     assert "hungry" in text.lower() or "hunger" in text.lower()
 
 
@@ -68,7 +71,8 @@ def test_perception_includes_state():
     bus.register("A1")
 
     p = make_bread_perception()
-    text = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    text = percept.to_prompt()
     assert "42" in text
 
 
@@ -81,5 +85,6 @@ def test_perception_includes_notifications():
 
     p = make_bread_perception()
     p.notify("A1", "coins -5 (daily tax)")
-    text = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    text = percept.to_prompt()
     assert "daily tax" in text

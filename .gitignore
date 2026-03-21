@@ -21,6 +21,11 @@ data/events.jsonl
 data/events.db
 data/events.db-wal
 data/events.db-shm
+data/state.db
+data/state.db-wal
+data/state.db-shm
+data/world_state.json
+data/cipher.json
 data/sim.log
 data/tick
 handler_input.txt

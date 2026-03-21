@@ -38,11 +38,10 @@ class AgentPool:
     ) -> Agent:
         if self._repo.exists(agent.handle):
             agent = self._repo.load_agent(agent.handle)
-            self._repo.load_components(agent.handle, self._store)
+            # Components already loaded by store.load_all() -- no need to load here
         else:
             self._store.init_agent(agent.handle, overrides=component_overrides)
             self._repo.save_agent(agent)
-            self._repo.save_components(agent.handle, self._store)
         self._agents[agent.handle] = agent
         if agent.alive and self._bus:
             self._bus.register(agent.handle)
@@ -57,7 +56,6 @@ class AgentPool:
         if self._bus:
             self._bus.register(agent.handle)
         self._repo.save_agent(agent)
-        self._repo.save_components(agent.handle, self._store)
         return agent
 
     def kill(self, handle: str) -> None:
@@ -66,12 +64,13 @@ class AgentPool:
             agent.alive = False
             if self._bus:
                 self._bus.unregister(handle)
+            self._repo.save_agent(agent)  # persist the death
 
     def save(self, handle: str) -> None:
         agent = self._agents.get(handle)
         if agent:
             self._repo.save_agent(agent)
-            self._repo.save_components(handle, self._store)
+            # Components already persisted on set() -- no need to save here
 
     def save_all(self) -> None:
         for handle in self._agents:

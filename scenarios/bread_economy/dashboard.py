@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 from fastapi import FastAPI, Query, Request
@@ -6,31 +5,23 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from conwai.events import EventLog
+from conwai.storage import SQLiteStorage
 from scenarios.bread_economy import queries
 
 app = FastAPI()
 
 FRONTEND_DIR = Path("frontend/dist")
-AGENTS_DIR = Path("data/agents")
-HANDLER_FILE = Path("handler_input.txt")
-TICK_PATH = Path("data/tick")
-CIPHER_PATH = Path("data/cipher.json")
-WORLD_STATE_PATH = Path("data/world_state.json")
 
 _events = EventLog()
+_storage = SQLiteStorage()
 
 
 def read_agents() -> list[dict]:
     agents = []
-    if not AGENTS_DIR.exists():
-        return agents
-    for d in sorted(AGENTS_DIR.iterdir()):
-        if not d.is_dir():
-            continue
-        identity_path = d / "identity.json"
-        if not identity_path.exists():
-            continue
-        identity = json.loads(identity_path.read_text())
+    for entity in _storage.list_entities():
+        identity = _storage.load_component(entity, "_identity")
+        if identity is None:
+            continue  # Not an agent (e.g. WORLD)
         if not identity.get("alive", True):
             continue
 
@@ -42,14 +33,13 @@ def read_agents() -> list[dict]:
         }
 
         # Read agent_info component for role/personality
-        info_path = d / "agent_info.json"
-        if info_path.exists():
-            info = json.loads(info_path.read_text())
+        info = _storage.load_component(entity, "agent_info")
+        if info:
             agent["role"] = info.get("role", "")
             agent["personality"] = info.get("personality", "")
         else:
-            agent["role"] = identity.get("role", "")
-            agent["personality"] = identity.get("personality", "")
+            agent["role"] = ""
+            agent["personality"] = ""
 
         for comp_name, fields in [
             ("economy", ["coins"]),
@@ -57,9 +47,8 @@ def read_agents() -> list[dict]:
             ("hunger", ["hunger", "thirst"]),
             ("memory", ["memory", "soul"]),
         ]:
-            comp_path = d / f"{comp_name}.json"
-            if comp_path.exists():
-                data = json.loads(comp_path.read_text())
+            data = _storage.load_component(entity, comp_name)
+            if data:
                 for f in fields:
                     if f == "coins":
                         agent["energy"] = int(data.get(f, 0))
@@ -82,34 +71,41 @@ def api_events(since: int = Query(0)):
 
 @app.get("/api/status")
 def api_status():
-    tick = int(TICK_PATH.read_text().strip()) if TICK_PATH.exists() else 0
-    alive = 0
-    if AGENTS_DIR.exists():
-        for d in AGENTS_DIR.iterdir():
-            if d.is_dir():
-                identity_path = d / "identity.json"
-                if identity_path.exists():
-                    identity = json.loads(identity_path.read_text())
-                    if identity.get("alive", True):
-                        alive += 1
+    tick_data = _storage.load_component("WORLD", "tick")
+    tick = tick_data["value"] if tick_data else 0
+    alive = sum(1 for a in read_agents() if a.get("alive", True))
     return {"tick": tick, "alive": alive, "total_events": _events.count()}
 
 
 @app.get("/api/cipher")
 def api_cipher():
-    if not CIPHER_PATH.exists():
+    state = _storage.load_component("WORLD", "world_events")
+    if not state:
         return None
-    return json.loads(CIPHER_PATH.read_text())
+    # Extract cipher status fields
+    if not state.get("plaintext"):
+        return None
+    return {
+        "ciphertext": state.get("ciphertext"),
+        "started_tick": state.get("cipher_started_tick", 0),
+        "expires_tick": state.get("cipher_started_tick", 0) + 80,
+        "clue_holders": list(state.get("clue_holders", {}).keys()),
+        "clues": state.get("clue_holders", {}),
+        "attempts": state.get("attempts", []),
+        "reward": state.get("reward", 300),
+        "penalty": state.get("penalty", 10),
+    }
 
 
 @app.get("/api/election")
 def api_election():
-    if not WORLD_STATE_PATH.exists():
+    state = _storage.load_component("WORLD", "world_events")
+    if not state:
         return None
-    state = json.loads(WORLD_STATE_PATH.read_text())
     if not state.get("election_active"):
         return None
-    tick = int(TICK_PATH.read_text().strip()) if TICK_PATH.exists() else 0
+    tick_data = _storage.load_component("WORLD", "tick")
+    tick = tick_data["value"] if tick_data else 0
     votes = state.get("votes", {})
     # Tally
     tally: dict[str, list[str]] = {}
@@ -166,53 +162,42 @@ async def api_handler(request: Request):
 
     if "action" in body:
         action = body["action"]
+        valid_actions = {"post_board", "send_dm", "set_energy", "drain_energy", "drop_secret"}
+        if action not in valid_actions:
+            return JSONResponse({"ok": False, "error": f"unknown action: {action}"}, status_code=400)
         try:
-            if action == "post_board":
-                line = body["content"]
-            elif action == "send_dm":
-                line = f"@{body['to']} {body['content']}"
-            elif action == "set_energy":
-                line = f"!set_energy {body['handle']} {body['value']}"
-            elif action == "drain_energy":
-                line = f"!drain {body['handle']} {body['amount']}"
-            elif action == "drop_secret":
-                line = f"!secret {body['handle']} {body['content']}"
-            else:
-                return JSONResponse({"ok": False, "error": f"unknown action: {action}"}, status_code=400)
+            _storage.push_command(body)
         except KeyError as e:
             return JSONResponse({"ok": False, "error": f"missing field: {e}"}, status_code=400)
-
-        with open(HANDLER_FILE, "a") as f:
-            f.write(line + "\n")
         return {"ok": True}
 
     msg = body.get("message", "").strip()
     if not msg:
         return JSONResponse({"ok": False, "error": "empty message"}, status_code=400)
-    with open(HANDLER_FILE, "a") as f:
-        f.write(msg + "\n")
+    _storage.push_command({"action": "post_board", "content": msg})
     return {"ok": True, "message": msg}
 
 
 @app.get("/api/agent/{handle}/context")
 def api_agent_context(handle: str):
-    ctx_path = AGENTS_DIR / handle / "context.json"
-    if not ctx_path.exists():
+    data = _storage.load_component(handle, "brain")
+    if not data:
         return {"error": "no context available"}
-    return json.loads(ctx_path.read_text())
+    return data
 
 
 @app.get("/api/agent/{handle}/memory")
 def api_agent_memory(handle: str):
-    ctx_path = AGENTS_DIR / handle / "context.json"
-    if not ctx_path.exists():
+    brain = _storage.load_component(handle, "brain")
+    if not brain:
         return {"memory": ""}
-    context = json.loads(ctx_path.read_text())
-    diary = []
-    for m in context.get("messages", []):
+    parts = []
+    for m in brain.get("messages", []):
         if m.get("_tick_summary"):
-            diary.append(m["content"])
-    return {"memory": "\n".join(diary) if diary else ""}
+            parts.append(m["content"])
+    for entry in brain.get("diary", []):
+        parts.append(entry.get("content", ""))
+    return {"memory": "\n".join(parts) if parts else ""}
 
 
 @app.get("/api/agent/{handle}")

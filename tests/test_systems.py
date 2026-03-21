@@ -1,6 +1,6 @@
 import asyncio
 
-import scenarios.bread_economy.config as config
+from scenarios.bread_economy.config import get_config
 from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickContext
@@ -60,8 +60,8 @@ def test_decay():
     ctx = _make_ctx(pool, store, perception, board, bus, events, tick=1)
     asyncio.run(DecaySystem().run(ctx))
     h = store.get("A1", "hunger")
-    assert h["hunger"] == 100 - config.HUNGER_DECAY_PER_TICK
-    assert h["thirst"] == 100 - config.THIRST_DECAY_PER_TICK
+    assert h["hunger"] == 100 - get_config().hunger_decay_per_tick
+    assert h["thirst"] == 100 - get_config().thirst_decay_per_tick
 
 
 def test_tax():
@@ -86,7 +86,7 @@ def test_spoilage():
     store, perception, board, bus, events, pool = _setup()
     _add_agent(pool, store)
     store.set("A1", "inventory", {"flour": 0, "water": 0, "bread": 5})
-    ctx = _make_ctx(pool, store, perception, board, bus, events, tick=config.BREAD_SPOIL_INTERVAL)
+    ctx = _make_ctx(pool, store, perception, board, bus, events, tick=get_config().bread_spoil_interval)
     asyncio.run(SpoilageSystem().run(ctx))
     inv = store.get("A1", "inventory")
     assert inv["bread"] < 5
