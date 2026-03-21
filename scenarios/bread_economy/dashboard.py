@@ -180,19 +180,27 @@ async def api_handler(request: Request):
 
 @app.get("/api/handler/inbox")
 def api_handler_inbox():
-    """All DMs sent to HANDLER, grouped by sender as conversation threads."""
+    """All DM threads involving HANDLER (both directions)."""
     rows = _events._conn().execute(
         "SELECT id, t, entity, type, data FROM events "
-        "WHERE type = 'dm_sent' AND json_extract(data, '$.to') = 'HANDLER' "
+        "WHERE type = 'dm_sent' AND "
+        "(json_extract(data, '$.to') = 'HANDLER' OR entity = 'HANDLER') "
         "ORDER BY id"
     ).fetchall()
     threads: dict[str, list[dict]] = {}
     for r in rows:
         event = _events._row_to_dict(r)
-        sender = event["entity"]
-        threads.setdefault(sender, []).append({
+        # Key by the other party (not HANDLER)
+        if event["entity"] == "HANDLER":
+            other = event["data"].get("to", "")
+        else:
+            other = event["entity"]
+        if not other or other == "HANDLER":
+            continue
+        threads.setdefault(other, []).append({
             "t": event["t"],
             "content": event["data"].get("content", ""),
+            "from": event["entity"],
         })
     return threads
 
