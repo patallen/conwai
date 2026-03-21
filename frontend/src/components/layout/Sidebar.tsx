@@ -46,6 +46,9 @@ export function Sidebar() {
         <div onClick={() => dispatch({ type: 'SHOW_ECONOMY' })} style={navLinkStyle(view === 'economy')}>
           ECONOMY
         </div>
+        <div onClick={() => dispatch({ type: 'SHOW_HANDLER' })} style={navLinkStyle(view === 'handler')}>
+          INBOX
+        </div>
       </div>
 
       {data.cipher && (() => {

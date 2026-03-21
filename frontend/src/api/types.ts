@@ -103,7 +103,7 @@ export interface SimulationData {
 export interface UIState {
   selectedAgent: string | null
   selectedConversation: string | null
-  view: 'graph' | 'agent' | 'conversation' | 'economy' | 'board'
+  view: 'graph' | 'agent' | 'conversation' | 'economy' | 'board' | 'handler'
   controlPanelOpen: boolean
   controlPanelPrefill: Partial<HandlerAction> | null
 }

@@ -37,6 +37,7 @@ type UIAction =
   | { type: 'SHOW_GRAPH' }
   | { type: 'SHOW_ECONOMY' }
   | { type: 'SHOW_BOARD' }
+  | { type: 'SHOW_HANDLER' }
   | { type: 'TOGGLE_CONTROL_PANEL' }
   | { type: 'OPEN_CONTROL_PANEL'; prefill?: Partial<HandlerAction> }
   | { type: 'CLOSE_CONTROL_PANEL' }
@@ -52,6 +53,7 @@ export function useUIDispatch(): Dispatch<UIAction> {
       case 'SHOW_GRAPH': navigate('/'); break
       case 'SHOW_ECONOMY': navigate('/economy'); break
       case 'SHOW_BOARD': navigate('/board'); break
+      case 'SHOW_HANDLER': navigate('/handler'); break
       case 'TOGGLE_CONTROL_PANEL':
       case 'OPEN_CONTROL_PANEL':
       case 'CLOSE_CONTROL_PANEL':
@@ -80,6 +82,8 @@ export function useUIState(): UIState {
     view = 'economy'
   } else if (path === '/board') {
     view = 'board'
+  } else if (path === '/handler') {
+    view = 'handler'
   }
 
   const { controlPanelOpen, controlPanelPrefill } = useControlPanel()

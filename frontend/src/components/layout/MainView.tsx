@@ -4,6 +4,7 @@ import { AgentDetail } from '../agents/AgentDetail'
 import { ConversationView } from '../feed/ConversationView'
 import { EconomyOverview } from '../economy/EconomyOverview'
 import { BoardView } from '../feed/BoardView'
+import { HandlerInbox } from '../handler/HandlerInbox'
 
 export function MainView() {
   const { view } = useUIState()
@@ -23,6 +24,7 @@ export function MainView() {
       {view === 'conversation' && <ConversationView />}
       {view === 'economy' && <EconomyOverview />}
       {view === 'board' && <BoardView />}
+      {view === 'handler' && <HandlerInbox />}
     </div>
   )
 }
