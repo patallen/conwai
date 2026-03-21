@@ -229,17 +229,6 @@ async def run(args):
             bus.send(from_handle, handle, msg)
             events.log(from_handle, "dm_sent", {"to": handle, "content": msg})
             print(f"  [{from_handle}] -> [@{handle}]: {msg}")
-            continue
-        elif line.startswith("!dm "):
-            # DM from our agent to someone
-            parts = line.split(" ", 2)
-            if len(parts) >= 3:
-                to_handle = parts[1].lstrip("@")
-                msg = parts[2]
-                bus.send(handle, to_handle, msg)
-                events.log(handle, "dm_sent", {"to": to_handle, "content": msg})
-                print(f"  [@{handle}] -> [{to_handle}]: {msg}")
-            continue
         else:
             # Post to board as WORLD
             board.post("WORLD", line)
