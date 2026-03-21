@@ -35,8 +35,6 @@ from scenarios.bread_economy.processes import (
     MemoryRecall,
 )
 from scenarios.bread_economy.systems import (
-    AutoBakeSystem,
-    AutoForageSystem,
     ConsumptionSystem,
     DeathSystem,
     DecaySystem,
@@ -325,8 +323,6 @@ async def run():
         bus=bus,
         events=events,
     )
-    engine.add_phase(AutoForageSystem())
-    engine.add_phase(AutoBakeSystem())
     engine.add_phase(DecaySystem())
     engine.add_phase(TaxSystem())
     engine.add_phase(SpoilageSystem())

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from conwai.actions import Action, ActionRegistry
 from scenarios.bread_economy.actions.communication import _post_to_board, _send_message
+from scenarios.bread_economy.actions.crafting import _bake, _forage
 from scenarios.bread_economy.actions.economy import _give, _pay, make_offer_handlers
 from scenarios.bread_economy.actions.personal import _inspect, _update_journal, _update_soul
 from scenarios.bread_economy.actions.world import make_world_handlers
@@ -13,6 +14,22 @@ def create_registry(world=None) -> ActionRegistry:
     _offer, _accept = make_offer_handlers()
     _submit_code, _vote = make_world_handlers(world)
 
+    registry.register(
+        Action(
+            name="forage",
+            description="Spend this tick foraging for raw resources. You cannot take other actions this tick. Yields vary by your role — you produce more of some resources than others. Consecutive forages build a streak bonus (up to 3x).",
+            parameters={},
+            handler=_forage,
+        )
+    )
+    registry.register(
+        Action(
+            name="bake",
+            description="Bake bread from flour and water. Requires flour and water (check your inventory).",
+            parameters={},
+            handler=_bake,
+        )
+    )
     registry.register(
         Action(
             name="post_to_board",
