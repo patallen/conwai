@@ -162,7 +162,7 @@ async def run():
         "hunger", {"hunger": cfg.starting_hunger, "thirst": cfg.starting_thirst}
     )
     store.register_component(
-        "memory", {"memory": "", "code_fragment": None, "soul": ""}
+        "memory", {"memory": "", "code_fragment": None, "soul": "", "strategy": ""}
     )
     store.register_component("forage", {"streak": 0, "last_tick": 0})
     store.register_component("brain", {"messages": [], "diary": []})
@@ -187,12 +187,10 @@ async def run():
     # --- LLM clients ---
     clients = [
         LLMClient(
-            base_url="http://ai-lab.lan:8080/v1",
-            model="/mnt/models/Qwen3.5-9B-AWQ",
-        ),
-        LLMClient(
-            base_url="http://ai-lab.lan:8081/v1",
-            model="/mnt/models/Qwen3.5-9B-AWQ",
+            base_url="https://50d7tuyzqnx256-8000.proxy.runpod.net/v1",
+            model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
+            max_tokens=2048,
+            api_key="none",
         ),
     ]
 
@@ -211,6 +209,8 @@ async def run():
     embedder = FastEmbedder()
 
     # --- Brain pipeline: round-robin across LLM clients ---
+    from scenarios.bread_economy.processes.review import StrategicReview
+
     _brain_counter = 0
 
     def make_brain() -> BlackboardBrain:
@@ -219,6 +219,7 @@ async def run():
         _brain_counter += 1
         return BlackboardBrain(
             processes=[
+                StrategicReview(client=client, store=store, interval=24),
                 MemoryCompression(
                     recent_ticks=16,
                     timestamp_formatter=tick_to_timestamp,
@@ -239,7 +240,7 @@ async def run():
 
     # --- Agents + Brains ---
     brains: dict[str, Brain] = {}
-    roles = ["flour_forager"] * 4 + ["water_forager"] * 4
+    roles = ["flour_forager"] * 13 + ["water_forager"] * 13
 
     # Load all existing agents from storage
     for handle in repo.list_handles():

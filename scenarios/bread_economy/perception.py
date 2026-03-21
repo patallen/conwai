@@ -45,6 +45,7 @@ class BreadPerceptionBuilder:
         self.identity_tpl = (prompts_dir / "identity.md").read_text()
         self.soul_tpl = (prompts_dir / "soul.md").read_text()
         self.memory_tpl = (prompts_dir / "memory.md").read_text()
+        self.strategy_tpl = (prompts_dir / "strategy.md").read_text()
         self.tick_tpl = (prompts_dir / "tick.md").read_text()
         self.system_prompt = (prompts_dir / "system.md").read_text()
         self._notifications: dict[str, list[str]] = {}
@@ -68,6 +69,8 @@ class BreadPerceptionBuilder:
         soul_block = self.soul_tpl.format(soul=soul)
         journal = mem.get("memory", "") or "(empty)"
         journal_block = self.memory_tpl.format(memory=journal)
+        strategy = mem.get("strategy", "") or "(no strategy yet — set one at your next morning review)"
+        strategy_block = self.strategy_tpl.format(strategy=strategy)
         return (
             self.identity_tpl.format(
                 handle=f"@{agent.handle}",
@@ -75,6 +78,8 @@ class BreadPerceptionBuilder:
                 role_description=role_desc,
                 soul=soul_block,
             )
+            + "\n\n"
+            + strategy_block
             + "\n\n"
             + journal_block
         )

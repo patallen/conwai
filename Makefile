@@ -24,9 +24,10 @@ stop:
 
 clean:
 	rm -rf data/agents
-	rm -f data/events.db data/events.db-wal data/events.db-shm data/tick data/world_state.json data/cipher.json
+	rm -f data/events.db data/events.db-wal data/events.db-shm
+	rm -f data/state.db data/state.db-wal data/state.db-shm
+	rm -f data/tick data/world_state.json data/cipher.json
 	: > data/sim.log
-	: > handler_input.txt
 
 restart: stop clean
 	@sleep 1
