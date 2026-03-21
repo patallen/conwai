@@ -203,7 +203,9 @@ async def run():
     # --- Embedder (shared across all agents, stateless) ---
     from conwai.embeddings import FastEmbedder
 
+    log.info("[WORLD] loading embedding model...")
     embedder = FastEmbedder()
+    log.info("[WORLD] embedding model ready")
 
     # --- Brain pipeline: round-robin across LLM clients ---
     from scenarios.bread_economy.processes.review import StrategicReview
