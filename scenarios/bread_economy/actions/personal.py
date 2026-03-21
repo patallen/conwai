@@ -48,7 +48,7 @@ def _update_journal(agent: Agent, ctx: TickContext, args: dict) -> str:
 
 
 def _inspect(agent: Agent, ctx: TickContext, args: dict) -> str:
-    handle = args.get("handle", "")
+    handle = args.get("handle", "").lstrip("@")
     if not ctx.pool:
         return "inspection unavailable"
     other = ctx.pool.by_handle(handle)

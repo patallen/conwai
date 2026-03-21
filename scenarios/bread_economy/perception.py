@@ -70,7 +70,7 @@ class BreadPerceptionBuilder:
         journal_block = self.memory_tpl.format(memory=journal)
         return (
             self.identity_tpl.format(
-                handle=agent.handle,
+                handle=f"@{agent.handle}",
                 personality=info["personality"],
                 role_description=role_desc,
                 soul=soul_block,
@@ -98,7 +98,7 @@ class BreadPerceptionBuilder:
         if new_posts:
             parts = [
                 "New on the board:\n"
-                + "\n".join(f"{p.handle}: {p.content}" for p in new_posts)
+                + "\n".join(f"@{p.handle}: {p.content}" for p in new_posts)
             ]
         else:
             parts = ["No new activity on the board."]
@@ -106,7 +106,7 @@ class BreadPerceptionBuilder:
         new_dms = bus.receive(agent.handle)
         if new_dms:
             parts.append(
-                "\n".join(f"DM from {dm.from_handle}: {dm.content}" for dm in new_dms)
+                "\n".join(f"DM from @{dm.from_handle}: {dm.content}" for dm in new_dms)
             )
 
         if notifications:

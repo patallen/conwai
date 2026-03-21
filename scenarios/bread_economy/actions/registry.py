@@ -28,7 +28,7 @@ def create_registry(world=None) -> ActionRegistry:
             name="send_message",
             description="Send a private DM to another agent. LIMIT: 2 DMs per tick.",
             parameters={
-                "to": {"type": "string", "description": "Handle of the recipient"},
+                "to": {"type": "string", "description": "Handle of the recipient (e.g. @Marcus)"},
                 "message": {"type": "string", "description": "The message to send"},
             },
             handler=_send_message,
@@ -67,7 +67,7 @@ def create_registry(world=None) -> ActionRegistry:
             parameters={
                 "handle": {
                     "type": "string",
-                    "description": "Handle of the agent to inspect",
+                    "description": "Handle of the agent to inspect (e.g. @Marcus)",
                 },
             },
             handler=_inspect,
@@ -78,7 +78,7 @@ def create_registry(world=None) -> ActionRegistry:
             name="pay",
             description="Pay coins to another agent.",
             parameters={
-                "to": {"type": "string", "description": "Handle of the recipient"},
+                "to": {"type": "string", "description": "Handle of the recipient (e.g. @Marcus)"},
                 "amount": {
                     "type": "integer",
                     "description": "Amount of coins to pay",
@@ -96,7 +96,7 @@ def create_registry(world=None) -> ActionRegistry:
                     "type": "string",
                     "description": "What to give: flour, water, or bread",
                 },
-                "to": {"type": "string", "description": "Handle of the recipient"},
+                "to": {"type": "string", "description": "Handle of the recipient (e.g. @Marcus)"},
                 "amount": {
                     "type": "integer",
                     "description": "Amount to give",
@@ -125,7 +125,7 @@ def create_registry(world=None) -> ActionRegistry:
             parameters={
                 "candidate": {
                     "type": "string",
-                    "description": "Handle of the agent you're voting for",
+                    "description": "Handle of the agent you're voting for (e.g. @Marcus)",
                 },
             },
             handler=_vote,
@@ -136,7 +136,7 @@ def create_registry(world=None) -> ActionRegistry:
             name="offer",
             description="Propose a trade to another agent. They must accept for the trade to happen. Offers expire after 12 ticks. Max 3 pending offers.",
             parameters={
-                "to": {"type": "string", "description": "Handle of the agent to trade with"},
+                "to": {"type": "string", "description": "Handle of the agent to trade with (e.g. @Marcus)"},
                 "give_type": {"type": "string", "description": "What you're offering: coins, flour, water, or bread"},
                 "give_amount": {"type": "integer", "description": "How much you're offering"},
                 "want_type": {"type": "string", "description": "What you want in return: coins, flour, water, or bread"},

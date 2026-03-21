@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from conwai.embeddings import Embedder
 
-_HANDLE_RE = re.compile(r"\b[A-Z](?=[a-z0-9]*\d)[a-z0-9]{1,5}\b")
+_HANDLE_RE = re.compile(r"@(\w+)")
 
 # Actions that add no information to diary entries
 _NOISE_ACTIONS = {"update_journal", "wait"}

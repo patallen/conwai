@@ -2,7 +2,8 @@ import asyncio
 import logging
 import random
 import time
-from uuid import uuid4
+
+from faker import Faker
 
 import scenarios.bread_economy.config as config
 from conwai.agent import Agent
@@ -135,8 +136,10 @@ async def run():
     """Run the bread economy scenario."""
     cfg = get_config()
 
+    fake = Faker()
     if cfg.seed is not None:
         random.seed(cfg.seed)
+        Faker.seed(cfg.seed)
         log.info(f"[WORLD] random seed: {cfg.seed}")
 
     # --- Storage ---
@@ -247,10 +250,15 @@ async def run():
     # Create new agents to fill up to target population
     target = len(roles)
     alive_count = len(pool.alive())
+    existing_handles = {a.handle for a in pool.alive()}
     for i in range(alive_count, target):
         role = roles[i % len(roles)]
         personality = ", ".join(assign_traits())
-        agent = Agent(handle=f"A{i+1}", born_tick=0)
+        handle = fake.first_name()
+        while handle in existing_handles:
+            handle = fake.first_name()
+        existing_handles.add(handle)
+        agent = Agent(handle=handle, born_tick=0)
         agent = pool.load_or_create(
             agent,
             component_overrides={
@@ -266,7 +274,10 @@ async def run():
     # --- Death callback (spawn replacement) ---
     def on_death(dead_agent, ctx):
         role = random.choice(get_config().roles)
-        handle = f"{dead_agent.handle[0]}{uuid4().hex[:3]}"
+        handle = fake.first_name()
+        current_handles = {a.handle for a in pool.alive()}
+        while handle in current_handles:
+            handle = fake.first_name()
         personality = ", ".join(assign_traits())
         new_agent = Agent(handle=handle, born_tick=ctx.tick)
         pool.add(

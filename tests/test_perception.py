@@ -31,7 +31,7 @@ def test_perception_includes_board_posts():
     percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
     text = percept.to_prompt()
     assert "hello world" in text
-    assert "A2" in text
+    assert "@A2" in text
 
 
 def test_perception_includes_dms():

@@ -44,7 +44,7 @@ class OfferBook:
 
 
 def _pay(agent: Agent, ctx: TickContext, args: dict) -> str:
-    to = args.get("to", "")
+    to = args.get("to", "").lstrip("@")
     amount = args.get("amount", 0)
     try:
         amount = int(amount)
@@ -68,8 +68,8 @@ def _pay(agent: Agent, ctx: TickContext, args: dict) -> str:
     other_eco["coins"] += amount
     ctx.store.set(to, "economy", other_eco)
     if ctx.perception:
-        ctx.perception.notify(agent.handle, f"-{amount} coins (paid to {to})")
-        ctx.perception.notify(to, f"+{amount} coins (payment from {agent.handle})")
+        ctx.perception.notify(agent.handle, f"-{amount} coins (paid to @{to})")
+        ctx.perception.notify(to, f"+{amount} coins (payment from @{agent.handle})")
     ctx.events.log(agent.handle, "payment", {"to": to, "amount": amount})
     log.info(f"[{agent.handle}] paid {amount} coins to {to}")
     return f"paid {amount} coins to {to}"
@@ -77,7 +77,7 @@ def _pay(agent: Agent, ctx: TickContext, args: dict) -> str:
 
 def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
     resource = args.get("resource", "")
-    to = args.get("to", "")
+    to = args.get("to", "").lstrip("@")
     amount = args.get("amount", 0)
     try:
         amount = int(amount)
@@ -103,7 +103,7 @@ def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
     _capped_add(other_inv, resource, amount)
     ctx.store.set(to, "inventory", other_inv)
     if ctx.perception:
-        ctx.perception.notify(to, f"received {amount} {resource} from {agent.handle}")
+        ctx.perception.notify(to, f"received {amount} {resource} from @{agent.handle}")
     ctx.events.log(
         agent.handle, "give", {"to": to, "resource": resource, "amount": amount}
     )
@@ -119,7 +119,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
     def _offer(agent: Agent, ctx: TickContext, args: dict) -> str:
         offer_book.expire(ctx.tick)
 
-        to = args.get("to", "")
+        to = args.get("to", "").lstrip("@")
         give_type = args.get("give_type", "")
         give_amount = int(args.get("give_amount", 0))
         want_type = args.get("want_type", "")
@@ -160,7 +160,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         if ctx.perception:
             ctx.perception.notify(
                 to,
-                f"Trade offer #{oid} from {agent.handle}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
+                f"Trade offer #{oid} from @{agent.handle}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
             )
 
         ctx.events.log(agent.handle, "offer", {
@@ -244,8 +244,8 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         offer_book.remove(oid)
 
         if ctx.perception:
-            ctx.perception.notify(offerer, f"Offer #{oid} accepted by {agent.handle}: gave {give_amount} {give_type}, received {want_amount} {want_type}")
-            ctx.perception.notify(agent.handle, f"Accepted offer #{oid} from {offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}")
+            ctx.perception.notify(offerer, f"Offer #{oid} accepted by @{agent.handle}: gave {give_amount} {give_type}, received {want_amount} {want_type}")
+            ctx.perception.notify(agent.handle, f"Accepted offer #{oid} from @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}")
 
         ctx.events.log(agent.handle, "trade", {
             "id": oid, "with": offerer,

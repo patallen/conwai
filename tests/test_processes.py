@@ -226,11 +226,11 @@ class TestMemoryRecall:
     def test_recall_finds_matching_handles(self):
         """Diary entries with handles mentioned in perception are recalled."""
         diary = [
-            {"content": "traded with Ag1 successfully", "handles": ["Ag1"]},
-            {"content": "saw Bk2 at the market", "handles": ["Bk2"]},
+            {"content": "traded with @Ag1 successfully", "handles": ["Ag1"]},
+            {"content": "saw @Bk2 at the market", "handles": ["Bk2"]},
             {"content": "nothing relevant here", "handles": ["Cx3"]},
         ]
-        percept = FakePercept(prompt_text="Ag1 is nearby and Bk2 wants to trade")
+        percept = FakePercept(prompt_text="@Ag1 is nearby and @Bk2 wants to trade")
         board = _make_board(diary=diary, percept=percept)
 
         recall = MemoryRecall(recall_limit=10)
@@ -257,10 +257,10 @@ class TestMemoryRecall:
     def test_recall_respects_limit(self):
         """Only recall_limit entries are returned."""
         diary = [
-            {"content": f"entry {i} about Ag1", "handles": ["Ag1"]}
+            {"content": f"entry {i} about @Ag1", "handles": ["Ag1"]}
             for i in range(10)
         ]
-        percept = FakePercept(prompt_text="Ag1 is here")
+        percept = FakePercept(prompt_text="@Ag1 is here")
         board = _make_board(diary=diary, percept=percept)
 
         recall = MemoryRecall(recall_limit=3)
@@ -270,7 +270,7 @@ class TestMemoryRecall:
 
     def test_recall_skips_common_words(self):
         """Words like 'Day', 'New', 'The' do NOT trigger recall because
-        the handle regex requires a digit."""
+        the handle regex requires an @-prefix."""
         diary = [
             {"content": "Day 1 was peaceful", "handles": ["Day"]},
             {"content": "The new era", "handles": ["The"]},
@@ -281,7 +281,7 @@ class TestMemoryRecall:
         recall = MemoryRecall()
         asyncio.run(recall.run(board))
 
-        # "Day" / "The" don't match _HANDLE_RE (need a digit in the match)
+        # "Day" / "The" don't match _HANDLE_RE (no @ prefix)
         assert board.get("recalled") is None
 
     def test_vector_recall_finds_semantically_similar(self):
@@ -325,9 +325,9 @@ class TestMemoryRecall:
                 return [[1.0, 0.0] for _ in texts]
 
         diary = [
-            {"content": "met A1 at market", "handles": ["A1"]},  # no embedding
+            {"content": "met @A1 at market", "handles": ["A1"]},  # no embedding
         ]
-        percept = FakePercept(prompt_text="A1 wants to trade")
+        percept = FakePercept(prompt_text="@A1 wants to trade")
         board = _make_board(diary=diary, percept=percept)
 
         recall = MemoryRecall(recall_limit=5, embedder=FakeEmbedder())

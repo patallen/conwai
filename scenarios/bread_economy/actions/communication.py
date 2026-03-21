@@ -31,7 +31,7 @@ def _post_to_board(agent: Agent, ctx: TickContext, args: dict) -> str:
     log.info(f"[{agent.handle}] posted: {content}")
     if ctx.pool:
         for a in ctx.pool.alive():
-            if a.handle != agent.handle and a.handle in content:
+            if a.handle != agent.handle and f"@{a.handle}" in content:
                 other_eco = ctx.store.get(a.handle, "economy")
                 other_eco["coins"] += cfg.energy_gain["referenced"]
                 ctx.store.set(a.handle, "economy", other_eco)
@@ -45,7 +45,7 @@ def _post_to_board(agent: Agent, ctx: TickContext, args: dict) -> str:
 
 def _send_message(agent: Agent, ctx: TickContext, args: dict) -> str:
     cfg = get_config()
-    to = args.get("to", "")
+    to = args.get("to", "").lstrip("@")
     message = args.get("message", "")
     if not to:
         return "missing 'to' field"

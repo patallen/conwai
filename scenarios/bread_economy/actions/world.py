@@ -19,7 +19,7 @@ def make_world_handlers(world_events=None):
     def _vote(agent: Agent, ctx: TickContext, args: dict) -> str:
         if world_events is None:
             return "No active election."
-        candidate = args.get("candidate", "")
+        candidate = args.get("candidate", "").lstrip("@")
         return world_events.cast_vote(agent, candidate)
 
     return _submit_code, _vote
