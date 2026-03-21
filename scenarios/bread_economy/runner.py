@@ -162,7 +162,6 @@ async def run():
     store.register_component(
         "memory", {"memory": "", "code_fragment": None, "soul": "", "strategy": ""}
     )
-    store.register_component("forage", {"streak": 0, "last_tick": 0})
     store.register_component("brain", {"messages": [], "diary": []})
     register_components(store)
 

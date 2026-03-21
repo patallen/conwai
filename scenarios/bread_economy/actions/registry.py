@@ -17,7 +17,7 @@ def create_registry(world=None) -> ActionRegistry:
     registry.register(
         Action(
             name="forage",
-            description="Spend this tick foraging for raw resources. You cannot take other actions this tick. Yields vary by your role — you produce more of some resources than others. Consecutive forages build a streak bonus (up to 3x).",
+            description="Spend this tick foraging for raw resources. You cannot take other actions this tick. Yields vary by your role.",
             parameters={},
             handler=_forage,
         )
