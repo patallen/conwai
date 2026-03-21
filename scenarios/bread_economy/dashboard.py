@@ -178,6 +178,48 @@ async def api_handler(request: Request):
     return {"ok": True, "message": msg}
 
 
+@app.get("/api/handler/inbox")
+def api_handler_inbox():
+    """All DMs sent to HANDLER, grouped by sender as conversation threads."""
+    rows = _events._conn().execute(
+        "SELECT id, t, entity, type, data FROM events "
+        "WHERE type = 'dm_sent' AND json_extract(data, '$.to') = 'HANDLER' "
+        "ORDER BY id"
+    ).fetchall()
+    threads: dict[str, list[dict]] = {}
+    for r in rows:
+        event = _events._row_to_dict(r)
+        sender = event["entity"]
+        threads.setdefault(sender, []).append({
+            "t": event["t"],
+            "content": event["data"].get("content", ""),
+        })
+    return threads
+
+
+@app.get("/api/handler/inbox/{handle}")
+def api_handler_thread(handle: str):
+    """DM thread between a specific agent and HANDLER (both directions)."""
+    rows = _events._conn().execute(
+        "SELECT id, t, entity, type, data FROM events "
+        "WHERE type = 'dm_sent' AND "
+        "(entity = ? AND json_extract(data, '$.to') = 'HANDLER' OR "
+        " entity = 'HANDLER' AND json_extract(data, '$.to') = ?) "
+        "ORDER BY id",
+        (handle, handle),
+    ).fetchall()
+    messages = []
+    for r in rows:
+        event = _events._row_to_dict(r)
+        messages.append({
+            "from": event["entity"],
+            "to": event["data"].get("to", ""),
+            "content": event["data"].get("content", ""),
+            "t": event["t"],
+        })
+    return messages
+
+
 @app.get("/api/agent/{handle}/context")
 def api_agent_context(handle: str):
     data = _storage.load_component(handle, "brain")
