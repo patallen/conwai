@@ -16,18 +16,9 @@ wheels/
 .playwright-mcp/
 
 # Runtime data
-data/agents/
-data/events.jsonl
-data/events.db
-data/events.db-wal
-data/events.db-shm
-data/state.db
-data/state.db-wal
-data/state.db-shm
-data/world_state.json
-data/cipher.json
-data/sim.log
-data/tick
+data/
+data.*/
+.backups/
 handler_input.txt
 .superpowers/
 .worktrees/
@@ -35,6 +26,3 @@ handler_input.txt
 # Frontend
 frontend/node_modules/
 frontend/dist/
-
-data.bak/
-data.bak.big/
