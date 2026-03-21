@@ -1,0 +1,222 @@
+Loaded 251 entries
+
+Threshold 0.90: 120 cliques, sizes range 2-17, total entries covered: 239
+Threshold 0.85: 130 cliques, sizes range 2-20, total entries covered: 250
+Threshold 0.80: 127 cliques, sizes range 2-25, total entries covered: 251
+Threshold 0.75: 126 cliques, sizes range 2-28, total entries covered: 251
+Threshold 0.70: 128 cliques, sizes range 3-32, total entries covered: 251
+
+======================================================================
+CLIQUES AT THRESHOLD 0.8 (127 cliques)
+======================================================================
+
+  Clique 1 (size=25) [inspect:25]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Wa
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    ... and 22 more
+
+  Clique 2 (size=25) [inspect:25]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Wa
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    ... and 22 more
+
+  Clique 3 (size=25) [inspect:25]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Wa
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    ... and 22 more
+
+  Clique 4 (size=24) [inspect:24]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    ... and 21 more
+
+  Clique 5 (size=24) [inspect:24]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    ... and 21 more
+
+  Clique 6 (size=24) [inspect:24]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    ... and 21 more
+
+  Clique 7 (size=24) [inspect:24]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    ... and 21 more
+
+  Clique 8 (size=23) [forage:18, bake:5]
+    Shared words: bread, flour, immediately
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I
+    [ 33] I am critically starving with zero bread and only 5 flour left, making me vulnerable to immediate death. I will forage i
+    ... and 20 more
+
+  Clique 9 (size=22) [forage:20, bake:2]
+    Shared words: bread, flour, immediately
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I
+    [ 33] I am critically starving with zero bread and only 5 flour left, making me vulnerable to immediate death. I will forage i
+    ... and 19 more
+
+  Clique 10 (size=22) [inspect:22]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    ... and 19 more
+
+  Clique 11 (size=21) [forage:20, bake:1]
+    Shared words: bread, flour, immediately, nature, skeptical
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I
+    [ 33] I am critically starving with zero bread and only 5 flour left, making me vulnerable to immediate death. I will forage i
+    ... and 18 more
+
+  Clique 12 (size=21) [inspect:21]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    [ 15] Handle: Linda Role: water forager Personality: detached, stoic Coins: 450 Hunger: 82/100, Thirst: 83/100 Flour: 12, Wate
+    ... and 18 more
+
+  Clique 13 (size=20) [inspect:20]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    [ 15] Handle: Linda Role: water forager Personality: detached, stoic Coins: 450 Hunger: 82/100, Thirst: 83/100 Flour: 12, Wate
+    ... and 17 more
+
+  Clique 14 (size=19) [inspect:19]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    [ 13] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 450 Hunger: 78/100, Thirst: 82/100 Flour
+    ... and 16 more
+
+  Clique 15 (size=19) [forage:13, bake:6]
+    Shared words: bake, bread, flour, immediately, zero
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I
+    [ 39] I am critically starving with zero bread and only 6 flour, forcing me to prioritize immediate survival over my usual ske
+    ... and 16 more
+
+  Clique 16 (size=18) [inspect:18]
+    Shared words: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+    [ 12] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger: 81/100, Thirst: 79/100 Flour: 21, Water
+    ... and 15 more
+
+  Clique 17 (size=18) [accept:7, forage:4, bake:2, offer:2, post_to_board:1, update_soul:1, send_message:1]
+    Shared words: flour, s, water
+    [ 50] I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critical for baking bread 
+    [ 99] I will decline Christopher's 1:1 trade offer as my strategy forbids unfavorable water-for-flour rates, and I already hav
+    [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I will not trade my br
+    ... and 15 more
+
+  Clique 18 (size=18) [forage:12, bake:6]
+    Shared words: bake, bread, flour, immediately
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+    [ 39] I am critically starving with zero bread and only 6 flour, forcing me to prioritize immediate survival over my usual ske
+    [ 47] I am critically vulnerable again with zero bread and only 6 flour, having just lost my entire bread stock to spoilage. M
+    ... and 15 more
+
+  Clique 19 (size=18) [forage:11, bake:7]
+    Shared words: bake, bread, flour, immediately
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+    [ 39] I am critically starving with zero bread and only 6 flour, forcing me to prioritize immediate survival over my usual ske
+    [ 47] I am critically vulnerable again with zero bread and only 6 flour, having just lost my entire bread stock to spoilage. M
+    ... and 15 more
+
+  Clique 20 (size=18) [bake:12, forage:5, offer:1]
+    Shared words: bread, flour
+    [109] My flour reserve of 32 is sufficient for baking, but my bread count of 14 is below my target of 20+ for true stability. 
+    [113] I am skeptical of my current bread count of 19, which is just below my stability target of 20+, and my flour reserve of 
+    [121] I have reached my flour target of 31 and bread target of 20, but my strategy requires 30+ flour specifically as a buffer
+    ... and 15 more
+
+  Clique 21 (size=17) [accept:7, forage:4, offer:2, post_to_board:1, bake:1, update_soul:1, send_message:1]
+    Shared words: flour, s, water
+    [ 99] I will decline Christopher's 1:1 trade offer as my strategy forbids unfavorable water-for-flour rates, and I already hav
+    [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I will not trade my br
+    [104] I am skeptical of Adam's offer as it requires giving 5 bread for only 50 water, which is a poor rate compared to my goal
+    ... and 14 more
+
+  Clique 22 (size=17) [accept:7, forage:4, bake:2, post_to_board:1, offer:1, update_soul:1, send_message:1]
+    Shared words: flour, s, water
+    [ 99] I will decline Christopher's 1:1 trade offer as my strategy forbids unfavorable water-for-flour rates, and I already hav
+    [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I will not trade my br
+    [104] I am skeptical of Adam's offer as it requires giving 5 bread for only 50 water, which is a poor rate compared to my goal
+    ... and 14 more
+
+  Clique 23 (size=17) [bake:12, forage:4, offer:1]
+    Shared words: bread, flour
+    [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger is still p
+    [109] My flour reserve of 32 is sufficient for baking, but my bread count of 14 is below my target of 20+ for true stability. 
+    [113] I am skeptical of my current bread count of 19, which is just below my stability target of 20+, and my flour reserve of 
+    ... and 14 more
+
+  Clique 24 (size=17) [accept:7, forage:3, offer:3, bake:2, post_to_board:1, update_soul:1]
+    Shared words: flour, water
+    [ 50] I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critical for baking bread 
+    [ 99] I will decline Christopher's 1:1 trade offer as my strategy forbids unfavorable water-for-flour rates, and I already hav
+    [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I will not trade my br
+    ... and 14 more
+
+  Clique 25 (size=17) [accept:7, forage:4, bake:2, post_to_board:1, offer:1, update_soul:1, send_message:1]
+    Shared words: flour, s, water
+    [ 99] I will decline Christopher's 1:1 trade offer as my strategy forbids unfavorable water-for-flour rates, and I already hav
+    [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I will not trade my br
+    [104] I am skeptical of Adam's offer as it requires giving 5 bread for only 50 water, which is a poor rate compared to my goal
+    ... and 14 more
+
+======================================================================
+CONDITION→BEHAVIOR EXTRACTION
+======================================================================
+For each clique, what condition and behavior do ALL entries share?
+
+  Clique 1 (25 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 2 (25 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 3 (25 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 4 (24 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 5 (24 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 6 (24 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 7 (24 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 8 (23 entries): no clear pattern detected
+    Shared: bread, flour, immediately
+  Clique 9 (22 entries): no clear pattern detected
+    Shared: bread, flour, immediately
+  Clique 10 (22 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 11 (21 entries): no clear pattern detected
+    Shared: bread, flour, immediately, nature, skeptical
+  Clique 12 (21 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 13 (20 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 14 (19 entries): no clear pattern detected
+    Shared: activity, bread, coins, dms, flour, forager, handle, hunger, personality, posts, role, sent, thirst, water
+  Clique 15 (19 entries): WHEN zero bread+flour → bake
+    All shared: bake, bread, flour, immediately, zero

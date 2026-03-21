@@ -1,0 +1,33 @@
+Loaded 251 entries
+
+TF-IDF shape: (251, 733)
+Distance matrix computed
+
+Running agglomerative clustering on first 100 entries...
+
+Merge distance progression (every 10th merge):
+  Step   0: distance=0.0000 merged_size=2 clusters_remaining=100
+  Step  10: distance=0.1361 merged_size=5 clusters_remaining=90
+  Step  20: distance=0.1987 merged_size=2 clusters_remaining=80
+  Step  30: distance=0.3432 merged_size=24 clusters_remaining=70
+  Step  40: distance=0.4512 merged_size=28 clusters_remaining=60
+  Step  50: distance=0.5096 merged_size=35 clusters_remaining=50
+  Step  60: distance=0.5501 merged_size=58 clusters_remaining=40
+  Step  70: distance=0.6086 merged_size=66 clusters_remaining=30
+  Step  80: distance=0.6828 merged_size=81 clusters_remaining=20
+  Step  90: distance=0.7470 merged_size=91 clusters_remaining=10
+
+Largest gaps in merge distances (potential natural cluster counts):
+  After step 3: gap=0.0502 → suggests 96 clusters
+  After step 34: gap=0.0462 → suggests 65 clusters
+  After step 12: gap=0.0345 → suggests 87 clusters
+  After step 26: gap=0.0323 → suggests 73 clusters
+  After step 20: gap=0.0316 → suggests 79 clusters
+
+======================================================================
+K-MEANS ON TF-IDF (FULL DATA, FOR COMPARISON)
+======================================================================
+  K=5: sizes=[103, 65, 42, 29, 12]
+  K=8: sizes=[58, 42, 39, 29, 27, 24, 23, 9]
+  K=10: sizes=[59, 36, 31, 29, 26, 24, 22, 11, 7, 6]
+  K=15: sizes=[41, 31, 22, 21, 17, 17, 16, 16, 16, 14, 12, 10, 6, 6, 6]

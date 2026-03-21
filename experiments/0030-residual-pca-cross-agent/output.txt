@@ -1,0 +1,124 @@
+
+======================================================================
+AGENT: Jeffery (78 entries)
+======================================================================
+Actions: forage:18, send_message:18, offer:12, bake:9, accept:8, post_to_board:5, inspect:4, unknown:3, vote:1
+
+Residual + PCA clustering:
+  PCs=3 K=5: sil=0.4596 sizes=[26, 19, 13, 11, 9]
+  PCs=3 K=8: sil=0.4429 sizes=[22, 13, 13, 9, 7, 6, 6, 2]
+  PCs=3 K=10: sil=0.4106 sizes=[21, 11, 9, 9, 8, 7, 5, 4, 2, 2]
+  PCs=5 K=5: sil=0.4231 sizes=[31, 16, 15, 12, 4]
+  PCs=5 K=8: sil=0.5021 sizes=[20, 14, 10, 9, 8, 8, 5, 4]
+  PCs=5 K=10: sil=0.4364 sizes=[21, 13, 8, 8, 7, 6, 6, 4, 3, 2]
+
+Detailed: 3 PCs, K=8 (silhouette=0.4429)
+  Cluster 0 (6) [inspect:4, offer:2]
+    [  2] Handle: Patricia Role: flour forager Personality: blunt, calculating Coins: 475 Hunger: 91/100, Thir
+    [  3] I will offer a trade to @Joshua for water, as he has a surplus of bread and flour but needs water, w
+  Cluster 1 (13) [forage:7, bake:6]
+    [ 12] I am out of bread and at critical risk, having eaten raw flour to survive. With 31 flour and 12 wate
+    [ 26] I am critically low on bread with zero loaves, and my hunger is rising after eating raw flour. I mus
+  Cluster 2 (9) [forage:8, unknown:1]
+    [  0] I am skeptical of doing nothing, but with high hunger and thirst levels and decent resources, I'll f
+    [ 11] I am now out of bread and at risk of starvation, so I must prioritize securing food immediately. I w
+  Cluster 3 (7) [send_message:3, accept:2, bake:1]
+    [ 25] I will accept Matthew's offer of 20 water for 10 flour immediately to resolve my critical water bott
+    [ 44] I will immediately DM Angel to accept her 20 flour for 10 water offer, as my competitive nature dema
+  Cluster 4 (22) [offer:8, send_message:7, accept:4]
+    [ 10] I have only 2 bread left and need to secure more food before starvation becomes a risk. Helen has a 
+    [ 14] I have 6 bread and 21 flour but only 1 water, putting my baking capacity at risk. Lisa has a massive
+  Cluster 5 (6) [forage:3, post_to_board:2, offer:1]
+    [  4] I'll target @Jill first since she explicitly needs water and has bread surplus, which is exactly wha
+    [  5] I'm waiting for trade offers to be accepted while maintaining my resource reserves. Since no one has
+  Cluster 6 (13) [send_message:8, accept:2, post_to_board:2]
+    [ 22] I will leverage my current surplus to secure a strategic alliance with a high-value partner, targeti
+    [ 23] I will accept Patricia's offer of 10 flour for 5 bread to immediately convert my surplus flour into 
+  Cluster 7 (2) [post_to_board:1, vote:1]
+    [  1] I see Danielle is also skeptical and calculating, which aligns with my nature. With decent resources
+    [  9] I see an election is underway, which is a perfect opportunity to build alliances and secure future f
+
+======================================================================
+AGENT: Adam (78 entries)
+======================================================================
+Actions: forage:41, send_message:15, bake:6, unknown:5, accept:4, inspect:2, post_to_board:2, vote:2, offer:1
+
+Residual + PCA clustering:
+  PCs=3 K=5: sil=0.7161 sizes=[36, 14, 13, 9, 6]
+  PCs=3 K=8: sil=0.6251 sizes=[22, 14, 13, 9, 7, 7, 4, 2]
+  PCs=3 K=10: sil=0.6121 sizes=[14, 14, 13, 7, 7, 7, 5, 5, 4, 2]
+  PCs=5 K=5: sil=0.5935 sizes=[25, 21, 13, 13, 6]
+  PCs=5 K=8: sil=0.6078 sizes=[20, 14, 13, 8, 7, 6, 5, 5]
+  PCs=5 K=10: sil=0.5560 sizes=[19, 14, 7, 7, 7, 7, 6, 5, 4, 2]
+
+Detailed: 3 PCs, K=8 (silhouette=0.6251)
+  Cluster 0 (22) [send_message:13, accept:4, unknown:4]
+    [  6] I will DM @Cassandra to negotiate a trade for flour using my surplus water, as she is the only agent
+    [  7] I will accept Patricia's offer of 5 flour for 5 water (offer #18) as it provides the exact flour I n
+  Cluster 1 (9) [forage:9]
+    [ 35] I will forage to maximize my water yield and maintain my streak bonus, as my skeptical nature priori
+    [ 48] I will forage to build my flour reserves and maintain my streak bonus, as my bread is exhausted and 
+  Cluster 2 (13) [forage:13]
+    [  0] I will forage to build a resource streak and assess my yields before engaging in trade, as my skepti
+    [  1] I will forage again to build my streak bonus and further assess my resource yields before initiating
+  Cluster 3 (4) [bake:4]
+    [  3] I will bake bread to convert my surplus flour and water into a more stable food source, securing my 
+    [ 13] I will bake bread to convert my surplus flour and water into a stable food source, securing my survi
+  Cluster 4 (7) [post_to_board:2, vote:2, send_message:2]
+    [  5] I will post a message to the bulletin board offering to trade my surplus water for flour, establishi
+    [  9] I will vote for @Danielle, who has publicly offered a fair flour-for-water trade, as my skeptical na
+  Cluster 5 (14) [forage:14]
+    [ 38] I will forage to build my streak bonus and maximize my flour yield, as my flour reserves are critica
+    [ 39] I will forage to replenish my flour reserves, which are critically low at 24 units, and my bread is 
+  Cluster 6 (7) [forage:5, inspect:2]
+    [  4] Handle: Jill Role: flour forager Personality: laid-back, secretive Coins: 475 Hunger: 85/100, Thirst
+    [ 14] Handle: Lisa Role: water forager Personality: calculating, stoic Coins: 450 Hunger: 80/100, Thirst: 
+  Cluster 7 (2) [bake:2]
+    [ 41] I will bake bread immediately to convert my surplus flour and water into food, as my hunger is risin
+    [ 52] I will bake bread immediately to convert my 27 flour and surplus water into food, as my bread supply
+
+======================================================================
+AGENT: Cassandra (78 entries)
+======================================================================
+Actions: forage:31, accept:9, post_to_board:8, unknown:8, bake:6, send_message:5, offer:5, inspect:4, update_soul:1, vote:1
+
+Residual + PCA clustering:
+  PCs=3 K=5: sil=0.6828 sizes=[21, 20, 18, 10, 9]
+  PCs=3 K=8: sil=0.5437 sizes=[18, 12, 10, 9, 8, 8, 7, 6]
+  PCs=3 K=10: sil=0.5169 sizes=[16, 11, 10, 9, 7, 7, 6, 5, 4, 3]
+  PCs=5 K=5: sil=0.6038 sizes=[21, 20, 19, 12, 6]
+  PCs=5 K=8: sil=0.5590 sizes=[20, 12, 11, 10, 9, 8, 4, 4]
+  PCs=5 K=10: sil=0.5230 sizes=[16, 14, 12, 8, 7, 7, 4, 4, 4, 2]
+
+Detailed: 3 PCs, K=8 (silhouette=0.5437)
+  Cluster 0 (8) [bake:5, offer:2, update_soul:1]
+    [  3] I will bake bread from my surplus flour and water to convert resources into food, aligning with my c
+    [ 14] I will trade my abundant water for bread to secure food and build coin reserves, leveraging my surpl
+  Cluster 1 (10) [accept:3, post_to_board:2, send_message:2]
+    [  9] I will accept Adam's counteroffer of 20 water for 10 flour to secure the necessary hydration efficie
+    [ 18] I will post a counter-offer on the board to James, arguing that 20 water for 30 flour is a fair exch
+  Cluster 2 (12) [forage:8, unknown:3, post_to_board:1]
+    [ 59] I will ignore the board's pleas and the world's question, focusing instead on liquidating my 98 wate
+    [ 60] I will reject the community's push for "fair" 1:1 trades and hold firm on my strict 1 coin per 5 wat
+  Cluster 3 (18) [forage:17, unknown:1]
+    [  0] I will forage to build a resource streak and increase my yields, given my competitive nature and the
+    [  1] I will forage again to extend my streak and maximize my resource yield, capitalizing on my competiti
+  Cluster 4 (9) [inspect:4, unknown:3, send_message:2]
+    [  4] Handle: Christopher Role: flour forager Personality: detached, stoic Coins: 475 Hunger: 85/100, Thir
+    [  6] I will DM @Adam to propose a trade of my surplus flour for his water, as securing water will allow m
+  Cluster 5 (7) [accept:5, send_message:1, offer:1]
+    [  7] I will negotiate with @Adam to trade my surplus flour for his abundant water, securing the hydration
+    [ 17] I will accept James's urgent offer of 30 flour for 20 water, leveraging my massive water surplus to 
+  Cluster 6 (8) [forage:4, post_to_board:2, offer:1]
+    [ 37] I will reject the board's "fair" offers and aggressively pursue @Amy's 2:1 flour-for-water rate or @
+    [ 54] I will reject @Linda's 1:1 bread-for-water offer as it undervalues my water surplus and conflicts wi
+  Cluster 7 (6) [post_to_board:3, forage:2, unknown:1]
+    [  5] I will post a message on the board to announce my availability for trade, leveraging my resource sur
+    [ 10] I will post to the board offering my surplus water for coins, leveraging my resource advantage to ac
+
+======================================================================
+CROSS-AGENT SUMMARY (3 PCs, K=8)
+======================================================================
+  Jeffery        : sil=0.4429 sizes=[22, 13, 13, 9, 7, 6, 6, 2]
+  Adam           : sil=0.6251 sizes=[22, 14, 13, 9, 7, 7, 4, 2]
+  Cassandra      : sil=0.5437 sizes=[18, 12, 10, 9, 8, 8, 7, 6]

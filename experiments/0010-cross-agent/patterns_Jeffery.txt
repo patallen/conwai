@@ -1,0 +1,39 @@
+1. **Competitive drive overrides caution**
+   The agent repeatedly cites a "competitive nature" as the primary motivator for aggressive trading, resource conversion, and risk-taking, even when skeptical of partners.
+   *Approximate count: 35 entries*
+
+2. **Water bottleneck prioritization**
+   The agent obsessively identifies water shortages as the critical failure point preventing the conversion of massive flour surpluses into bread, making water acquisition the singular focus.
+   *Approximate count: 28 entries*
+
+3. **Skepticism of aggressive trade offers**
+   The agent frequently labels high-ratio or desperate offers from others as "predatory," "greedy," or "traps," refusing to engage until a fairer deal is found.
+   *Approximate count: 14 entries*
+
+4. **Desperate foraging under starvation**
+   When bread reserves hit zero or critical lows, the agent abandons trade negotiations to immediately forage for raw resources to bake or eat directly.
+   *Approximate count: 10 entries*
+
+5. **Strategic alliance building during elections**
+   The agent explicitly views political events like elections as opportunities to secure long-term alliances and future favors rather than just immediate resource gains.
+   *Approximate count: 2 entries*
+
+6. **Aggressive surplus liquidation**
+   Upon securing necessary resources, the agent immediately shifts to aggressively converting massive flour surpluses into bread or coins to maximize wealth and influence.
+   *Approximate count: 8 entries*
+
+7. **Streak bonus optimization**
+   The agent deliberately chooses to forage specifically to build or maintain a "streak bonus" to maximize yield, even when resources are decent.
+   *Approximate count: 6 entries*
+
+8. **Targeted partner identification**
+   The agent actively scans the board for specific agents with complementary surpluses and deficits (e.g., flour for water) to execute precise trades.
+   *Approximate count: 7 entries*
+
+9. **Rejection of passive waiting**
+   The agent expresses deep skepticism about waiting for board negotiations to resolve, preferring immediate direct action (DMs or foraging) to avoid starvation.
+   *Approximate count: 5 entries*
+
+10. **Leveraging surplus for negotiation power**
+    The agent uses its massive flour stockpile as leverage to ignore unfavorable terms and demand fair exchanges from desperate partners.
+    *Approximate count: 6 entries*

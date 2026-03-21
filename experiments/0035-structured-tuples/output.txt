@@ -1,0 +1,134 @@
+Loaded 251 entries
+
+Sample tuples:
+  [  0] [post_to_board] BECAUSE because_skeptical
+         I need to establish my public identity and begin building relationships while ma
+  [ 18] [forage] WHEN low_flour AND starving AND zero_bread
+         I am starving with zero bread and only 1 flour left, so I must forage immediatel
+  [ 50] [accept] WHEN high_flour AND high_water AND sufficient BECAUSE because_skeptical AND because_starving AND because_surplus
+         I will accept Christopher's offer of 20 flour for 10 water immediately, as acqui
+  [ 77] [forage] WHEN ample AND crisis BECAUSE because_starving AND because_strategy AND because_surplus
+         I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy ex
+  [ 94] [forage] WHEN secured AND stable AND sufficient
+         I have secured a stable flour reserve and sufficient bread, but my skeptical nat
+  [150] [send_message] WHEN crisis AND high_water BECAUSE because_surplus
+         My bread count is critically low at 2, and my pending offers to Matthew and Brid
+  [200] [update_soul] WHEN high_flour AND high_water AND stable AND surplus BECAUSE because_bad_rate AND because_surplus
+         I am skeptical of Anthony's reversed 10 flour for 12 water offer since I possess
+  [243] [vote] BECAUSE because_bad_rate AND because_skeptical
+         I will vote for @Debra, a patient resource manager with a public soul emphasizin
+
+Unique tuple strings: 160
+
+Most common tuples:
+   19x  WHEN crisis AND low_flour AND starving AND zero_bread
+    7x  WHEN crisis AND starving AND zero_bread
+    6x  no_pattern_detected
+    6x  DO follow_strategy BECAUSE because_bad_rate AND because_strategy AND because_surplus
+    5x  WHEN high_flour AND high_water
+    5x  WHEN high_flour AND zero_bread
+    4x  WHEN crisis AND low_flour AND starving AND zero_bread DO abandon_caution
+    4x  WHEN sufficient DO follow_strategy BECAUSE because_bad_rate AND because_strategy AND because_surplus
+    3x  WHEN surplus
+    3x  WHEN high_flour AND surplus BECAUSE because_skeptical AND because_surplus
+    3x  WHEN starving AND zero_bread
+    3x  DO follow_strategy BECAUSE because_strategy
+    3x  WHEN high_water DO follow_strategy BECAUSE because_strategy AND because_surplus
+    3x  WHEN crisis AND high_bread AND stable DO follow_strategy
+    3x  WHEN high_flour AND high_water BECAUSE because_bad_rate AND because_strategy AND because_surplus
+    2x  BECAUSE because_skeptical
+    2x  WHEN high_flour AND sufficient
+    2x  WHEN surplus BECAUSE because_surplus
+    2x  WHEN surplus BECAUSE because_skeptical AND because_surplus
+    2x  WHEN high_flour BECAUSE because_skeptical AND because_surplus
+
+No pattern detected: 6/251
+
+======================================================================
+CONSOLIDATED PATTERNS (tuples appearing 3+ times)
+======================================================================
+
+  PATTERN (19 episodes): WHEN crisis AND low_flour AND starving AND zero_bread
+    [ 30] I am critically starving with zero bread and only 8 flour, making me vulnerable despite my coin surp
+    [ 37] I am critically starving with zero bread and only 9 flour, having just eaten raw flour which is unsu
+    [ 38] I am critically starving with zero bread and only 7 flour, forcing me to rely on my coin surplus to 
+
+  PATTERN (7 episodes): WHEN crisis AND starving AND zero_bread
+    [ 23] I am critically starving with zero bread and flour, and my hunger is dropping. Given my skeptical na
+    [154] I am critically starving with zero bread and have already resorted to eating raw flour; my pending t
+    [155] I am critically starving with zero bread and have already resorted to eating raw flour; my pending o
+
+  PATTERN (6 episodes): no_pattern_detected
+    [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+    [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, 
+    [120] I am skeptical of Robert's sudden acceptance of Erica's offer without verifying her stock, and Colin
+
+  PATTERN (6 episodes): DO follow_strategy BECAUSE because_bad_rate AND because_strategy AND because_surplus
+    [124] I am skeptical of Christopher's 1:1 water-for-flour offer because I have a massive water surplus of 
+    [137] I am skeptical of Christopher's 1:1 flour-for-water offer because I have a massive water surplus (97
+    [213] I am skeptical of Melanie's demanding 1.5:1 flour-for-water rate, as my strategy prioritizes acquiri
+
+  PATTERN (5 episodes): WHEN high_flour AND high_water
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+    [ 91] I am no longer in immediate starvation with 4 bread and 15 flour, but my skeptical nature demands I 
+
+  PATTERN (5 episodes): WHEN high_flour AND zero_bread
+    [ 12] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger: 81/100, Thirst: 79/
+    [ 31] Handle: Lisa Role: water forager Personality: calculating, stoic Coins: 426 Hunger: 79/100, Thirst: 
+    [159] Handle: Jeffery Role: flour forager Personality: skeptical, competitive Coins: 275 Hunger: 79/100, T
+
+  PATTERN (4 episodes): WHEN crisis AND low_flour AND starving AND zero_bread DO abandon_caution
+    [ 64] I am critically starving with zero bread and only 4 flour, forcing me to abandon my usual deliberate
+    [ 71] I am critically starving with zero bread and only 3 flour, forcing me to abandon my usual deliberate
+    [ 74] I am critically starving with zero bread and only 3 flour, forcing me to abandon my usual deliberate
+
+  PATTERN (4 episodes): WHEN sufficient DO follow_strategy BECAUSE because_bad_rate AND because_strategy AND because_surplus
+    [102] I will forage to replenish my water reserves, as my current stock is sufficient but my strategy prio
+    [108] I will ignore Lisa's offer to sell water for bread because my strategy prioritizes accumulating flou
+    [111] I will ignore Danielle's 1:1 water-for-flour offer as my strategy prioritizes accumulating flour, no
+
+  PATTERN (3 episodes): WHEN surplus
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    [  8] I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    [214] I will forage immediately to replenish my water reserves, which have dropped to a precarious 38, ens
+
+  PATTERN (3 episodes): WHEN high_flour AND surplus BECAUSE because_skeptical AND because_surplus
+    [ 13] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 450 Hunger: 78/100, 
+    [ 14] Handle: Angel Role: flour forager Personality: blunt, detached Coins: 450 Hunger: 80/100, Thirst: 80
+    [125] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 575 Hunger: 82/100, Thirst:
+
+  PATTERN (3 episodes): WHEN starving AND zero_bread
+    [ 88] I am starving with zero bread and flour, and my skeptical nature dictates I must not rely on pending
+    [174] I am at zero bread and starving, having just consumed my last loaf. I must immediately forage to gat
+    [185] I am at zero bread and starving, having lost my last loaves to spoilage and consumption. I must imme
+
+  PATTERN (3 episodes): DO follow_strategy BECAUSE because_strategy
+    [ 96] I will ignore Jeffery's 1:1 bread-for-flour offer as my strategy prioritizes flour accumulation over
+    [122] I have reached my flour target of 31, but my bread count has dropped to 19 after eating, leaving me 
+    [134] I am skeptical of relying solely on foraging given my bread count is still below my 30+ stability ta
+
+  PATTERN (3 episodes): WHEN high_water DO follow_strategy BECAUSE because_strategy AND because_surplus
+    [107] I am skeptical of Colin's 1.5:1 water-for-bread rate as it depletes my bread surplus for a resource 
+    [112] I will ignore Adam's offer to sell 5 bread for 50 water, as my strategy prioritizes accumulating flo
+    [123] I am skeptical of Christopher's 1:1 trade offer because my strategy prioritizes accumulating flour, 
+
+  PATTERN (3 episodes): WHEN crisis AND high_bread AND stable DO follow_strategy
+    [196] I am stable with 42 bread and a modest flour reserve, but my water is critically low at 28, which th
+    [204] I am stable with 50 bread and 5 flour, but my water reserves are critically low at 28, threatening m
+    [207] I am stable with 48 bread and 9 flour, but my flour reserve is critically low, threatening my future
+
+  PATTERN (3 episodes): WHEN high_flour AND high_water BECAUSE because_bad_rate AND because_strategy AND because_surplus
+    [232] I will accept Angel's fair 1:1 offer to trade 30 water for 30 flour, as it directly aligns with my s
+    [234] I am skeptical of Adam's 1.5:1 rate and Debra's 2:1 rate as they are unfavorable compared to my stra
+    [248] I will accept Christopher's fair 1:1 offer to trade 30 water for 30 flour, as it directly aligns wit
+
+======================================================================
+EMBEDDING TUPLE STRINGS
+======================================================================
+Tuple embeddings: mean=0.7250 std=0.1121
+(Compare: raw reasoning mean=0.7972)
+  K=5: sil=0.3220 sizes=[72, 52, 43, 42, 36]
+  K=8: sil=0.3018 sizes=[58, 36, 33, 26, 25, 24, 22, 21]
+  K=10: sil=0.3067 sizes=[66, 34, 26, 22, 20, 18, 18, 17, 12, 12]
+  K=15: sil=0.3295 sizes=[55, 23, 21, 21, 18, 16, 13, 13, 13, 11, 11, 10, 8, 7, 5]

@@ -1,0 +1,41 @@
+Based on a careful analysis of Helen's 90 diary entries, here are 10 distinct behavioral patterns that define her decision-making process:
+
+1.  **Skeptical verification before trade commitment**
+    Helen consistently pauses to verify the reliability of partners and the validity of offers before engaging, often citing her "skeptical nature" as the reason for rejecting unverified or vague proposals.
+    *Matches: ~15 entries*
+
+2.  **Desperate abandonment of deliberate pacing**
+    When facing critical starvation (zero bread), Helen explicitly abandons her usual slow, calculated approach to prioritize immediate survival actions like eating raw flour or rushing trades.
+    *Matches: ~12 entries*
+
+3.  **Strategic rejection of unfavorable exchange rates**
+    She frequently declines trades that offer poor value relative to her specific accumulation goals (e.g., refusing to trade water for flour when she already has a water surplus), prioritizing long-term stockpiles over immediate convenience.
+    *Matches: ~14 entries*
+
+4.  **Rigid adherence to numerical safety thresholds**
+    Helen operates with specific, quantified targets for stability (e.g., "15+ bread," "20+ flour," "30+ flour") and shifts her entire strategy based on whether her inventory meets or falls below these exact numbers.
+    *Matches: ~10 entries*
+
+5.  **Leveraging coin surplus for resource acquisition**
+    When foraging yields are unreliable or she is starving, she deliberately switches to using her accumulated coin reserves to purchase essential resources rather than relying on barter or foraging.
+    *Matches: ~8 entries*
+
+6.  **Prioritizing raw material accumulation over finished goods**
+    Even when hungry, she often chooses to trade for flour (raw material) rather than bread (finished good) to maintain long-term self-sufficiency in baking, viewing flour as the more critical strategic asset.
+    *Matches: ~9 entries*
+
+7.  **Immediate baking upon resource sufficiency**
+    As soon as she secures the minimum required flour and water, her first instinct is to immediately bake bread to convert raw materials into a stable food supply before considering any other actions.
+    *Matches: ~7 entries*
+
+8.  **Targeted partner selection based on complementary needs**
+    She actively scans the environment to identify agents whose specific surpluses (e.g., flour) perfectly match her specific deficits (e.g., water), ignoring those who do not offer a direct resource complement.
+    *Matches: ~8 entries*
+
+9.  **Refusal to trade essential reserves under pressure**
+    Even when starving, she refuses to trade away her last remaining units of critical resources (like her last 4-6 flour) if the trade rate is unfavorable, preferring to risk starvation over depleting her stockpile.
+    *Matches: ~6 entries*
+
+10. **Post-stability proactive replenishment**
+    Once she reaches her safety thresholds, she does not become complacent but immediately initiates foraging or trading to build a buffer well beyond the minimum required for survival.
+    *Matches: ~5 entries*

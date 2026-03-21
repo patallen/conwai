@@ -1,0 +1,239 @@
+
+======================================================================
+AGENT: Jeffery (78 entries)
+======================================================================
+Actions: forage:18, send_message:18, offer:12, bake:9, accept:8, post_to_board:5, inspect:4, unknown:3, vote:1
+
+Patterns:
+1. **Competitive drive overrides caution**
+   The agent repeatedly cites a "competitive nature" as the primary motivator for aggressive trading, resource conversion, and risk-taking, even when skeptical of partners.
+   *Approximate count: 35 entries*
+
+2. **Water bottleneck prioritization**
+   The agent obsessively identifies water shortages as the critical failure point preventing the conversion of massive flour surpluses into bread, making water acquisition the singular focus.
+   *Approximate count: 28 entries*
+
+3. **Skepticism of aggressive trade offers**
+   The agent frequently labels high-ratio or desperate offers from others as "predatory," "greedy," or "traps," refusing to engage until a fairer deal is found.
+   *Approximate count: 14 entries*
+
+4. **Desperate foraging under starvation**
+   When bread reserves hit zero or critical lows, the agent abandons trade negotiations to immediately forage for raw resources to bake or eat directly.
+   *Approximate count: 10 entries*
+
+5. **Strategic alliance building during elections**
+   The agent explicitly views political events like elections as opportunities to secure long-term alliances and future favors rather than just immediate resource gains.
+   *Approximate count: 2 entries*
+
+6. **Aggressive surplus liquidation**
+   Upon securing necessary resources, the agent immediately shifts to aggressively converting massive flour surpluses into bread or coins to maximize wealth and influence.
+   *Approximate count: 8 entries*
+
+7. **Streak bonus optimization**
+   The agent deliberately chooses to forage specifically to build or maintain a "streak bonus" to maximize yield, even when resources are decent.
+   *Approximate count: 6 entries*
+
+8. **Targeted partner identification**
+   The agent actively scans the board for specific agents with complementary surpluses and deficits (e.g., flour for water) to execute precise trades.
+   *Approximate count: 7 entries*
+
+9. **Rejection of passive waiting**
+   The agent expresses deep skepticism about waiting for board negotiations to resolve, preferring immediate direct action (DMs or foraging) to avoid starvation.
+   *Approximate count: 5 entries*
+
+10. **Leveraging surplus for negotiation power**
+    The agent uses its massive flour stockpile as leverage to ignore unfavorable terms and demand fair exchanges from desperate partners.
+    *Approximate count: 6 entries*
+
+  Classified 30/78
+  Classified 60/78
+  Classified 78/78
+
+Classified: 78/78
+Patterns used: 9
+  Pattern  1:   4 entries [offer:1, bake:1, post_to_board:1, forage:1]
+    [  4] I'll target @Jill first since she explicitly needs water and has bread surplus, which is exactly wha
+    [ 60] I have zero bread and am starving with 44 water and 80 flour, so my competitive nature demands I imm
+  Pattern  2:  22 entries [send_message:7, offer:6, accept:5, forage:3]
+    [ 14] I have 6 bread and 21 flour but only 1 water, putting my baking capacity at risk. Lisa has a massive
+    [ 15] I am out of water, which blocks my ability to bake bread from my 21 flour, creating a critical vulne
+  Pattern  3:   9 entries [send_message:6, bake:2, offer:1]
+    [ 57] I have 100 flour but only 13 water and 4 bread, with hunger rising; James's 1:1.5 flour-for-water of
+    [ 61] I am skeptical that Amy's aggressive 2:1 water-for-bread offer is a trap to deplete my reserves, but
+  Pattern  4:  10 entries [forage:5, bake:3, offer:1, unknown:1]
+    [ 10] I have only 2 bread left and need to secure more food before starvation becomes a risk. Helen has a 
+    [ 11] I am now out of bread and at risk of starvation, so I must prioritize securing food immediately. I w
+  Pattern  5:   3 entries [post_to_board:2, vote:1]
+    [  1] I see Danielle is also skeptical and calculating, which aligns with my nature. With decent resources
+    [  9] I see an election is underway, which is a perfect opportunity to build alliances and secure future f
+  Pattern  6:   8 entries [bake:3, accept:3, post_to_board:1, offer:1]
+    [ 17] I secured water from Lisa, resolving my baking bottleneck, but I still have a competitive drive to c
+    [ 21] I have resolved my water bottleneck and secured a solid food supply with 10 bread, but my competitiv
+  Pattern  7:   5 entries [forage:5]
+    [  0] I am skeptical of doing nothing, but with high hunger and thirst levels and decent resources, I'll f
+    [  5] I'm waiting for trade offers to be accepted while maintaining my resource reserves. Since no one has
+  Pattern  8:  11 entries [inspect:4, send_message:4, offer:2, post_to_board:1]
+    [  2] Handle: Patricia Role: flour forager Personality: blunt, calculating Coins: 475 Hunger: 91/100, Thir
+    [  3] I will offer a trade to @Joshua for water, as he has a surplus of bread and flour but needs water, w
+  Pattern  9:   6 entries [forage:4, unknown:1, send_message:1]
+    [ 48] I am starving with zero bread and only 8 water against 68 flour, and my competitive nature demands I
+    [ 55] I am skeptical that waiting for trades will save me, as my previous attempts to secure water have fa
+
+======================================================================
+AGENT: Adam (78 entries)
+======================================================================
+Actions: forage:41, send_message:15, bake:6, unknown:5, accept:4, inspect:2, post_to_board:2, vote:2, offer:1
+
+Patterns:
+1. **Skeptical Self-Sufficiency Prioritization**
+Adam repeatedly chooses to forage and build personal resource streaks over trading, driven by a stated need to verify his own production capabilities before relying on others.
+*Count: ~25 entries*
+
+2. **Public Offer Distrust and Avoidance**
+The agent explicitly ignores or rejects public bulletin board posts, characterizing them as "posturing," "traps," or "rigid demands" that expose his surplus to exploitation.
+*Count: ~15 entries*
+
+3. **Discreet Private Negotiation Preference**
+When engaging in trade, Adam consistently bypasses public channels to initiate private direct messages (DMs) to negotiate rates away from public scrutiny.
+*Count: ~12 entries*
+
+4. **Aggressive Rate Rejection and Counter-Offering**
+Adam frequently rejects public trade offers he deems "inflated" or "exploitative" (often 2:1 ratios) and immediately proposes his own counter-offers based on a strict 1:1 fairness standard.
+*Count: ~10 entries*
+
+5. **Streak Optimization for Yield Maximization**
+The agent makes specific decisions to forage repeatedly solely to reach or maintain a "3x streak bonus," viewing this mechanical multiplier as essential for resource accumulation.
+*Count: ~18 entries*
+
+6. **Pre-Trade Survival Buffering**
+Adam prioritizes baking bread to convert raw flour and water into stable food reserves specifically when his bread count is zero or low, ensuring survival before attempting any trade.
+*Count: ~8 entries*
+
+7. **Strategic Ally Reward Voting**
+The agent casts votes for specific agents not based on general popularity, but specifically to reward those who have previously engaged in fair, verified trades with him.
+*Count: ~2 entries*
+
+8. **Targeted Surplus Liquidation**
+When holding a massive surplus of one resource (specifically water), Adam actively seeks out specific known foragers of the complementary resource (flour) to offload the excess discreetly.
+*Count: ~6 entries*
+
+  Classified 30/78
+  Classified 60/78
+  Classified 78/78
+
+Classified: 78/78
+Patterns used: 8
+  Pattern  1:  14 entries [forage:14]
+    [  0] I will forage to build a resource streak and assess my yields before engaging in trade, as my skepti
+    [  1] I will forage again to build my streak bonus and further assess my resource yields before initiating
+  Pattern  2:  14 entries [forage:8, send_message:5, post_to_board:1]
+    [  5] I will post a message to the bulletin board offering to trade my surplus water for flour, establishi
+    [ 36] I will reject Jill's public offer and instead send her a direct DM to propose a discreet 2:1 water-f
+  Pattern  3:   9 entries [send_message:6, unknown:3]
+    [  6] I will DM @Cassandra to negotiate a trade for flour using my surplus water, as she is the only agent
+    [  8] I will send a private message to @Cassandra to negotiate a better rate for her flour, as her initial
+  Pattern  4:   9 entries [accept:3, unknown:2, send_message:2, post_to_board:1]
+    [  7] I will accept Patricia's offer of 5 flour for 5 water (offer #18) as it provides the exact flour I n
+    [ 17] I will post a counter-offer on the board for James, proposing a more balanced trade of 20 flour for 
+  Pattern  5:  18 entries [forage:18]
+    [  2] I will forage again to maximize my streak bonus to 3x before engaging in trade, as my skeptical natu
+    [ 12] I will forage again to build my streak bonus to 3x and maximize my water yield, as my skeptical natu
+  Pattern  6:   8 entries [bake:6, accept:1, forage:1]
+    [  3] I will bake bread to convert my surplus flour and water into a more stable food source, securing my 
+    [ 13] I will bake bread to convert my surplus flour and water into a stable food source, securing my survi
+  Pattern  7:   2 entries [vote:2]
+    [  9] I will vote for @Danielle, who has publicly offered a fair flour-for-water trade, as my skeptical na
+    [ 49] I will vote for @Eric to secure a potential coin reward from an ally who previously traded fairly wi
+  Pattern  8:   4 entries [inspect:2, send_message:2]
+    [  4] Handle: Jill Role: flour forager Personality: laid-back, secretive Coins: 475 Hunger: 85/100, Thirst
+    [ 14] Handle: Lisa Role: water forager Personality: calculating, stoic Coins: 450 Hunger: 80/100, Thirst: 
+
+======================================================================
+AGENT: Cassandra (78 entries)
+======================================================================
+Actions: forage:31, accept:9, post_to_board:8, unknown:8, bake:6, send_message:5, offer:5, inspect:4, update_soul:1, vote:1
+
+Patterns:
+1. **Competitive Streak Maximization**
+Cassandra repeatedly forages specifically to extend a resource streak multiplier, prioritizing long-term yield efficiency over immediate consumption.
+*Count: 18 entries*
+
+2. **Aggressive Surplus Liquidation**
+The agent actively seeks to convert massive resource stockpiles (especially water) into other assets like flour, bread, or coins to maintain dominance.
+*Count: 15 entries*
+
+3. **Rigid Valuation Enforcement**
+Cassandra strictly adheres to a self-imposed 1:5 coin-to-water exchange rate, systematically rejecting any trade offers that do not meet this specific threshold.
+*Count: 14 entries*
+
+4. **Exploitative Opportunism**
+The agent identifies and capitalizes on other agents' desperation or urgent needs to secure highly favorable trade ratios.
+*Count: 9 entries*
+
+5. **Detached Social Isolation**
+Cassandra explicitly ignores community pleas for "fair" trades, board complaints, and social pressure, maintaining a stoic and unyielding stance.
+*Count: 12 entries*
+
+6. **Strategic Resource Conversion**
+The agent bakes bread not just for survival, but specifically to convert raw ingredient surpluses into sustenance to solidify resource dominance.
+*Count: 7 entries*
+
+7. **Pre-emptive Market Signaling**
+Cassandra posts public announcements or updates her profile to signal resource abundance and competitive strength to attract specific trading partners.
+*Count: 5 entries*
+
+8. **Targeted Direct Negotiation**
+The agent bypasses public boards to send direct messages to specific individuals, often to pressure them into accepting a specific trade offer.
+*Count: 6 entries*
+
+9. **Defensive Rejection of Undervaluation**
+Cassandra actively rejects incoming trade offers that she deems to undervalue her specific resource surplus, often citing her strict internal ratios.
+*Count: 10 entries*
+
+10. **Alliance Building via Voting**
+The agent uses voting mechanisms to secure future alliances with specific partners who possess complementary resource surpluses.
+*Count: 1 entry*
+
+  Classified 30/78
+  Classified 60/78
+  Classified 78/78
+
+Classified: 78/78
+Patterns used: 10
+  Pattern  1:  20 entries [forage:18, unknown:2]
+    [  0] I will forage to build a resource streak and increase my yields, given my competitive nature and the
+    [  1] I will forage again to extend my streak and maximize my resource yield, capitalizing on my competiti
+  Pattern  2:  11 entries [accept:7, post_to_board:2, offer:2]
+    [ 10] I will post to the board offering my surplus water for coins, leveraging my resource advantage to ac
+    [ 14] I will trade my abundant water for bread to secure food and build coin reserves, leveraging my surpl
+  Pattern  3:  14 entries [forage:8, post_to_board:4, unknown:2]
+    [ 18] I will post a counter-offer on the board to James, arguing that 20 water for 30 flour is a fair exch
+    [ 58] I will post a public offer to sell my massive water surplus for coins at a strict 1 coin per 5 water
+  Pattern  4:  10 entries [offer:3, inspect:2, accept:2, unknown:2]
+    [  4] Handle: Christopher Role: flour forager Personality: detached, stoic Coins: 475 Hunger: 85/100, Thir
+    [  8] Handle: Anthony Role: flour forager Personality: deliberate, secretive Coins: 475 Hunger: 78/100, Th
+  Pattern  5:   5 entries [forage:3, unknown:2]
+    [ 19] [Day 2, 4:00 AM] I will wait for James to accept my offer or counter, as my detached competitiveness
+    [ 59] I will ignore the board's pleas and the world's question, focusing instead on liquidating my 98 wate
+  Pattern  6:   6 entries [bake:6]
+    [  3] I will bake bread from my surplus flour and water to convert resources into food, aligning with my c
+    [ 23] I will bake bread to convert my flour and water surplus into sustenance, preventing starvation and s
+  Pattern  7:   4 entries [inspect:2, post_to_board:1, update_soul:1]
+    [  5] I will post a message on the board to announce my availability for trade, leveraging my resource sur
+    [ 31] Handle: Angel Role: flour forager Personality: blunt, detached Coins: 446 Hunger: 79/100, Thirst: 81
+  Pattern  8:   5 entries [send_message:4, post_to_board:1]
+    [  6] I will DM @Adam to propose a trade of my surplus flour for his water, as securing water will allow m
+    [  7] I will negotiate with @Adam to trade my surplus flour for his abundant water, securing the hydration
+  Pattern  9:   2 entries [forage:2]
+    [ 54] I will reject @Linda's 1:1 bread-for-water offer as it undervalues my water surplus and conflicts wi
+    [ 57] I will ignore @James's 1:1.5 offer as it undervalues my water surplus and conflicts with my strategy
+  Pattern 10:   1 entries [vote:1]
+    [ 49] I will vote for @Matthew to secure his alliance as a future trading partner for flour, leveraging my
+
+======================================================================
+CROSS-AGENT SUMMARY
+======================================================================
+Agent            Entries  Classified  Patterns                          Sizes
+Jeffery               78          78         9 [22, 11, 10, 9, 8, 6, 5, 4, 3]
+Adam                  78          78         8 [18, 14, 14, 9, 9, 8, 4, 2]
+Cassandra             78          78        10 [20, 14, 11, 10, 6, 5, 5, 4, 2, 1]

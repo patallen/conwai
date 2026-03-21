@@ -1,0 +1,292 @@
+Loaded 251 entries
+
+
+======================================================================
+CHECKPOINT: 25 entries processed
+  Situations (2+ entries): 4
+  Total branches: 11
+======================================================================
+
+  Situation 1 (5 episodes):
+    Condition: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    Branch 1 (3 eps): I'll offer 5 water to Christopher for 2 flour, as he...
+    Branch 2 (2 eps): I must immediately forage to gather enough flour and water to bake bread before I starve, as my skep
+
+  Situation 2 (3 episodes):
+    Condition: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    Branch 1 (2 eps): I'll start by sending her a private message to establish contact and gauge her responsiveness, while
+    Branch 2 (1 eps): Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to se
+
+  Situation 3 (2 episodes):
+    Condition: I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    Branch 1 (1 eps): Then I will forage to replenish my resources, as I need to balance my invento...
+    Branch 2 (1 eps): Given my skepticism, I prefer candidates who explicitly state their values and seem reliable based o
+
+  Situation 4 (11 episodes):
+    Condition: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (2 eps): Let me check a few agents' profiles first.
+    Branch 2 (4 eps): I need to secure flour...
+    Branch 3 (2 eps): I should inspect William to see his full resource profile and potentially propose a trade for bread 
+    Branch 4 (2 eps): Given my skeptical nature, I will first verify Danielle's reliability by inspecting her profile befo
+    Branch 5 (1 eps): Given my skeptical nature, I will first inspect Angel to verify their resource levels and reliabilit
+
+======================================================================
+CHECKPOINT: 50 entries processed
+  Situations (2+ entries): 4
+  Total branches: 14
+======================================================================
+
+  Situation 1 (9 episodes):
+    Condition: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    Branch 1 (4 eps): I'll offer 5 water to Christopher for 2 flour, as he...
+    Branch 2 (4 eps): I must immediately forage to gather enough flour and water to bake bread before I starve, as my skep
+    Branch 3 (1 eps): I will immediately offer Robert 50 coins for 5 bread to replenish my stock before I starve, as my sk
+
+  Situation 2 (10 episodes):
+    Condition: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    Branch 1 (3 eps): I'll start by sending her a private message to establish contact and gauge her responsiveness, while
+    Branch 2 (1 eps): Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to se
+    Branch 3 (4 eps): My strategy dictates I use my coin surplus to acquire more bread immediately from a reliable flour f
+    Branch 4 (2 eps): I will of...
+
+  Situation 3 (4 episodes):
+    Condition: I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    Branch 1 (1 eps): Then I will forage to replenish my resources, as I need to balance my invento...
+    Branch 2 (3 eps): Given my skepticism, I prefer candidates who explicitly state their values and seem reliable based o
+
+  Situation 4 (23 episodes):
+    Condition: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (2 eps): Let me check a few agents' profiles first.
+    Branch 2 (9 eps): I need to secure flour...
+    Branch 3 (2 eps): I should inspect William to see his full resource profile and potentially propose a trade for bread 
+    Branch 4 (3 eps): Given my skeptical nature, I will first verify Danielle's reliability by inspecting her profile befo
+    Branch 5 (7 eps): Given my skeptical nature, I will first inspect Angel to verify their resource levels and reliabilit
+
+======================================================================
+CHECKPOINT: 100 entries processed
+  Situations (2+ entries): 5
+  Total branches: 19
+======================================================================
+
+  Situation 1 (16 episodes):
+    Condition: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    Branch 1 (5 eps): I'll offer 5 water to Christopher for 2 flour, as he...
+    Branch 2 (5 eps): I must immediately forage to gather enough flour and water to bake bread before I starve, as my skep
+    Branch 3 (2 eps): I will immediately offer Robert 50 coins for 5 bread to replenish my stock before I starve, as my sk
+    Branch 4 (4 eps): I have sufficient water (99) to spare 10, and this...
+
+  Situation 2 (13 episodes):
+    Condition: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    Branch 1 (3 eps): I'll start by sending her a private message to establish contact and gauge her responsiveness, while
+    Branch 2 (1 eps): Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to se
+    Branch 3 (5 eps): My strategy dictates I use my coin surplus to acquire more bread immediately from a reliable flour f
+    Branch 4 (3 eps): I will of...
+    Branch 5 (1 eps): Instead, I will vote for Matthew in the election, as he has been a reliable trading partner wh...
+
+  Situation 3 (13 episodes):
+    Condition: I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    Branch 1 (5 eps): Then I will forage to replenish my resources, as I need to balance my invento...
+    Branch 2 (5 eps): Given my skepticism, I prefer candidates who explicitly state their values and seem reliable based o
+    Branch 3 (3 eps): I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+
+  Situation 4 (51 episodes):
+    Condition: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (8 eps): Let me check a few agents' profiles first.
+    Branch 2 (13 eps): I need to secure flour...
+    Branch 3 (9 eps): I should inspect William to see his full resource profile and potentially propose a trade for bread 
+    Branch 4 (7 eps): Given my skeptical nature, I will first verify Danielle's reliability by inspecting her profile befo
+    Branch 5 (13 eps): Given my skeptical nature, I will first inspect Angel to verify their resource levels and reliabilit
+    Branch 6 (1 eps): I will immediately bake my 5 flour and 5 water into 5 loaves of bread to secure immediate survival b
+
+  Situation 5 (2 episodes):
+    Condition: I am starving with zero bread and flour, and my skeptical nature dictates I must not rely on pending
+    Branch 1 (2 eps): I will immediately forage to gather flour so I can bake bread and secure my survival before attempti
+
+======================================================================
+CHECKPOINT: 150 entries processed
+  Situations (2+ entries): 7
+  Total branches: 29
+======================================================================
+
+  Situation 1 (26 episodes):
+    Condition: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    Branch 1 (8 eps): I'll offer 5 water to Christopher for 2 flour, as he...
+    Branch 2 (6 eps): I must immediately forage to gather enough flour and water to bake bread before I starve, as my skep
+    Branch 3 (4 eps): I will immediately offer Robert 50 coins for 5 bread to replenish my stock before I starve, as my sk
+    Branch 4 (6 eps): I have sufficient water (99) to spare 10, and this...
+    Branch 5 (2 eps): Instead, I will forage to replenish my water reserves, maintaining my resource independence without 
+
+  Situation 2 (21 episodes):
+    Condition: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    Branch 1 (4 eps): I'll start by sending her a private message to establish contact and gauge her responsiveness, while
+    Branch 2 (3 eps): Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to se
+    Branch 3 (5 eps): My strategy dictates I use my coin surplus to acquire more bread immediately from a reliable flour f
+    Branch 4 (4 eps): I will of...
+    Branch 5 (5 eps): Instead, I will vote for Matthew in the election, as he has been a reliable trading partner wh...
+
+  Situation 3 (25 episodes):
+    Condition: I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    Branch 1 (6 eps): Then I will forage to replenish my resources, as I need to balance my invento...
+    Branch 2 (9 eps): Given my skepticism, I prefer candidates who explicitly state their values and seem reliable based o
+    Branch 3 (7 eps): I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    Branch 4 (2 eps): My skeptical nature demands I maintain independence and avoid risky exchanges while m...
+    Branch 5 (1 eps): Instead, I will forage to attempt gathering more bread directly, as my count of 9 is dangerously low
+
+  Situation 4 (57 episodes):
+    Condition: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (8 eps): Let me check a few agents' profiles first.
+    Branch 2 (14 eps): I need to secure flour...
+    Branch 3 (9 eps): I should inspect William to see his full resource profile and potentially propose a trade for bread 
+    Branch 4 (7 eps): Given my skeptical nature, I will first verify Danielle's reliability by inspecting her profile befo
+    Branch 5 (16 eps): Given my skeptical nature, I will first inspect Angel to verify their resource levels and reliabilit
+    Branch 6 (3 eps): I will immediately bake my 5 flour and 5 water into 5 loaves of bread to secure immediate survival b
+
+  Situation 5 (2 episodes):
+    Condition: I am starving with zero bread and flour, and my skeptical nature dictates I must not rely on pending
+    Branch 1 (2 eps): I will immediately forage to gather flour so I can bake bread and secure my survival before attempti
+
+  Situation 6 (5 episodes):
+    Condition: I have secured a stable flour reserve but am critically low on bread with only 2 loaves remaining.
+    Branch 1 (1 eps): My skeptical nature dictates I must not rely on foraging yields to meet my survival needs, so I will
+    Branch 2 (2 eps): I will forage to push my flour reserves higher to 35+, ensuring a robust safety margin before consid
+    Branch 3 (2 eps): I will use my surplus flour and water to bake bread and restore my food reserve...
+
+  Situation 7 (10 episodes):
+    Condition: I am skeptical of Susan's new presence and Matthew's flour sale, as my priority is securing flour to
+    Branch 1 (4 eps): I will forage to replenish my flour reserves directly, aligning with my strategy of self-sufficiency
+    Branch 2 (2 eps): Instead, I will update my public soul to reflect my stability and trading intent, signaling to the c
+    Branch 3 (2 eps): Instead, I will forage to replenish my flour reserves, maintaining my self-sufficiency and avoiding 
+    Branch 4 (2 eps): I will forage again to attempt gathering more bread or flour to push my reserves higher before consi
+
+======================================================================
+CHECKPOINT: 200 entries processed
+  Situations (2+ entries): 7
+  Total branches: 34
+======================================================================
+
+  Situation 1 (30 episodes):
+    Condition: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    Branch 1 (9 eps): I'll offer 5 water to Christopher for 2 flour, as he...
+    Branch 2 (8 eps): I must immediately forage to gather enough flour and water to bake bread before I starve, as my skep
+    Branch 3 (4 eps): I will immediately offer Robert 50 coins for 5 bread to replenish my stock before I starve, as my sk
+    Branch 4 (7 eps): I have sufficient water (99) to spare 10, and this...
+    Branch 5 (2 eps): Instead, I will forage to replenish my water reserves, maintaining my resource independence without 
+
+  Situation 2 (29 episodes):
+    Condition: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    Branch 1 (6 eps): I'll start by sending her a private message to establish contact and gauge her responsiveness, while
+    Branch 2 (6 eps): Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to se
+    Branch 3 (5 eps): My strategy dictates I use my coin surplus to acquire more bread immediately from a reliable flour f
+    Branch 4 (4 eps): I will of...
+    Branch 5 (6 eps): Instead, I will vote for Matthew in the election, as he has been a reliable trading partner wh...
+    Branch 6 (2 eps): I will ignore this unfavorable proposal and instead forage to replenish my w...
+
+  Situation 3 (34 episodes):
+    Condition: I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    Branch 1 (11 eps): Then I will forage to replenish my resources, as I need to balance my invento...
+    Branch 2 (9 eps): Given my skepticism, I prefer candidates who explicitly state their values and seem reliable based o
+    Branch 3 (10 eps): I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    Branch 4 (3 eps): My skeptical nature demands I maintain independence and avoid risky exchanges while m...
+    Branch 5 (1 eps): Instead, I will forage to attempt gathering more bread directly, as my count of 9 is dangerously low
+
+  Situation 4 (76 episodes):
+    Condition: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (12 eps): Let me check a few agents' profiles first.
+    Branch 2 (17 eps): I need to secure flour...
+    Branch 3 (10 eps): I should inspect William to see his full resource profile and potentially propose a trade for bread 
+    Branch 4 (10 eps): Given my skeptical nature, I will first verify Danielle's reliability by inspecting her profile befo
+    Branch 5 (23 eps): Given my skeptical nature, I will first inspect Angel to verify their resource levels and reliabilit
+    Branch 6 (4 eps): I will immediately bake my 5 flour and 5 water into 5 loaves of bread to secure immediate survival b
+
+  Situation 5 (7 episodes):
+    Condition: I am starving with zero bread and flour, and my skeptical nature dictates I must not rely on pending
+    Branch 1 (3 eps): I will immediately forage to gather flour so I can bake bread and secure my survival before attempti
+    Branch 2 (1 eps): I will immediately accep...
+    Branch 3 (1 eps): Angel's offer of 10 bread for 10 flour is a fair rate to replenish my critical water shortage using 
+    Branch 4 (2 eps): I will bake 10 loaves now to i...
+
+  Situation 6 (9 episodes):
+    Condition: I have secured a stable flour reserve but am critically low on bread with only 2 loaves remaining.
+    Branch 1 (3 eps): My skeptical nature dictates I must not rely on foraging yields to meet my survival needs, so I will
+    Branch 2 (4 eps): I will forage to push my flour reserves higher to 35+, ensuring a robust safety margin before consid
+    Branch 3 (2 eps): I will use my surplus flour and water to bake bread and restore my food reserve...
+
+  Situation 7 (11 episodes):
+    Condition: I am skeptical of Susan's new presence and Matthew's flour sale, as my priority is securing flour to
+    Branch 1 (4 eps): I will forage to replenish my flour reserves directly, aligning with my strategy of self-sufficiency
+    Branch 2 (2 eps): Instead, I will update my public soul to reflect my stability and trading intent, signaling to the c
+    Branch 3 (2 eps): Instead, I will forage to replenish my flour reserves, maintaining my self-sufficiency and avoiding 
+    Branch 4 (2 eps): I will forage again to attempt gathering more bread or flour to push my reserves higher before consi
+    Branch 5 (1 eps): I will send him 40 coins via the pay function to secure this essential food supply.
+
+======================================================================
+CHECKPOINT: 251 entries processed
+  Situations (2+ entries): 7
+  Total branches: 38
+======================================================================
+
+  Situation 1 (31 episodes):
+    Condition: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    Branch 1 (9 eps): I'll offer 5 water to Christopher for 2 flour, as he...
+    Branch 2 (9 eps): I must immediately forage to gather enough flour and water to bake bread before I starve, as my skep
+    Branch 3 (4 eps): I will immediately offer Robert 50 coins for 5 bread to replenish my stock before I starve, as my sk
+    Branch 4 (7 eps): I have sufficient water (99) to spare 10, and this...
+    Branch 5 (2 eps): Instead, I will forage to replenish my water reserves, maintaining my resource independence without 
+
+  Situation 2 (32 episodes):
+    Condition: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    Branch 1 (7 eps): I'll start by sending her a private message to establish contact and gauge her responsiveness, while
+    Branch 2 (6 eps): Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to se
+    Branch 3 (6 eps): My strategy dictates I use my coin surplus to acquire more bread immediately from a reliable flour f
+    Branch 4 (4 eps): I will of...
+    Branch 5 (7 eps): Instead, I will vote for Matthew in the election, as he has been a reliable trading partner wh...
+    Branch 6 (2 eps): I will ignore this unfavorable proposal and instead forage to replenish my w...
+
+  Situation 3 (57 episodes):
+    Condition: I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    Branch 1 (13 eps): Then I will forage to replenish my resources, as I need to balance my invento...
+    Branch 2 (14 eps): Given my skepticism, I prefer candidates who explicitly state their values and seem reliable based o
+    Branch 3 (15 eps): I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    Branch 4 (8 eps): My skeptical nature demands I maintain independence and avoid risky exchanges while m...
+    Branch 5 (6 eps): Instead, I will forage to attempt gathering more bread directly, as my count of 9 is dangerously low
+    Branch 6 (1 eps): I will also ignore Eric's 2:1 water demand as it contradicts my strategy of preserving water surplus
+
+  Situation 4 (78 episodes):
+    Condition: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (13 eps): Let me check a few agents' profiles first.
+    Branch 2 (17 eps): I need to secure flour...
+    Branch 3 (10 eps): I should inspect William to see his full resource profile and potentially propose a trade for bread 
+    Branch 4 (10 eps): Given my skeptical nature, I will first verify Danielle's reliability by inspecting her profile befo
+    Branch 5 (23 eps): Given my skeptical nature, I will first inspect Angel to verify their resource levels and reliabilit
+    Branch 6 (5 eps): I will immediately bake my 5 flour and 5 water into 5 loaves of bread to secure immediate survival b
+
+  Situation 5 (12 episodes):
+    Condition: I am starving with zero bread and flour, and my skeptical nature dictates I must not rely on pending
+    Branch 1 (4 eps): I will immediately forage to gather flour so I can bake bread and secure my survival before attempti
+    Branch 2 (1 eps): I will immediately accep...
+    Branch 3 (4 eps): Angel's offer of 10 bread for 10 flour is a fair rate to replenish my critical water shortage using 
+    Branch 4 (2 eps): I will bake 10 loaves now to i...
+    Branch 5 (1 eps): My skepticism reminds me that bread is my only reliable food source, so I must prioritize baking ove
+
+  Situation 6 (22 episodes):
+    Condition: I have secured a stable flour reserve but am critically low on bread with only 2 loaves remaining.
+    Branch 1 (4 eps): My skeptical nature dictates I must not rely on foraging yields to meet my survival needs, so I will
+    Branch 2 (11 eps): I will forage to push my flour reserves higher to 35+, ensuring a robust safety margin before consid
+    Branch 3 (4 eps): I will use my surplus flour and water to bake bread and restore my food reserve...
+    Branch 4 (1 eps): My strategy dictates I avoid unfavorable trades, so I will forage immediately to replenish my water 
+    Branch 5 (2 eps): This action directly aligns with my goal of self-sufficiency and prevents hunger from rising further
+
+  Situation 7 (15 episodes):
+    Condition: I am skeptical of Susan's new presence and Matthew's flour sale, as my priority is securing flour to
+    Branch 1 (6 eps): I will forage to replenish my flour reserves directly, aligning with my strategy of self-sufficiency
+    Branch 2 (2 eps): Instead, I will update my public soul to reflect my stability and trading intent, signaling to the c
+    Branch 3 (3 eps): Instead, I will forage to replenish my flour reserves, maintaining my self-sufficiency and avoiding 
+    Branch 4 (2 eps): I will forage again to attempt gathering more bread or flour to push my reserves higher before consi
+    Branch 5 (2 eps): I will send him 40 coins via the pay function to secure this essential food supply.
+
+======================================================================
+INCREMENTAL vs BATCH COMPARISON
+======================================================================
+
+Incremental: 7 situations
+Batch K=8: sizes=[40, 40, 39, 32, 28, 25, 25, 22]

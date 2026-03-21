@@ -1,0 +1,114 @@
+Loaded 251 entries
+
+First half: entries 0-124 (125 entries)
+Second half: entries 125-250 (126 entries)
+
+Phase 1: Discovering patterns from first half...
+Patterns from first half:
+Based on the 125 diary entries from Helen's first half of the simulation, here are 10 distinct behavioral patterns:
+
+1.  **Skeptical Verification of Trade Partners**
+    Helen consistently delays or conditions trades until she can verify the reliability of the other agent, often citing her "skeptical nature" as the primary filter.
+    *Count: ~25*
+
+2.  **Prioritization of Flour Over Bread**
+    When stable, Helen explicitly prioritizes accumulating raw flour reserves over finished bread, viewing flour as the critical input for long-term survival.
+    *Count: ~20*
+
+3.  **Rigid Rejection of Unfavorable Water Trades**
+    Helen strictly refuses to trade away her water reserves for flour or bread unless the rate is exceptionally favorable, often ignoring 1:1 offers when she has a surplus.
+    *Count: ~18*
+
+4.  **Desperate Raw Flour Consumption**
+    When bread stocks hit zero, Helen immediately resorts to eating raw flour to stave off hunger, acknowledging it is unsustainable but necessary for immediate survival.
+    *Count: ~15*
+
+5.  **Coin-Backed Emergency Procurement**
+    When foraging fails or stocks are critically low, Helen leverages her coin surplus to buy food directly, viewing money as a reliable safety net when resources are scarce.
+    *Count: ~12*
+
+6.  **Strict Stability Threshold Adherence**
+    Helen operates with specific numerical targets (e.g., 20+ bread, 25+ flour) and refuses to relax her vigilance or stop foraging until these exact thresholds are met.
+    *Count: ~10*
+
+7.  **Immediate Baking Upon Resource Acquisition**
+    Upon securing raw materials (flour and water), Helen immediately converts them into bread rather than hoarding the raw ingredients, prioritizing immediate hunger reduction.
+    *Count: ~10*
+
+8.  **Rejection of Complacency After Stability**
+    Even after reaching her safety targets, Helen continues to forage and monitor the market, explicitly stating that her skeptical nature forbids becoming complacent.
+    *Count: ~8*
+
+9.  **Strategic Ignoring of Redundant Offers**
+    Helen actively ignores trade offers for resources she already possesses in surplus (e.g., ignoring water offers when she has 99 units) to maintain focus on her specific deficits.
+    *Count: ~8*
+
+10. **Abandonment of Deliberation Under Duress**
+    When facing critical starvation, Helen explicitly notes that she must abandon her usual "deliberate pace" and skepticism to prioritize immediate survival actions.
+    *Count: ~7*
+
+Phase 2a: Classifying first half...
+Phase 2b: Classifying second half with first-half patterns...
+  Classified 30/126
+  Classified 60/126
+  Classified 90/126
+  Classified 120/126
+  Classified 126/126
+
+======================================================================
+RESULTS
+======================================================================
+
+First half (125 classified):
+  Pattern  0:  24 entries
+  Pattern  1:  10 entries
+  Pattern  2:   8 entries
+  Pattern  3:  14 entries
+  Pattern  4:  13 entries
+  Pattern  5:  12 entries
+  Pattern  6:   7 entries
+  Pattern  7:  14 entries
+  Pattern  8:   2 entries
+  Pattern  9:   3 entries
+  Pattern 10:  18 entries
+
+Second half (126 classified):
+  Pattern  0:  13 entries ← NEW
+  Pattern  1:  17 entries
+  Pattern  2:  18 entries
+  Pattern  3:  28 entries
+  Pattern  4:   9 entries
+  Pattern  5:   2 entries
+  Pattern  6:   2 entries
+  Pattern  7:  17 entries
+  Pattern  8:   1 entries
+  Pattern  9:   8 entries
+  Pattern 10:  11 entries
+
+Pattern overlap:
+  Shared: 10 patterns ({1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+  Only in first half: 0 (set())
+  Only in second half: 0 (set())
+  NEW (unmatched): 13 entries
+
+NEW entries that didn't match any pattern:
+  [125] [inspect] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 575 Hunger: 82/100, Thirst: 80/100 Flour: 5, Wa
+  [129] [inspect] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 550 Hunger: 80/100, Thirst: 82/100 Flour: 8, Wa
+  [132] [inspect] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 306 Hunger: 78/100, Thirst: 81/100 Flour
+  [133] [inspect] Handle: Bridget Role: water forager Personality: deliberate, detached Coins: 361 Hunger: 81/100, Thirst: 79/100 Flour: 5
+  [140] [inspect] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 580 Hunger: 82/100, Thirst: 80/100 Flour: 5, Wa
+
+======================================================================
+DISTRIBUTION COMPARISON
+======================================================================
+   Pattern   First Half  Second Half    Shift
+         1    10 ( 8.0%)    17 (13.5%)   +5.5%
+         2     8 ( 6.4%)    18 (14.3%)   +7.9%
+         3    14 (11.2%)    28 (22.2%)  +11.0%
+         4    13 (10.4%)     9 ( 7.1%)   -3.3%
+         5    12 ( 9.6%)     2 ( 1.6%)   -8.0%
+         6     7 ( 5.6%)     2 ( 1.6%)   -4.0%
+         7    14 (11.2%)    17 (13.5%)   +2.3%
+         8     2 ( 1.6%)     1 ( 0.8%)   -0.8%
+         9     3 ( 2.4%)     8 ( 6.3%)   +3.9%
+        10    18 (14.4%)    11 ( 8.7%)   -5.7%

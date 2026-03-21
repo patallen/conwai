@@ -1,0 +1,141 @@
+Loaded 251 entries
+
+Features extracted: 19
+Feature names: ['crisis_bread', 'crisis_coins', 'crisis_flour', 'crisis_level', 'crisis_water', 'deliberation', 'has_bread', 'has_coins', 'has_flour', 'has_water', 'social_mentions', 'stability_level', 'stable_bread', 'stable_coins', 'stable_flour', 'stable_water', 'trade_negative', 'trade_positive', 'urgency']
+
+Feature matrix shape: (251, 19)
+
+Feature means across all entries:
+  crisis_bread              mean=0.562 std=0.496
+  crisis_coins              mean=0.139 std=0.346
+  crisis_flour              mean=0.574 std=0.495
+  crisis_level              mean=0.091 std=0.087
+  crisis_water              mean=0.410 std=0.492
+  deliberation              mean=0.035 std=0.060
+  has_bread                 mean=0.837 std=0.370
+  has_coins                 mean=0.223 std=0.416
+  has_flour                 mean=0.936 std=0.244
+  has_water                 mean=0.729 std=0.444
+  social_mentions           mean=0.316 std=0.347
+  stability_level           mean=0.100 std=0.086
+  stable_bread              mean=0.578 std=0.494
+  stable_coins              mean=0.167 std=0.373
+  stable_flour              mean=0.681 std=0.466
+  stable_water              mean=0.594 std=0.491
+  trade_negative            mean=0.025 std=0.044
+  trade_positive            mean=0.037 std=0.064
+  urgency                   mean=0.101 std=0.093
+
+Sample feature vectors:
+  [  0] [post_to_board] {'deliberation': 0.1111111111111111}
+         I need to establish my public identity and begin building relationships while ma
+  [ 18] [forage] {'crisis_level': 0.1875, 'urgency': 0.2222222222222222, 'has_bread': 1.0, 'crisis_bread': 1.0, 'has_flour': 1.0, 'crisis_flour': 1.0}
+         I am starving with zero bread and only 1 flour left, so I must forage immediatel
+  [ 50] [accept] {'crisis_level': 0.0625, 'stability_level': 0.07692307692307693, 'trade_positive': 0.1, 'urgency': 0.1111111111111111, 'has_bread': 1.0, 'crisis_bread': 1.0, 'stable_bread': 1.0, 'has_flour': 1.0, 'crisis_flour': 1.0, 'stable_flour': 1.0, 'has_water': 1.0, 'crisis_water': 1.0, 'stable_water': 1.0, 'social_mentions': 0.2}
+         I will accept Christopher's offer of 20 flour for 10 water immediately, as acqui
+  [ 94] [forage] {'stability_level': 0.38461538461538464, 'urgency': 0.1111111111111111, 'deliberation': 0.1111111111111111, 'has_bread': 1.0, 'stable_bread': 1.0, 'has_flour': 1.0, 'stable_flour': 1.0, 'has_water': 1.0, 'stable_water': 1.0}
+         I have secured a stable flour reserve and sufficient bread, but my skeptical nat
+  [193] [vote] {'trade_positive': 0.3, 'social_mentions': 0.2}
+         I will vote for @Robert to reward his successful trade, as building reliable par
+
+======================================================================
+K-MEANS ON BEHAVIORAL FEATURES
+======================================================================
+
+  K=5: sizes=[85, 67, 45, 29, 25]
+    Cluster 0 (45) [forage:22, send_message:13, offer:4]
+      Features: crisis_bread=1.00, has_bread=1.00, has_flour=0.96, crisis_flour=0.96, stable_bread=0.31
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gathe
+      [ 23] I am critically starving with zero bread and flour, and my hunger is dropping. Given my sk
+    Cluster 1 (85) [forage:36, inspect:14, bake:11]
+      Features: stable_water=1.00, has_water=1.00, has_flour=0.93, stable_flour=0.93, stable_bread=0.60
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/10
+    Cluster 2 (29) [inspect:24, offer:3, pay:1]
+      Features: has_bread=1.00, crisis_coins=1.00, has_flour=1.00, crisis_flour=1.00, has_coins=1.00
+      [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, T
+      [ 12] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger: 81/100, T
+    Cluster 3 (67) [bake:24, forage:21, accept:9]
+      Features: crisis_water=1.00, crisis_bread=1.00, has_water=1.00, has_bread=1.00, crisis_flour=0.96
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I 
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating r
+    Cluster 4 (25) [forage:10, post_to_board:5, vote:3]
+      Features: has_flour=0.80, has_bread=0.72, stable_flour=0.52, stable_bread=0.48, has_coins=0.24
+      [  0] I need to establish my public identity and begin building relationships while managing my 
+      [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear commu
+
+  K=8: sizes=[51, 45, 42, 35, 22, 22, 20, 14]
+    Cluster 0 (42) [forage:22, send_message:12, offer:5]
+      Features: crisis_flour=1.00, crisis_bread=1.00, has_flour=1.00, has_bread=1.00, stable_bread=0.40
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gathe
+      [ 23] I am critically starving with zero bread and flour, and my hunger is dropping. Given my sk
+    Cluster 1 (51) [forage:17, inspect:14, bake:10]
+      Features: has_water=1.00, stable_bread=1.00, stable_water=1.00, has_bread=1.00, has_flour=0.96
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/10
+    Cluster 2 (14) [inspect:7, pay:4, send_message:2]
+      Features: has_bread=1.00, has_coins=1.00, has_flour=0.86, crisis_bread=0.86, crisis_coins=0.86
+      [ 12] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger: 81/100, T
+      [ 31] Handle: Lisa Role: water forager Personality: calculating, stoic Coins: 426 Hunger: 79/100
+    Cluster 3 (22) [bake:9, forage:8, accept:4]
+      Features: crisis_water=1.00, has_flour=1.00, has_water=1.00, crisis_flour=1.00, crisis_bread=1.00
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I 
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating r
+    Cluster 4 (22) [forage:9, post_to_board:5, vote:3]
+      Features: has_flour=0.77, has_bread=0.73, stable_flour=0.59, stable_bread=0.55, has_coins=0.18
+      [  0] I need to establish my public identity and begin building relationships while managing my 
+      [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear commu
+    Cluster 5 (45) [bake:15, forage:13, offer:7]
+      Features: has_water=1.00, stable_bread=1.00, stable_water=1.00, crisis_water=1.00, crisis_bread=1.00
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus
+      [ 29] I have secured a small surplus of flour and water but remain critically low on bread with 
+    Cluster 6 (20) [inspect:19, offer:1]
+      Features: stable_bread=1.00, stable_coins=1.00, stable_flour=1.00, crisis_bread=1.00, crisis_coins=1.00
+      [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, T
+      [ 13] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 450 Hunger
+    Cluster 7 (35) [forage:20, accept:7, offer:4]
+      Features: has_water=1.00, stable_water=0.97, has_flour=0.89, stable_flour=0.86, crisis_water=0.31
+      [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complem
+      [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but 
+
+  K=10: sizes=[45, 36, 33, 31, 30, 22, 19, 15, 14, 6]
+    Cluster 0 (31) [forage:21, send_message:4, pay:3]
+      Features: crisis_bread=1.00, has_bread=1.00, has_flour=0.94, crisis_flour=0.94, crisis_level=0.20
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gathe
+      [ 23] I am critically starving with zero bread and flour, and my hunger is dropping. Given my sk
+    Cluster 1 (36) [forage:16, bake:10, offer:5]
+      Features: has_water=1.00, stable_bread=1.00, stable_water=1.00, has_bread=1.00, has_flour=0.94
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical na
+      [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current h
+    Cluster 2 (6) [inspect:5, pay:1]
+      Features: crisis_coins=1.00, has_flour=1.00, has_water=1.00, crisis_flour=1.00, crisis_water=1.00
+      [ 12] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger: 81/100, T
+      [ 31] Handle: Lisa Role: water forager Personality: calculating, stoic Coins: 426 Hunger: 79/100
+    Cluster 3 (22) [bake:9, forage:8, accept:4]
+      Features: crisis_water=1.00, has_flour=1.00, has_water=1.00, crisis_flour=1.00, crisis_bread=1.00
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I 
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating r
+    Cluster 4 (30) [send_message:10, forage:8, offer:6]
+      Features: has_flour=1.00, stable_bread=1.00, stable_flour=1.00, has_bread=1.00, crisis_flour=0.60
+      [ 34] I have secured 4 bread and 6 flour, but I am still vulnerable to starvation if my foraging
+      [ 35] I am critically vulnerable with zero bread and only 6 flour, relying on my coin surplus to
+    Cluster 5 (45) [bake:15, forage:13, offer:7]
+      Features: has_water=1.00, stable_bread=1.00, stable_water=1.00, crisis_water=1.00, crisis_bread=1.00
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus
+      [ 29] I have secured a small surplus of flour and water but remain critically low on bread with 
+    Cluster 6 (19) [inspect:19]
+      Features: stable_coins=1.00, stable_flour=1.00, stable_water=1.00, crisis_bread=1.00, has_bread=1.00
+      [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, T
+      [ 13] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 450 Hunger
+    Cluster 7 (33) [forage:18, accept:7, offer:4]
+      Features: stable_water=1.00, has_water=1.00, has_flour=0.91, stable_flour=0.91, crisis_water=0.33
+      [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complem
+      [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but 
+    Cluster 8 (15) [inspect:14, forage:1]
+      Features: stable_coins=1.00, stable_flour=1.00, stable_water=1.00, has_flour=1.00, has_water=1.00
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/10
+    Cluster 9 (14) [post_to_board:4, forage:4, vote:3]
+      Features: has_flour=0.57, has_water=0.50, has_bread=0.43, social_mentions=0.27, has_coins=0.14
+      [  0] I need to establish my public identity and begin building relationships while managing my 
+      [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear commu

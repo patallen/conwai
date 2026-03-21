@@ -1,0 +1,52 @@
+DB: data.pre-abliterated.bak/state.db  Agent: Helen
+Cluster threshold: 0.7
+Domain words stripped: 26
+
+Diary entries: 251
+
+Sample stripping (first 3 entries):
+  [0] ORIGINAL : I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical
+      STRIPPED : I need to establish my public identity and begin building relationships while managing my . Since I'm skeptical and deli
+  [1] ORIGINAL : Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Wa
+      STRIPPED : Handle: Joshua Role: forager Personality: dry, competitive : : / , Thirst: / : , : , : Activity: posts, DMs sent, inspec
+  [2] ORIGINAL : Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+      STRIPPED : Handle: Matthew Role: forager Personality: blunt, laid-back : : / , Thirst: / : , : , : Activity: posts, DMs sent I see 
+
+Embedding stripped texts...
+Embedded 251 vectors (dim=1024)
+
+Clustering...
+
+======================================================================
+RESULTS: 3 clusters from 251 entries
+======================================================================
+
+Cluster 1  (size=248)
+  [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Water: 10, Bread: 5 Activity: 1 posts, 0 D
+  [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, Water: 29, Bread: 5 Activity: 1 posts, 0 
+  [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades carefully to verify reliability before 
+  ... and 245 more entries
+
+Cluster 2  (size=2)
+  [193] I will vote for @Robert to reward his successful trade, as building reliable partnerships is essential for community stability and my strategy of fair exchange.
+  [243] I will vote for @Debra, a patient resource manager with a public soul emphasizing community resilience and fair trades, as my skepticism favors supporting agent
+
+Cluster 3  (size=1)
+  [  0] I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and deliberate, I'll start by posting a
+
+======================================================================
+SUMMARY
+======================================================================
+  Total entries   : 251
+  Total clusters  : 3
+  Largest cluster : 248
+  Smallest cluster: 1
+  Mean size       : 83.7
+  Median size     : 2.0
+  Singletons      : 1
+  Non-singletons  : 2
+
+  Size distribution:
+    size   1: 1 cluster(s)
+    size   2: 1 cluster(s)
+    size 248: 1 cluster(s)

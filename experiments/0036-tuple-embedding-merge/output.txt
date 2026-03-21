@@ -1,0 +1,183 @@
+Loaded 251 entries
+
+Unique patterns: 101
+
+Top 25 patterns:
+   20x  WHEN stable
+   18x  WHEN crisis+no_bread
+   12x  WHEN bad_offer_present+stable DO follow_strategy
+   12x  WHEN bad_offer_present+stable
+   11x  WHEN crisis+stable
+    8x  WHEN bad_offer_present+stable DO follow_strategy+will_offer
+    7x  WHEN stable DO follow_strategy+will_offer
+    6x  unclassified
+    6x  WHEN crisis+no_bread+stable
+    5x  WHEN crisis+no_bread DO will_offer
+    5x  WHEN stable DO follow_strategy
+    5x  WHEN bad_offer_present+stable DO follow_strategy+will_forage
+    4x  WHEN crisis+has_coins+no_bread
+    4x  WHEN crisis+no_bread DO abandon_caution
+    4x  WHEN bad_offer_present
+    4x  WHEN bad_offer_present+stable DO will_accept+will_offer
+    4x  WHEN bad_offer_present+stable DO will_offer
+    3x  WHEN crisis
+    3x  WHEN crisis+has_coins+stable DO follow_strategy
+    3x  WHEN crisis+has_coins+no_bread+stable
+    3x  WHEN crisis+no_bread DO eating_raw
+    3x  WHEN crisis+has_coins+no_bread DO will_accept
+    3x  WHEN crisis+has_coins+stable
+    3x  WHEN crisis+has_coins+no_bread+stable+waiting_on_trade DO eating_raw
+    3x  WHEN bad_offer_present+stable DO will_forage
+
+Embedding 101 unique pattern strings...
+
+Clustering pattern embeddings:
+  K=5: sil=0.4947
+  K=8: sil=0.4116
+  K=10: sil=0.4468
+  K=15: sil=0.4812
+  K=20: sil=0.4588
+
+======================================================================
+MERGED CONSOLIDATED PATTERNS (K=10)
+======================================================================
+
+  CONCEPT 1 (14 episodes) [accept:4, bake:3, forage:3]
+    Representative: WHEN crisis
+    Merged patterns (10):
+        3x  WHEN crisis
+        2x  WHEN crisis+stable+waiting_on_trade DO will_accept+will_offer
+        2x  WHEN crisis+stable DO will_forage
+        1x  WHEN crisis DO will_offer
+        1x  WHEN crisis DO will_accept+will_offer
+      ... and 5 more variants
+    Example entries:
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+      [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to 
+      [ 51] I will immediately accept Christopher's offer of 20 flour for 10 water to secure the raw materials n
+
+  CONCEPT 2 (12 episodes) [forage:10, offer:1, send_message:1]
+    Representative: WHEN bad_offer_present+stable DO will_forage
+    Merged patterns (8):
+        3x  WHEN bad_offer_present+stable DO will_forage
+        2x  WHEN bad_offer_present+crisis+stable DO will_forage
+        2x  WHEN bad_offer_present DO will_forage
+        1x  WHEN bad_offer_present+crisis+stable DO will_offer
+        1x  WHEN bad_offer_present+crisis+stable+waiting_on_trade DO will_message
+      ... and 3 more variants
+    Example entries:
+      [145] I am critically low on bread at only 5 loaves, and my massive water surplus (98) makes Joshua's and 
+      [149] I am critically low on bread with only 3 loaves, and my pending offers to Matthew and Bridget remain
+      [183] I am skeptical of Melanie's fixed ratio and her large flour stock without verified water, so I will 
+
+  CONCEPT 3 (48 episodes) [forage:13, bake:10, send_message:9]
+    Representative: WHEN crisis+no_bread
+    Merged patterns (15):
+       18x  WHEN crisis+no_bread
+        6x  WHEN crisis+no_bread+stable
+        4x  WHEN crisis+has_coins+no_bread
+        3x  WHEN crisis+has_coins+no_bread+stable
+        3x  WHEN crisis+has_coins+no_bread DO will_accept
+      ... and 10 more variants
+    Example entries:
+      [ 16] Handle: Debra Role: water forager Personality: patient, laid-back Coins: 450 Hunger: 79/100, Thirst:
+      [ 17] Handle: Debra Role: water forager Personality: patient, laid-back Coins: 450 Hunger: 81/100, Thirst:
+      [ 22] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 425 Hunger: 81/100, 
+
+  CONCEPT 4 (44 episodes) [inspect:15, bake:10, offer:9]
+    Representative: WHEN stable
+    Merged patterns (9):
+       20x  WHEN stable
+       11x  WHEN crisis+stable
+        3x  WHEN crisis+has_coins+stable DO follow_strategy
+        3x  WHEN crisis+has_coins+stable
+        2x  WHEN has_coins+stable
+      ... and 4 more variants
+    Example entries:
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+
+  CONCEPT 5 (12 episodes) [forage:3, post_to_board:2, vote:2]
+    Representative: unclassified
+    Merged patterns (7):
+        6x  unclassified
+        1x  WHEN no_bread+stable DO will_offer
+        1x  WHEN no_bread+no_flour
+        1x  WHEN no_bread DO will_accept+will_offer
+        1x  WHEN stable DO eating_raw+will_offer
+      ... and 2 more variants
+    Example entries:
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, 
+      [ 19] Handle: Amy Role: water forager Personality: dry, competitive Coins: 430 Hunger: 81/100, Thirst: 80/
+
+  CONCEPT 6 (20 episodes) [forage:8, bake:6, inspect:3]
+    Representative: WHEN stable DO follow_strategy+will_offer
+    Merged patterns (8):
+        7x  WHEN stable DO follow_strategy+will_offer
+        5x  WHEN stable DO follow_strategy
+        2x  WHEN crisis+stable DO follow_strategy+will_forage
+        2x  WHEN stable DO follow_strategy+will_bake
+        1x  WHEN has_coins+stable DO follow_strategy
+      ... and 3 more variants
+    Example entries:
+      [ 27] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 421 Hunger: 78/100, Thirs
+      [ 56] I am now stable with 7 bread and 8 flour, but my strategy requires securing 15+ bread and 20+ flour 
+      [ 97] Handle: Bridget Role: water forager Personality: deliberate, detached Coins: 414 Hunger: 79/100, Thi
+
+  CONCEPT 7 (22 episodes) [forage:15, accept:2, bake:2]
+    Representative: WHEN crisis+no_bread DO will_offer
+    Merged patterns (12):
+        5x  WHEN crisis+no_bread DO will_offer
+        4x  WHEN crisis+no_bread DO abandon_caution
+        3x  WHEN crisis+no_bread DO eating_raw
+        2x  WHEN crisis+no_bread DO will_forage
+        1x  WHEN crisis DO eating_raw+will_forage
+      ... and 7 more variants
+    Example entries:
+      [ 12] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger: 81/100, Thirst: 79/
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+
+  CONCEPT 8 (9 episodes) [forage:3, send_message:2, accept:1]
+    Representative: DO will_offer
+    Merged patterns (8):
+        2x  DO will_offer
+        1x  WHEN stable DO will_message
+        1x  WHEN stable DO will_accept+will_offer
+        1x  WHEN has_coins+stable DO will_accept+will_offer
+        1x  WHEN stable DO will_bake
+      ... and 3 more variants
+    Example entries:
+      [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+      [ 26] I need to bake bread immediately since I have 70 water and 0 flour, but I cannot bake without flour.
+      [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+
+  CONCEPT 9 (36 episodes) [inspect:9, forage:8, accept:7]
+    Representative: WHEN bad_offer_present+stable
+    Merged patterns (13):
+       12x  WHEN bad_offer_present+stable
+        4x  WHEN bad_offer_present
+        4x  WHEN bad_offer_present+stable DO will_accept+will_offer
+        4x  WHEN bad_offer_present+stable DO will_offer
+        2x  WHEN bad_offer_present DO will_offer
+      ... and 8 more variants
+    Example entries:
+      [ 98] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 316 Hunger: 78/100, Thirs
+      [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I 
+      [104] I am skeptical of Adam's offer as it requires giving 5 bread for only 50 water, which is a poor rate
+
+  CONCEPT 10 (34 episodes) [forage:22, inspect:3, offer:3]
+    Representative: WHEN bad_offer_present+stable DO follow_strategy
+    Merged patterns (11):
+       12x  WHEN bad_offer_present+stable DO follow_strategy
+        8x  WHEN bad_offer_present+stable DO follow_strategy+will_offer
+        5x  WHEN bad_offer_present+stable DO follow_strategy+will_forage
+        2x  WHEN bad_offer_present+crisis+stable DO follow_strategy
+        1x  WHEN bad_offer_present+crisis+no_flour DO follow_strategy
+      ... and 6 more variants
+    Example entries:
+      [ 68] I am starving with zero flour and bread, but my strategy dictates I must not trade away my last wate
+      [ 77] I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids tra
+      [ 92] [Day 5, 9:00 AM] I am skeptical of Christopher's offer because my strategy explicitly forbids tradin

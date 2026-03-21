@@ -1,0 +1,143 @@
+Loaded 251 entries
+
+Building TF-IDF matrix...
+Shape: (251, 828) (entries x vocab)
+
+Top 20 highest-IDF words (most distinctive):
+  won                  IDF=5.836 (in 1 docs)
+  about                IDF=5.836 (in 1 docs)
+  william              IDF=5.836 (in 1 docs)
+  accep                IDF=5.836 (in 1 docs)
+  wil                  IDF=5.836 (in 1 docs)
+  whether              IDF=5.836 (in 1 docs)
+  managing             IDF=5.836 (in 1 docs)
+  maintainin           IDF=5.836 (in 1 docs)
+  lose                 IDF=5.836 (in 1 docs)
+  looking              IDF=5.836 (in 1 docs)
+  moving               IDF=5.836 (in 1 docs)
+  modest               IDF=5.836 (in 1 docs)
+  minimum              IDF=5.836 (in 1 docs)
+  means                IDF=5.836 (in 1 docs)
+  meaningfully         IDF=5.836 (in 1 docs)
+  matth                IDF=5.836 (in 1 docs)
+  lindsay              IDF=5.836 (in 1 docs)
+  likely               IDF=5.836 (in 1 docs)
+  via                  IDF=5.836 (in 1 docs)
+  verifying            IDF=5.836 (in 1 docs)
+
+Top 20 lowest-IDF words (most common):
+  i                    IDF=1.000 (in 251 docs)
+  my                   IDF=1.012 (in 248 docs)
+  to                   IDF=1.032 (in 243 docs)
+  and                  IDF=1.032 (in 243 docs)
+  flour                IDF=1.066 (in 235 docs)
+  will                 IDF=1.118 (in 223 docs)
+  bread                IDF=1.178 (in 210 docs)
+  water                IDF=1.314 (in 183 docs)
+  am                   IDF=1.512 (in 150 docs)
+  for                  IDF=1.532 (in 147 docs)
+  immediately          IDF=1.560 (in 143 docs)
+  surplus              IDF=1.574 (in 141 docs)
+  a                    IDF=1.588 (in 139 docs)
+  of                   IDF=1.624 (in 134 docs)
+  with                 IDF=1.677 (in 127 docs)
+  skeptical            IDF=1.717 (in 122 docs)
+  as                   IDF=1.802 (in 112 docs)
+  secure               IDF=1.924 (in 99 docs)
+  s                    IDF=1.944 (in 97 docs)
+  have                 IDF=1.944 (in 97 docs)
+
+TF-IDF pairwise similarity:
+  mean=0.1860 std=0.0903 range=[0.0172, 1.0000]
+  (Compare: bge-large mean=0.7972 std=0.0745)
+
+======================================================================
+THRESHOLD CLUSTERING ON TF-IDF
+======================================================================
+  threshold=0.05: 1 clusters (1 non-singleton) top=[251]
+  threshold=0.10: 2 clusters (2 non-singleton) top=[249, 2]
+  threshold=0.15: 3 clusters (2 non-singleton) top=[248, 2, 1]
+  threshold=0.20: 4 clusters (2 non-singleton) top=[247, 2, 1, 1]
+  threshold=0.30: 24 clusters (8 non-singleton) top=[97, 75, 50, 3, 3, 3, 2, 2, 1, 1]
+  threshold=0.40: 71 clusters (19 non-singleton) top=[52, 38, 34, 18, 10, 9, 5, 4, 3, 3]
+
+======================================================================
+K-MEANS ON TF-IDF
+======================================================================
+
+  K=5: sizes=[102, 64, 40, 34, 11]
+    Cluster 0:  34 [send_message:16, offer:7, forage:2]
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+      [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+    Cluster 1:  11 [offer:3, post_to_board:2, send_message:2]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    Cluster 2:  40 [inspect:39, pay:1]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 3:  64 [forage:34, bake:14, offer:6]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 4: 102 [forage:52, bake:24, accept:11]
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+
+  K=8: sizes=[59, 44, 41, 40, 24, 20, 15, 8]
+    Cluster 0:  24 [send_message:15, offer:5, forage:1]
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+      [ 42] I need to secure bread immediately to stop eating raw flour, and Debra has surplus bread while seeki
+    Cluster 1:   8 [offer:3, post_to_board:2, send_message:1]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    Cluster 2:  40 [inspect:39, pay:1]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 3:  59 [forage:30, bake:14, offer:6]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 4:  15 [bake:8, forage:5, update_soul:1]
+      [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a se
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+    Cluster 5:  44 [bake:17, forage:8, offer:7]
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+      [ 50] I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critic
+    Cluster 6:  20 [forage:20]
+      [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+      [ 94] I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must 
+    Cluster 7:  41 [forage:25, accept:7, send_message:3]
+      [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+      [ 58] [Day 3, 7:00 PM] I will immediately accept Matthew's firm offer of 20 flour for 50 coins to secure a
+
+  K=10: sizes=[58, 42, 40, 29, 23, 21, 14, 14, 5, 5]
+    Cluster 0:  23 [send_message:15, offer:6, accept:1]
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+      [ 38] I am critically starving with zero bread and only 7 flour, forcing me to rely on my coin surplus to 
+    Cluster 1:   5 [offer:3, post_to_board:1, send_message:1]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    Cluster 2:   5 [inspect:3, vote:1, pay:1]
+      [ 86] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 639 Hunger: 82/100, Thirst:
+      [ 90] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 644 Hunger: 80/100, Thirst:
+    Cluster 3:  58 [forage:30, bake:14, offer:5]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 4:  14 [bake:8, forage:5, update_soul:1]
+      [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a se
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+    Cluster 5:  42 [bake:16, forage:8, offer:7]
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+      [ 50] I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critic
+    Cluster 6:  21 [forage:20, post_to_board:1]
+      [  8] I will post a message to the board acknowledging my current surplus of water and flour to attract po
+      [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    Cluster 7:  40 [forage:24, accept:7, send_message:3]
+      [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+      [ 58] [Day 3, 7:00 PM] I will immediately accept Matthew's firm offer of 20 flour for 50 coins to secure a
+    Cluster 8:  29 [inspect:26, vote:3]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 9:  14 [inspect:11, forage:2, pay:1]
+      [116] Handle: Debra Role: water forager Personality: patient, laid-back Coins: 313 Hunger: 79/100, Thirst:
+      [118] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 575 Hunger: 78/100, Thirst:
+
+  K=15: sizes=[48, 32, 30, 28, 18, 15, 13, 13, 11, 11, 11, 9, 5, 4, 3]

@@ -1,0 +1,80 @@
+Loaded 251 entries, vectors (251, 1024)
+
+Dimension variances: min=0.000065 max=0.000658 mean=0.000197 std=0.000069
+Variance percentiles:
+  10th: 0.000125
+  25th: 0.000151
+  50th: 0.000184
+  75th: 0.000230
+  90th: 0.000283
+  95th: 0.000327
+  99th: 0.000433
+
+High-variance dims: 512
+Low-variance dims: 512
+
+======================================================================
+COMPARISON OF WEIGHTING STRATEGIES
+======================================================================
+Strategy                                   Mean Sim        Std                     K=10 sizes
+  original                                   0.7972     0.0745 [63, 41, 39, 27, 25, 19, 12, 9, 9, 7]
+  variance_weighted                          0.7871     0.0787 [66, 41, 35, 26, 25, 19, 12, 11, 9, 7]
+  top_256_dims                               0.7389     0.1017 [55, 43, 37, 32, 24, 19, 12, 12, 9, 8]
+  top_128_dims                               0.7309     0.1081 [44, 41, 35, 31, 27, 24, 21, 11, 9, 8]
+  top_64_dims                                0.7620     0.1043 [44, 43, 38, 27, 26, 26, 25, 11, 7, 4]
+  bottom_256_removed                         0.7795     0.0819 [63, 41, 37, 27, 25, 19, 12, 11, 9, 7]
+  sqrt_variance_only_top50pct                0.7680     0.0885 [59, 41, 35, 32, 24, 20, 12, 12, 9, 7]
+
+======================================================================
+BEST STRATEGY: top_128_dims
+======================================================================
+
+  Cluster 0 (24 entries) [send_message:13, offer:6, pay:4]
+    [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew's offer of 5 bread f
+    [ 34] I have secured 4 bread and 6 flour, but I am still vulnerable to starvation if my foraging yields remain poor. My strate
+    [ 35] I am critically vulnerable with zero bread and only 6 flour, relying on my coin surplus to secure food since my foraging
+
+  Cluster 1 (9 entries) [post_to_board:3, vote:3, forage:2]
+    [  0] I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical
+    [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptical nature requires m
+    [  8] I will post a message to the board acknowledging my current surplus of water and flour to attract potential trade partne
+
+  Cluster 2 (8 entries) [inspect:8]
+    [ 15] Handle: Linda Role: water forager Personality: detached, stoic Coins: 450 Hunger: 82/100, Thirst: 83/100 Flour: 12, Wate
+    [ 24] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 421 Hunger: 80/100, Thirst: 80/100 Flour: 22, W
+    [ 31] Handle: Lisa Role: water forager Personality: calculating, stoic Coins: 426 Hunger: 79/100, Thirst: 81/100 Flour: 27, Wa
+
+  Cluster 3 (44 entries) [forage:31, bake:12, accept:1]
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more resources before I peri
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I
+
+  Cluster 4 (27 entries) [bake:20, forage:6, offer:1]
+    [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger is still p
+    [109] My flour reserve of 32 is sufficient for baking, but my bread count of 14 is below my target of 20+ for true stability. 
+    [113] I am skeptical of my current bread count of 19, which is just below my stability target of 20+, and my flour reserve of 
+
+  Cluster 5 (31 entries) [accept:9, forage:6, offer:6]
+    [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to balance my bread consu
+    [ 26] I need to bake bread immediately since I have 70 water and 0 flour, but I cannot bake without flour. My offer to Matthew
+    [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need every crumb to survive
+
+  Cluster 6 (35 entries) [forage:31, offer:2, bake:2]
+    [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loaf. My strategy dicta
+    [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inventory. My strategy di
+    [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to bake more bread to m
+
+  Cluster 7 (41 entries) [forage:13, offer:9, accept:7]
+    [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my recent forage yield of
+    [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. Given my skeptical na
+
+  Cluster 8 (21 entries) [inspect:21]
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Wa
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour: 18, Water
+
+  Cluster 9 (11 entries) [inspect:11]
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+    [ 86] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 639 Hunger: 82/100, Thirst: 83/100 Flour: 14, W
+    [ 90] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 644 Hunger: 80/100, Thirst: 80/100 Flour: 16, W

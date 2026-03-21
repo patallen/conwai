@@ -1,0 +1,69 @@
+Loaded 251 entries
+
+Action result distribution:
+  weak      : 80
+  neutral   : 61
+  info      : 40
+  positive  : 38
+  pending   : 22
+  social    : 10
+
+Sample action→result→classification:
+  [  0] post_to_board→posted to board: @Helen here. Skeptic and deliberate. Lookin → social
+  [ 18] forage→foraged 3 flour, 22 water → weak
+  [ 30] bake→need 10 flour and 10 water to bake (have 8 flour, 72 water) → neutral
+  [ 50] accept→Offer #68 is not for you. → neutral
+  [ 77] forage→foraged 3 flour → weak
+  [ 94] forage→foraged 1 flour, 26 water → weak
+
+======================================================================
+RESULT QUALITY BY SITUATION AND BRANCH
+======================================================================
+
+  Situation (40 eps): Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (24 eps): positive=0/24 (0%) [info:24]
+      → Instead, I will inspect Bridget to verify her flour and bread reserves, as her post about selling br
+    Branch 2 (12 eps): positive=0/12 (0%) [info:12]
+      → Let me inspect Joshua and James to see their resource levels and verify their claims.
+    Branch 3 (4 eps): positive=0/4 (0%) [info:4]
+      → I must convert my surplus water (88) into flour immediately to build the reserves outlined in my str
+
+  Situation (37 eps): I will forage immediately to replenish my water reserves, as my skepticism dictates I avoid relying 
+    Branch 1 (5 eps): positive=0/5 (0%) [social:3, neutral:2]
+      → I will ignore these predatory terms and instead propose a trade to Matthew, who...
+    Branch 2 (16 eps): positive=2/16 (12%) [neutral:12, positive:2, social:1, weak:1]
+      → I am no longer in immediate starvation with 4 bread and 15 flour, but my skeptical nature demands I 
+    Branch 3 (16 eps): positive=0/16 (0%) [weak:13, neutral:2, social:1]
+      → I will forage to replenish my water reserves, as my current stock is sufficient but my strategy prio
+
+  Situation (40 eps): I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily 
+    Branch 1 (6 eps): positive=2/6 (33%) [weak:3, positive:2, neutral:1]
+      → I will forage immediately to gather more flour so I can bake bread and stop eating raw flour, as my 
+    Branch 2 (22 eps): positive=1/22 (5%) [weak:15, neutral:4, pending:2, positive:1]
+      → My skeptical nature dictates I must not rely on foraging alone, so I will immediately forage to gath
+    Branch 3 (12 eps): positive=1/12 (8%) [pending:8, neutral:3, positive:1]
+      → I will send him a DM to accept his offer and secure the bread.
+
+  Situation (43 eps): I am stable with 45 bread and 72 flour, but my water reserve of 69 is dangerously low for maintainin
+    Branch 1 (8 eps): positive=0/8 (0%) [neutral:7, social:1]
+      → I will offer Christopher a trade to exchange 30 water for 30 flour at a fair 1:1 rate, leveraging hi
+    Branch 2 (8 eps): positive=4/8 (50%) [positive:4, weak:4]
+      → My skepticism prevents me from accepting unfavorable trades, so I must rely on foraging to secure re
+    Branch 3 (27 eps): positive=15/27 (56%) [positive:15, neutral:6, weak:6]
+      → I will use my surplus flour and water to bake bread and restore my food reserve...
+
+  Situation (39 eps): I am critically starving with zero bread and only 4 flour, and Angel's offer of 30 flour for 20 wate
+    Branch 1 (6 eps): positive=3/6 (50%) [positive:3, neutral:2, weak:1]
+      → I will forage now to gather flour, as my skeptical nature dictates I not rely solely on pending trad
+    Branch 2 (16 eps): positive=2/16 (12%) [neutral:7, pending:6, positive:2, weak:1]
+      → I will send a DM to Bridget, who has 29 bread and a history of calculated tra...
+    Branch 3 (17 eps): positive=1/17 (6%) [neutral:8, weak:8, positive:1]
+      → I will immediately bake my available flour and water into bread to secure my survival before seeking
+
+  Situation (52 eps): I am skeptical of James's 2:1 flour-for-water offer because I have a massive water surplus (98) and 
+    Branch 1 (16 eps): positive=0/16 (0%) [weak:6, neutral:5, social:3, pending:2]
+      → I will post a public message clarifying my focus on survival tasks and reaffirm my commitment...
+    Branch 2 (20 eps): positive=1/20 (5%) [weak:19, positive:1]
+      → I will forage to replenish my flour reserves directly, aligning with my strategy of self-sufficiency
+    Branch 3 (16 eps): positive=6/16 (38%) [positive:6, pending:4, weak:3, neutral:2, social:1]
+      → With only 6 bread remaining, I must prioritize trading my flour for bread to avoid starvation, so I 

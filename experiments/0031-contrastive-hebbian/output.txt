@@ -1,0 +1,49 @@
+Loaded 251 entries
+
+Initial (residual+PCA5): mean=0.0009 std=0.4735
+Baseline K=8 silhouette: 0.5243
+
+Pass 1: mean=0.0010 std=0.4742 sil(K=8)=0.5430
+Pass 2: mean=0.0011 std=0.4750 sil(K=8)=0.5560
+Pass 3: mean=0.0011 std=0.4756 sil(K=8)=0.5670
+Pass 4: mean=0.0012 std=0.4760 sil(K=8)=0.5748
+Pass 5: mean=0.0013 std=0.4765 sil(K=8)=0.6241
+
+======================================================================
+FINAL CLUSTERING
+======================================================================
+  K=5: sil=0.5803 sizes=[74, 51, 47, 40, 39]
+  K=8: sil=0.6241 sizes=[43, 41, 40, 39, 32, 31, 15, 10]
+  K=10: sil=0.5419 sizes=[40, 39, 31, 25, 25, 24, 22, 22, 15, 8]
+
+Detailed K=8:
+  Cluster 0 (40) [inspect:40]
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+  Cluster 1 (39) [forage:28, bake:10, accept:1]
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+  Cluster 2 (10) [vote:3, forage:3, post_to_board:2]
+    [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+  Cluster 3 (32) [bake:21, forage:7, offer:4]
+    [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+    [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inven
+  Cluster 4 (41) [send_message:14, offer:9, forage:5]
+    [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+    [ 26] I need to bake bread immediately since I have 70 water and 0 flour, but I cannot bake without flour.
+  Cluster 5 (15) [forage:14, post_to_board:1]
+    [  0] I need to establish my public identity and begin building relationships while managing my resources.
+    [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+  Cluster 6 (31) [forage:22, bake:4, offer:2]
+    [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to 
+    [ 77] I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids tra
+  Cluster 7 (43) [forage:10, offer:9, accept:9]
+    [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+
+======================================================================
+COMPARISON: BEFORE vs AFTER CONTRASTIVE HEBBIAN
+======================================================================
+  Before: mean=0.0009 std=0.4735 sil=0.5243
+  After:  mean=0.0013 std=0.4765 sil=0.6241

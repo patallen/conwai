@@ -1,0 +1,106 @@
+Loaded 251 entries
+
+Generating two-tier abstracts via LLM...
+  [0/251] trust building → Introduce identity and gauge community needs publicly.
+  [25/251] desperate acquisition → Urgent trade to survive starvation despite coin surplus.
+  [50/251] cautious verification → Secure critical resources via direct, verifiable trade.
+  [75/251] survival crisis → Immediate baking to prevent starvation despite low resources.
+  [100/251] strategic rejection → Rejecting bad trade to pursue better exchange
+  [125/251] strategic rejection → Leverage surplus flour to trade for needed bread.
+  [150/251] desperate acquisition → Urgent pressure on unanswered offers due to low bread.
+  [175/251] desperate acquisition → Trading surplus water for flour to survive starvation.
+  [200/251] strategic rejection → Rejecting unfavorable trade to preserve surplus resources.
+  [225/251] proactive stockpiling → Maintaining water surplus to avoid unfavorable trades.
+  [250/251] proactive stockpiling → Converting surplus flour to bread to secure food supply.
+  Saved 251 abstracts to cache
+
+Category distribution (11 unique categories):
+  strategic rejection              60
+  proactive stockpiling            52
+  cautious verification            44
+  desperate acquisition            34
+  survival crisis                  24
+  self-reliant production          18
+  fair exchange                    10
+  trust building                    5
+  strategic acquisition             2
+  emergency spending                1
+  public signaling                  1
+
+Embedding categories...
+Category embeddings: mean=0.6748 std=0.1473
+Pattern embeddings:  mean=0.6579 std=0.0965
+(Compare: raw reasoning mean=0.7972, 0004 abstracts mean=0.6856)
+
+======================================================================
+CLUSTERING ON CATEGORY EMBEDDINGS
+======================================================================
+
+  threshold=0.70: 10 clusters, sizes=[62, 52, 44, 34, 24, 18, 10, 5, 1, 1]
+    Cluster 1 (size=62): strategic rejection(60), strategic acquisition(2)
+    Cluster 2 (size=52): proactive stockpiling(52)
+    Cluster 3 (size=44): cautious verification(44)
+    Cluster 4 (size=34): desperate acquisition(34)
+    Cluster 5 (size=24): survival crisis(24)
+    Cluster 6 (size=18): self-reliant production(18)
+    Cluster 7 (size=10): fair exchange(10)
+    Cluster 8 (size=5): trust building(5)
+    Cluster 9 (size=1): emergency spending(1)
+    Cluster 10 (size=1): public signaling(1)
+
+  threshold=0.75: 11 clusters, sizes=[60, 52, 44, 34, 24, 18, 10, 5, 2, 1, 1]
+    Cluster 1 (size=60): strategic rejection(60)
+    Cluster 2 (size=52): proactive stockpiling(52)
+    Cluster 3 (size=44): cautious verification(44)
+    Cluster 4 (size=34): desperate acquisition(34)
+    Cluster 5 (size=24): survival crisis(24)
+    Cluster 6 (size=18): self-reliant production(18)
+    Cluster 7 (size=10): fair exchange(10)
+    Cluster 8 (size=5): trust building(5)
+    Cluster 9 (size=2): strategic acquisition(2)
+    Cluster 10 (size=1): emergency spending(1)
+
+  threshold=0.80: 11 clusters, sizes=[60, 52, 44, 34, 24, 18, 10, 5, 2, 1, 1]
+    Cluster 1 (size=60): strategic rejection(60)
+    Cluster 2 (size=52): proactive stockpiling(52)
+    Cluster 3 (size=44): cautious verification(44)
+    Cluster 4 (size=34): desperate acquisition(34)
+    Cluster 5 (size=24): survival crisis(24)
+    Cluster 6 (size=18): self-reliant production(18)
+    Cluster 7 (size=10): fair exchange(10)
+    Cluster 8 (size=5): trust building(5)
+    Cluster 9 (size=2): strategic acquisition(2)
+    Cluster 10 (size=1): emergency spending(1)
+
+  threshold=0.85: 11 clusters, sizes=[60, 52, 44, 34, 24, 18, 10, 5, 2, 1, 1]
+    Cluster 1 (size=60): strategic rejection(60)
+    Cluster 2 (size=52): proactive stockpiling(52)
+    Cluster 3 (size=44): cautious verification(44)
+    Cluster 4 (size=34): desperate acquisition(34)
+    Cluster 5 (size=24): survival crisis(24)
+    Cluster 6 (size=18): self-reliant production(18)
+    Cluster 7 (size=10): fair exchange(10)
+    Cluster 8 (size=5): trust building(5)
+    Cluster 9 (size=2): strategic acquisition(2)
+    Cluster 10 (size=1): emergency spending(1)
+
+  threshold=0.90: 11 clusters, sizes=[60, 52, 44, 34, 24, 18, 10, 5, 2, 1, 1]
+    Cluster 1 (size=60): strategic rejection(60)
+    Cluster 2 (size=52): proactive stockpiling(52)
+    Cluster 3 (size=44): cautious verification(44)
+    Cluster 4 (size=34): desperate acquisition(34)
+    Cluster 5 (size=24): survival crisis(24)
+    Cluster 6 (size=18): self-reliant production(18)
+    Cluster 7 (size=10): fair exchange(10)
+    Cluster 8 (size=5): trust building(5)
+    Cluster 9 (size=2): strategic acquisition(2)
+    Cluster 10 (size=1): emergency spending(1)
+
+======================================================================
+CLUSTERING ON PATTERN EMBEDDINGS
+======================================================================
+  threshold=0.70: 7 clusters (4 non-singleton)
+  threshold=0.75: 21 clusters (11 non-singleton)
+  threshold=0.80: 43 clusters (11 non-singleton)
+  threshold=0.85: 79 clusters (24 non-singleton)
+  threshold=0.90: 157 clusters (36 non-singleton)

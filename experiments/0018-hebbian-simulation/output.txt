@@ -1,0 +1,91 @@
+Loaded 251 entries, vectors (251, 1024)
+Initial: mean=0.7972 std=0.0745
+
+After pass 1: mean=0.8272 std=0.0742
+After pass 2: mean=0.8405 std=0.0723
+After pass 3: mean=0.8494 std=0.0710
+
+======================================================================
+CO-RECALL FREQUENCY ANALYSIS
+======================================================================
+Co-recall counts: min=0 max=62 mean=0.2 std=2.0
+
+Top 10 most co-recalled pairs:
+  [ 50]-[146] corecall= 62 sim: 0.9198 → 0.9999
+    [ 50] [accept] I will accept Christopher's offer of 20 flour for 10 water immediately, as acqui
+    [146] [accept] I am critically low on bread with only 5 loaves, and my massive water surplus ma
+  [ 12]-[ 22] corecall= 54 sim: 0.9064 → 0.9992
+    [ 12] [inspect] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger:
+    [ 22] [inspect] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 
+  [  5]-[ 50] corecall= 53 sim: 0.9185 → 0.9999
+    [  5] [offer] I see Eric has surplus water and is seeking flour or bread, which complements my
+    [ 50] [accept] I will accept Christopher's offer of 20 flour for 10 water immediately, as acqui
+  [  5]-[229] corecall= 49 sim: 0.9184 → 0.9994
+    [  5] [offer] I see Eric has surplus water and is seeking flour or bread, which complements my
+    [229] [offer] I am stable with a massive water surplus and sufficient bread, but my strategy p
+  [ 11]-[ 12] corecall= 48 sim: 0.9137 → 0.9999
+    [ 11] [inspect] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger:
+    [ 12] [inspect] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger:
+  [  5]-[146] corecall= 46 sim: 0.9102 → 0.9996
+    [  5] [offer] I see Eric has surplus water and is seeking flour or bread, which complements my
+    [146] [accept] I am critically low on bread with only 5 loaves, and my massive water surplus ma
+  [ 50]-[187] corecall= 42 sim: 0.8996 → 0.9999
+    [ 50] [accept] I will accept Christopher's offer of 20 flour for 10 water immediately, as acqui
+    [187] [bake] I will ignore Susan's offer to trade for grain and bread since my strategy prior
+  [135]-[212] corecall= 42 sim: 0.9237 → 0.9999
+    [135] [forage] I am skeptical of Lisa's water-for-bread offer since I have a massive water surp
+    [212] [offer] I am skeptical of Anthony's request to finalize a trade that depletes my water r
+  [ 50]-[229] corecall= 41 sim: 0.9368 → 0.9989
+    [ 50] [accept] I will accept Christopher's offer of 20 flour for 10 water immediately, as acqui
+    [229] [offer] I am stable with a massive water surplus and sufficient bread, but my strategy p
+  [ 13]-[ 22] corecall= 40 sim: 0.9963 → 0.9999
+    [ 13] [inspect] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 
+    [ 22] [inspect] Handle: Danielle Role: flour forager Personality: skeptical, calculating Coins: 
+
+======================================================================
+CLUSTERING AFTER HEBBIAN MODIFICATION
+======================================================================
+  threshold=0.70: 2 clusters (2 non-singleton) top=[249, 2]
+  threshold=0.75: 3 clusters (1 non-singleton) top=[249, 1, 1]
+  threshold=0.80: 9 clusters (2 non-singleton) top=[242, 2, 1, 1, 1, 1, 1, 1, 1]
+  threshold=0.85: 13 clusters (4 non-singleton) top=[133, 90, 17, 2, 1, 1, 1, 1, 1, 1]
+  threshold=0.90: 27 clusters (8 non-singleton) top=[111, 40, 37, 21, 13, 4, 3, 3, 1, 1]
+
+======================================================================
+EMBEDDING SPACE CHANGE
+======================================================================
+Similarity changes: mean=0.052174 std=0.036156 min=-0.039615 max=0.276554
+
+Pairs that moved TOGETHER the most:
+  [ 95]-[243] Δ=+0.2766 (0.5909 → 0.8674)
+    [ 95] [vote] I will decline Christopher's 1:1 trade offer because my strategy explicitly forb
+    [243] [vote] I will vote for @Debra, a patient resource manager with a public soul emphasizin
+  [  8]-[243] Δ=+0.2650 (0.5668 → 0.8318)
+    [  8] [post_to_board] I will post a message to the board acknowledging my current surplus of water and
+    [243] [vote] I will vote for @Debra, a patient resource manager with a public soul emphasizin
+  [175]-[243] Δ=+0.2480 (0.4320 → 0.6800)
+    [175] [offer] I am starving with zero bread and my hunger is critically low despite eating raw
+    [243] [vote] I will vote for @Debra, a patient resource manager with a public soul emphasizin
+  [206]-[243] Δ=+0.2464 (0.4685 → 0.7149)
+    [206] [forage] I have sufficient bread and water, but my flour reserves are critically low at 6
+    [243] [vote] I will vote for @Debra, a patient resource manager with a public soul emphasizin
+  [203]-[243] Δ=+0.2437 (0.3336 → 0.5772)
+    [203] [bake] I will bake immediately to convert my remaining 15 flour into bread, securing my
+    [243] [vote] I will vote for @Debra, a patient resource manager with a public soul emphasizin
+
+Pairs that moved APART the most:
+  [146]-[155] Δ=-0.0396 (0.9042 → 0.8646)
+    [146] [accept] I am critically low on bread with only 5 loaves, and my massive water surplus ma
+    [155] [send_message] I am critically starving with zero bread and have already resorted to eating raw
+  [ 57]-[155] Δ=-0.0271 (0.7573 → 0.7302)
+    [ 57] [forage] I will forage immediately to replenish my flour reserves since I only have 8 uni
+    [155] [send_message] I am critically starving with zero bread and have already resorted to eating raw
+  [ 25]-[146] Δ=-0.0244 (0.9244 → 0.9000)
+    [ 25] [offer] I need to secure bread immediately as I have zero and am starving, despite my co
+    [146] [accept] I am critically low on bread with only 5 loaves, and my massive water surplus ma
+  [187]-[190] Δ=-0.0241 (0.9012 → 0.8771)
+    [187] [bake] I will ignore Susan's offer to trade for grain and bread since my strategy prior
+    [190] [bake] I have a surplus of flour and water, but my bread reserves are only 13, which is
+  [146]-[165] Δ=-0.0233 (0.8502 → 0.8269)
+    [146] [accept] I am critically low on bread with only 5 loaves, and my massive water surplus ma
+    [165] [pay] I am still at zero bread despite paying Matthew 40 coins, which suggests the tra

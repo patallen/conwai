@@ -1,0 +1,124 @@
+Loaded 251 entries
+
+Phase 1: Discovering behavioral patterns from 90 sample entries...
+
+Discovered patterns:
+Based on a careful analysis of Helen's 90 diary entries, here are 10 distinct behavioral patterns that define her decision-making process:
+
+1.  **Skeptical verification before trade commitment**
+    Helen consistently pauses to verify the reliability of partners and the validity of offers before engaging, often citing her "skeptical nature" as the reason for rejecting unverified or vague proposals.
+    *Matches: ~15 entries*
+
+2.  **Desperate abandonment of deliberate pacing**
+    When facing critical starvation (zero bread), Helen explicitly abandons her usual slow, calculated approach to prioritize immediate survival actions like eating raw flour or rushing trades.
+    *Matches: ~12 entries*
+
+3.  **Strategic rejection of unfavorable exchange rates**
+    She frequently declines trades that offer poor value relative to her specific accumulation goals (e.g., refusing to trade water for flour when she already has a water surplus), prioritizing long-term stockpiles over immediate convenience.
+    *Matches: ~14 entries*
+
+4.  **Rigid adherence to numerical safety thresholds**
+    Helen operates with specific, quantified targets for stability (e.g., "15+ bread," "20+ flour," "30+ flour") and shifts her entire strategy based on whether her inventory meets or falls below these exact numbers.
+    *Matches: ~10 entries*
+
+5.  **Leveraging coin surplus for resource acquisition**
+    When foraging yields are unreliable or she is starving, she deliberately switches to using her accumulated coin reserves to purchase essential resources rather than relying on barter or foraging.
+    *Matches: ~8 entries*
+
+6.  **Prioritizing raw material accumulation over finished goods**
+    Even when hungry, she often chooses to trade for flour (raw material) rather than bread (finished good) to maintain long-term self-sufficiency in baking, viewing flour as the more critical strategic asset.
+    *Matches: ~9 entries*
+
+7.  **Immediate baking upon resource sufficiency**
+    As soon as she secures the minimum required flour and water, her first instinct is to immediately bake bread to convert raw materials into a stable food supply before considering any other actions.
+    *Matches: ~7 entries*
+
+8.  **Targeted partner selection based on complementary needs**
+    She actively scans the environment to identify agents whose specific surpluses (e.g., flour) perfectly match her specific deficits (e.g., water), ignoring those who do not offer a direct resource complement.
+    *Matches: ~8 entries*
+
+9.  **Refusal to trade essential reserves under pressure**
+    Even when starving, she refuses to trade away her last remaining units of critical resources (like her last 4-6 flour) if the trade rate is unfavorable, preferring to risk starvation over depleting her stockpile.
+    *Matches: ~6 entries*
+
+10. **Post-stability proactive replenishment**
+    Once she reaches her safety thresholds, she does not become complacent but immediately initiates foraging or trading to build a buffer well beyond the minimum required for survival.
+    *Matches: ~5 entries*
+
+Phase 2: Classifying all entries...
+  Classified 30/251
+  Classified 60/251
+  Classified 90/251
+  Classified 120/251
+  Classified 150/251
+  Classified 180/251
+  Classified 210/251
+  Classified 240/251
+  Classified 251/251
+
+======================================================================
+RESULTS
+======================================================================
+
+Classified: 251/251 (unclassified: 0)
+Patterns used: 10
+
+Pattern 1 (17 entries) [forage:7, post_to_board:3, vote:3, offer:2, send_message:2]
+  [  0] I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical
+  [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades
+  [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptical nature requires m
+  ... and 14 more
+
+Pattern 2 (55 entries) [forage:30, send_message:13, bake:6, accept:3, offer:1, unknown:1, pay:1]
+  [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more resources before I peri
+  [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical n
+  [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I
+  ... and 52 more
+
+Pattern 3 (56 entries) [forage:24, accept:9, offer:7, bake:6, send_message:5, update_soul:2, unknown:1, vote:1, post_to_board:1]
+  [ 77] I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids trading away water rese
+  [ 92] [Day 5, 9:00 AM] I am skeptical of Christopher's offer because my strategy explicitly forbids trading water reserves for
+  [ 95] I will decline Christopher's 1:1 trade offer because my strategy explicitly forbids trading water reserves for bread/flo
+  ... and 53 more
+
+Pattern 4 (5 entries) [bake:2, forage:2, post_to_board:1]
+  [ 56] I am now stable with 7 bread and 8 flour, but my strategy requires securing 15+ bread and 20+ flour for long-term safety
+  [109] My flour reserve of 32 is sufficient for baking, but my bread count of 14 is below my target of 20+ for true stability. 
+  [113] I am skeptical of my current bread count of 19, which is just below my stability target of 20+, and my flour reserve of 
+  ... and 2 more
+
+Pattern 5 (14 entries) [offer:8, pay:3, send_message:1, unknown:1, accept:1]
+  [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew's offer of 5 bread f
+  [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loaf. My strategy dicta
+  [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inventory. My strategy di
+  ... and 11 more
+
+Pattern 6 (6 entries) [accept:3, offer:1, post_to_board:1, forage:1]
+  [ 50] I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critical for baking bread 
+  [ 51] I will immediately accept Christopher's offer of 20 flour for 10 water to secure the raw materials needed for baking, as
+  [ 53] I am critically low on flour with only 1 unit remaining and no bread, forcing me to secure more flour immediately to bak
+  ... and 3 more
+
+Pattern 7 (25 entries) [bake:25]
+  [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to balance my bread consu
+  [ 30] I am critically starving with zero bread and only 8 flour, making me vulnerable despite my coin surplus. I will immediat
+  [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger is still p
+  ... and 22 more
+
+Pattern 8 (51 entries) [inspect:40, offer:5, forage:3, send_message:1, unknown:1, accept:1]
+  [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Wa
+  [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, W
+  [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my recent forage yield of
+  ... and 48 more
+
+Pattern 9 (3 entries) [forage:3]
+  [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need every crumb to survive
+  [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to lose half my stock w
+  [ 68] I am starving with zero flour and bread, but my strategy dictates I must not trade away my last water reserves for bread
+
+Pattern 10 (19 entries) [forage:19]
+  [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a secure hunger level. H
+  [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to bake more bread to m
+  [ 94] I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must not become complacen
+  ... and 16 more
+

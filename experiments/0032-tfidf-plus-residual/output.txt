@@ -1,0 +1,61 @@
+Loaded 251 entries
+
+TF-IDF shape: (251, 727)
+Residual shape: (251, 1024)
+Combined shape: (251, 1751)
+
+======================================================================
+COMPARISON: INDIVIDUAL vs COMBINED
+======================================================================
+  tfidf_only           K= 5: sil=0.0960 sizes=[69, 56, 48, 40, 38]
+  tfidf_only           K= 8: sil=0.1020 sizes=[59, 41, 40, 35, 22, 21, 21, 12]
+  tfidf_only           K=10: sil=0.0894 sizes=[46, 40, 30, 29, 27, 24, 17, 15, 15, 8]
+
+  residual_only        K= 5: sil=0.2480 sizes=[74, 48, 47, 42, 40]
+  residual_only        K= 8: sil=0.2358 sizes=[55, 40, 39, 38, 36, 27, 8, 8]
+  residual_only        K=10: sil=0.1932 sizes=[52, 41, 37, 28, 26, 23, 17, 12, 8, 7]
+
+  residual_pca5        K= 5: sil=0.5456 sizes=[70, 53, 48, 40, 40]
+  residual_pca5        K= 8: sil=0.5243 sizes=[41, 40, 38, 30, 30, 27, 25, 20]
+  residual_pca5        K=10: sil=0.5239 sizes=[40, 37, 37, 28, 26, 25, 22, 16, 13, 7]
+
+  combined_pca5        K= 5: sil=0.5653 sizes=[76, 49, 49, 40, 37]
+  combined_pca5        K= 8: sil=0.5374 sizes=[40, 37, 37, 31, 30, 29, 25, 22]
+  combined_pca5        K=10: sil=0.4865 sizes=[40, 37, 29, 28, 26, 26, 23, 20, 15, 7]
+
+  combined_pca10       K= 5: sil=0.4294 sizes=[75, 49, 47, 40, 40]
+  combined_pca10       K= 8: sil=0.4283 sizes=[61, 40, 40, 37, 29, 22, 16, 6]
+  combined_pca10       K=10: sil=0.4038 sizes=[57, 37, 33, 24, 22, 22, 22, 18, 10, 6]
+
+  combined_pca20       K= 5: sil=0.3319 sizes=[71, 56, 48, 40, 36]
+  combined_pca20       K= 8: sil=0.3387 sizes=[48, 40, 40, 38, 34, 29, 15, 7]
+  combined_pca20       K=10: sil=0.3169 sizes=[46, 40, 36, 31, 28, 26, 16, 14, 9, 5]
+
+
+======================================================================
+DETAILED: combined_pca5 K=8 (sil=0.5374)
+======================================================================
+  Cluster 0 (40) [inspect:40]
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+  Cluster 1 (22) [forage:15, post_to_board:3, vote:3]
+    [  0] I need to establish my public identity and begin building relationships while managing my resources.
+    [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+  Cluster 2 (29) [offer:8, forage:5, accept:5]
+    [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+  Cluster 3 (31) [forage:21, bake:5, offer:2]
+    [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to 
+    [ 77] I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids tra
+  Cluster 4 (25) [send_message:13, offer:5, pay:4]
+    [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+    [ 35] I am critically vulnerable with zero bread and only 6 flour, relying on my coin surplus to secure fo
+  Cluster 5 (37) [forage:27, bake:9, accept:1]
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+  Cluster 6 (37) [forage:11, offer:8, accept:8]
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. G
+  Cluster 7 (30) [bake:21, forage:8, offer:1]
+    [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+    [ 55] I have secured 20 flour from Bridget but am still starving with zero bread. My strategy dictates I i

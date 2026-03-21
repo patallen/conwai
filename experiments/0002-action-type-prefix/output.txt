@@ -1,0 +1,155 @@
+Loaded 251 diary entries
+
+Sample prefixed texts:
+  [0] post_to_board: I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and 
+  [1] inspect: Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Water: 10, Br
+  [2] inspect: Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, Water: 29, B
+  [3] offer: I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades carefully to
+  [4] offer: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my recent forage yield of 6 water. Giv
+
+Embedding prefixed texts...
+Embedded 251 vectors
+
+======================================================================
+THRESHOLD 0.70: 3 clusters
+======================================================================
+  Size distribution: [248, 2, 1]
+
+  Cluster 1 (size=248): [forage:89, inspect:40, bake:39, offer:24, send_message:22, accept:17, post_to_board:5, pay:4, unknown:4, vote:2, update_soul:2]
+    [  1] inspect: Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Water: 10, Bread: 5 Act
+    [  2] inspect: Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, Water: 29, Bread: 5 Ac
+    [  3] offer: I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades carefully to verify re
+    ... and 245 more
+
+  Cluster 2 (size=2): [vote:2]
+    [193] vote: I will vote for @Robert to reward his successful trade, as building reliable partnerships is essential for community stability and my strategy o
+    [243] vote: I will vote for @Debra, a patient resource manager with a public soul emphasizing community resilience and fair trades, as my skepticism favors 
+
+  Cluster 3 (size=1): [post_to_board:1]
+    [  0] post_to_board: I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and deliberate
+
+======================================================================
+THRESHOLD 0.75: 3 clusters
+======================================================================
+  Size distribution: [248, 2, 1]
+
+  Cluster 1 (size=248): [forage:89, inspect:40, bake:39, offer:24, send_message:22, accept:17, post_to_board:5, pay:4, unknown:4, vote:2, update_soul:2]
+    [  1] inspect: Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Water: 10, Bread: 5 Act
+    [  2] inspect: Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, Water: 29, Bread: 5 Ac
+    [  3] offer: I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades carefully to verify re
+    ... and 245 more
+
+  Cluster 2 (size=2): [vote:2]
+    [193] vote: I will vote for @Robert to reward his successful trade, as building reliable partnerships is essential for community stability and my strategy o
+    [243] vote: I will vote for @Debra, a patient resource manager with a public soul emphasizing community resilience and fair trades, as my skepticism favors 
+
+  Cluster 3 (size=1): [post_to_board:1]
+    [  0] post_to_board: I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and deliberate
+
+======================================================================
+THRESHOLD 0.80: 7 clusters
+======================================================================
+  Size distribution: [123, 56, 34, 33, 3, 1, 1]
+
+  Cluster 1 (size=123): [inspect:40, offer:22, send_message:22, accept:16, forage:7, post_to_board:4, pay:4, unknown:4, update_soul:2, vote:1, bake:1]
+    [  1] inspect: Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Water: 10, Bread: 5 Act
+    [  2] inspect: Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, Water: 29, Bread: 5 Ac
+    [  3] offer: I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades carefully to verify re
+    ... and 120 more
+
+  Cluster 2 (size=56): [forage:50, bake:4, offer:2]
+    [102] forage: I will forage to replenish my water reserves, as my current stock is sufficient but my strategy prioritizes maintaining independence and I hav
+    [105] forage: I will forage to replenish my flour reserves, as my current stock of 23 is sufficient for baking but my strategy prioritizes building a sustai
+    [107] forage: I am skeptical of Colin's 1.5:1 water-for-bread rate as it depletes my bread surplus for a resource I already have in excess (84 water), and m
+    ... and 53 more
+
+  Cluster 3 (size=34): [bake:34]
+    [  7] bake: The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to balance my bread consumption with baking to av
+    [ 30] bake: I am critically starving with zero bread and only 8 flour, making me vulnerable despite my coin surplus. I will immediately bake my 8 flour and 
+    [ 46] bake: I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger is still precarious despite recent
+    ... and 31 more
+
+  Cluster 4 (size=33): [forage:32, accept:1]
+    [ 20] forage: I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical nature, I will not blin
+    [ 21] forage: I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I must immediately fora
+    [ 23] forage: I am critically starving with zero bread and flour, and my hunger is dropping. Given my skeptical nature, I will not blindly trust offers but 
+    ... and 30 more
+
+  Cluster 5 (size=3): [vote:3]
+    [ 10] vote: I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, which aligns with my deliberate approach to 
+    [193] vote: I will vote for @Robert to reward his successful trade, as building reliable partnerships is essential for community stability and my strategy o
+    [243] vote: I will vote for @Debra, a patient resource manager with a public soul emphasizing community resilience and fair trades, as my skepticism favors 
+
+  Cluster 6 (size=1): [post_to_board:1]
+    [  0] post_to_board: I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and deliberate
+
+  Cluster 7 (size=1): [post_to_board:1]
+    [215] post_to_board: I am skeptical of the HANDLER's accusation of intentional ignoring, as I have been actively foraging and baking to maintain my communit
+
+======================================================================
+THRESHOLD 0.85: 16 clusters
+======================================================================
+  Size distribution: [73, 61, 40, 33, 31, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+  Cluster 1 (size=73): [forage:18, accept:17, offer:16, send_message:9, post_to_board:4, unknown:3, bake:3, update_soul:2, vote:1]
+    [  3] offer: I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades carefully to verify re
+    [  4] offer: I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my recent forage yield of 6 water. Given my skep
+    [  5] offer: I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. Given my skeptical nature, I should test the
+    ... and 70 more
+
+  Cluster 2 (size=61): [inspect:40, send_message:12, offer:6, pay:2, unknown:1]
+    [  1] inspect: Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Water: 10, Bread: 5 Act
+    [  2] inspect: Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, Water: 29, Bread: 5 Ac
+    [  9] inspect: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20, Water: 2, Bread: 11 
+    ... and 58 more
+
+  Cluster 3 (size=40): [forage:38, bake:1, offer:1]
+    [ 94] forage: I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must not become complacent; I will forage to re
+    [102] forage: I will forage to replenish my water reserves, as my current stock is sufficient but my strategy prioritizes maintaining independence and I hav
+    [105] forage: I will forage to replenish my flour reserves, as my current stock of 23 is sufficient for baking but my strategy prioritizes building a sustai
+    ... and 37 more
+
+  Cluster 4 (size=33): [bake:33]
+    [ 30] bake: I am critically starving with zero bread and only 8 flour, making me vulnerable despite my coin surplus. I will immediately bake my 8 flour and 
+    [ 46] bake: I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger is still precarious despite recent
+    [ 55] bake: I have secured 20 flour from Bridget but am still starving with zero bread. My strategy dictates I immediately bake my available flour and water
+    ... and 30 more
+
+  Cluster 5 (size=31): [forage:31]
+    [ 18] forage: I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more resources before I perish. My skeptical natur
+    [ 20] forage: I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical nature, I will not blin
+    [ 21] forage: I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I must immediately fora
+    ... and 28 more
+
+  Cluster 6 (size=3): [pay:2, offer:1]
+    [ 25] offer: I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew's offer of 5 bread for 10 water is the most
+    [163] pay: I am at zero bread and must accept Matthew's offer of 4 bread for 40 coins immediately to avoid starvation, as his "no haggling" stance and my cr
+    [165] pay: I am still at zero bread despite paying Matthew 40 coins, which suggests the transaction failed or the bread was never delivered. My hunger is cr
+
+  Cluster 7 (size=1): [post_to_board:1]
+    [  0] post_to_board: I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and deliberate
+
+  Cluster 8 (size=1): [send_message:1]
+    [  6] send_message: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptical nature requires me to verify her 
+
+  Cluster 9 (size=1): [bake:1]
+    [  7] bake: The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to balance my bread consumption with baking to av
+
+  Cluster 10 (size=1): [vote:1]
+    [ 10] vote: I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, which aligns with my deliberate approach to 
+
+  Cluster 11 (size=1): [bake:1]
+    [103] bake: I am alarmed by Susan's death and my own critically low bread count of 1, which puts me at immediate risk if I cannot bake more. My skeptical na
+
+  Cluster 12 (size=1): [vote:1]
+    [193] vote: I will vote for @Robert to reward his successful trade, as building reliable partnerships is essential for community stability and my strategy o
+
+  Cluster 13 (size=1): [forage:1]
+    [209] forage: I will update my journal to record the successful trade with Robert, which secured my flour reserves, and then forage to replenish my water, a
+
+  Cluster 14 (size=1): [post_to_board:1]
+    [215] post_to_board: I am skeptical of the HANDLER's accusation of intentional ignoring, as I have been actively foraging and baking to maintain my communit
+
+  Cluster 15 (size=1): [forage:1]
+    [238] forage: I am skeptical of Amy's aggressive 5:1 demand and Matthew's history of unreliability, so I will ignore her ultimatum and instead forage to fur
+

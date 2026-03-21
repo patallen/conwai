@@ -1,0 +1,170 @@
+Loaded 251 entries
+
+Generating batch abstracts (10 per call)...
+  Call 1: entries 0-9
+    [0] Establishing public identity and gathering initial resources
+    [1] Assessing potential trade partner's inventory and traits
+    [2] Evaluating another agent's resources for trade potential
+  Call 2: entries 10-19
+    [10] Strategic voting based on perceived trade reliability
+    [11] Assessing potential trading partner resources and traits
+    [12] Evaluating flour forager inventory and communication habits
+  Call 3: entries 20-29
+    [20] Urgent foraging driven by critical starvation risk
+    [21] Desperate resource gathering to prevent imminent starvation
+    [22] Cautious inspection of potential trade partners
+  Call 4: entries 30-39
+    [30] Desperate survival trade under starvation pressure
+    [31] Cautious inspection before committing to trade
+    [32] Urgent purchase to address critical food shortage
+  Call 5: entries 40-49
+    [40] Desperate foraging under critical starvation pressure
+    [41] Cautious foraging despite unsustainable raw flour consumption
+    [42] Urgent trade offer to secure immediate bread supply
+  Call 6: entries 50-59
+    [50] Urgent trade acceptance driven by critical flour shortage
+    [51] Immediate resource acquisition to secure baking materials
+    [52] Desperate payment to resolve critical starvation crisis
+  Call 7: entries 60-69
+    [60] Desperate baking attempt driven by critical starvation
+    [61] Urgent foraging to prioritize immediate survival needs
+    [62] Desperate outreach to secure resources via messaging
+  Call 8: entries 70-79
+    [70] Failed trade attempt due to critical food shortage
+    [71] Urgent foraging driven by immediate starvation threat
+    [72] Skeptical hesitation prevents baking despite critical need
+  Call 9: entries 80-89
+    [80] Desperate baking attempt under critical starvation
+    [81] Skeptical foraging to mitigate starvation risk
+    [82] Urgent baking attempt despite insufficient resources
+  Call 10: entries 90-99
+    [90] Gathering intelligence on potential trading partners
+    [91] Proactive trade offer to convert surplus resources
+    [92] Rejecting unfavorable trades based on strict strategy
+  Call 11: entries 100-109
+    [100] Rejecting unfavorable trade to preserve existing surplus
+    [101] Ignoring bad offers to maintain strategic independence
+    [102] Foraging to build sustainable resource surplus
+  Call 12: entries 110-119
+    [110] Rejecting undervalued trade to prioritize flour accumulation
+    [111] Ignoring water trade to focus on flour goals
+    [112] Declining trade due to water surplus and flour focus
+  Call 13: entries 120-129
+    [120] Skeptical assessment of unverified trade offers
+    [121] Maintaining strategic flour buffer despite targets
+    [122] Urgent bread replenishment below stability threshold
+  Call 14: entries 130-139
+    [130] Securing flour surplus to exceed stability targets
+    [131] Urgent bread production to address critical shortage
+    [132] Assessing potential trade partner resources and traits
+  Call 15: entries 140-149
+    [140] Initial reconnaissance of potential trade partner
+    [141] Skeptical rejection of unfavorable trade terms
+    [142] Acceptance of favorable trade due to scarcity
+  Call 16: entries 150-159
+    [150] Desperate outreach due to critically low bread
+    [151] Urgent plea after total bread reserve loss
+    [152] Desperate consumption of raw flour amid starvation
+  Call 17: entries 160-169
+    [160] Cautious inspection of potential trade partner
+    [161] Desperate plea for food due to starvation
+    [162] Urgent trade offer to secure immediate food
+  Call 18: entries 170-179
+    [170] Cautious inspection of potential trade partner
+    [171] Strategic trade proposal leveraging surplus water
+    [172] Urgent acceptance to secure critical flour reserves
+  Call 19: entries 180-189
+    [180] Calculating inspection of agent status and resources
+    [181] Repeated monitoring of agent resource depletion trends
+    [182] Strategic rejection due to critical water shortage
+  Call 20: entries 190-199
+    [190] Baking to address low bread reserves for stability
+    [191] Trading water surplus to acquire needed flour
+    [192] Rejecting trade to maintain water-for-flour strategy
+  Call 21: entries 200-209
+    [200] Rejecting trade to preserve surplus for baking
+    [201] Foraging resources after observing peer starvation
+    [202] Ignoring trade to prioritize water for baking
+  Call 22: entries 210-219
+    [210] Securing reserves while monitoring critical water levels
+    [211] Converting flour surplus to bread before water drops
+    [212] Skeptical trade offer to balance water and flour
+  Call 23: entries 220-229
+    [220] Prioritizing immediate resource security without depleting reserves
+    [221] Cautious inspection of potential trade partner status
+    [222] Routine production to maintain necessary food surplus
+  Call 24: entries 230-239
+    [230] Converting surplus flour to food under hunger pressure
+    [231] Urgent foraging to replenish critically low water reserves
+    [232] Executing fair trade to convert water surplus into flour
+  Call 25: entries 240-249
+    [240] Converting surplus flour into secure food reserves
+    [241] Assessing potential trade partner before engagement
+    [242] Prioritizing flour conversion to maintain food security
+  Call 26: entries 250-250
+    [250] Prioritizing surplus conversion while maintaining water reserves
+
+  Total LLM calls: 26 (vs 251 for individual)
+
+Comparison (batch vs individual, first 10):
+  [0] batch:      Establishing public identity and gathering initial resources
+       individual: Establishing identity and gathering resources before trading.
+  [1] batch:      Assessing potential trade partner's inventory and traits
+       individual: Assessing community resources before committing to trades.
+  [2] batch:      Evaluating another agent's resources for trade potential
+       individual: Skeptical verification of trade claims before committing resources.
+  [3] batch:      Leveraging surplus bread to acquire needed water
+       individual: Cautious trade initiation to verify agent reliability.
+  [4] batch:      Exchanging surplus water for needed flour resources
+       individual: Testing reliability with small trade before committing larger amounts.
+  [5] batch:      Trading surplus flour to acquire needed water
+       individual: Testing reliability with small trade before committing resources.
+  [6] batch:      Verifying partner reliability before engaging in trade
+       individual: Cautious verification of reliability before engaging in trade.
+  [7] batch:      Converting traded resources into essential food items
+       individual: Securing food supply by converting remaining resources into bread.
+  [8] batch:      Publicly advertising surplus resources and gathering more
+       individual: Proactive community building through surplus sharing and replenishment.
+  [9] batch:      Analyzing new agent's inventory for trade opportunities
+       individual: Deliberate candidate inspection to ensure reliable voting decision.
+
+Embedding batch abstracts...
+Pairwise similarity: mean=0.6330 std=0.0962
+(Compare: 0004 individual mean=0.6856 std=0.0913)
+
+======================================================================
+THRESHOLD 0.65: 4 clusters (2 non-singleton)
+======================================================================
+  Sizes: [235, 14, 1, 1]
+
+======================================================================
+THRESHOLD 0.70: 6 clusters (4 non-singleton)
+======================================================================
+  Sizes: [137, 103, 7, 2, 1, 1]
+  Cluster 1 (size=137): Skeptical hesitation prevents baking despite critical need(2); Declining trade due to water surplus and flour focus(2); Foraging to replenish critically low water reserves(2)
+  Cluster 2 (size=103): Cautious inspection of potential trade partner(3); Rejecting unfavorable rates to prioritize fair flour trades(2); Assessing potential trade partner's inventory and traits(1)
+  Cluster 3 (size=7): Establishing public identity and gathering initial resources(1); Publicly advertising surplus resources and gathering more(1); Advertising surplus to acquire specific resource type(1)
+  Cluster 4 (size=2): Verification of partner status after transaction(1); Post-crisis inspection of partner's resource status(1)
+  Cluster 5 (size=1): Frustration over failed transaction despite payment(1)
+  Cluster 6 (size=1): Voting for candidate emphasizing community resilience(1)
+
+======================================================================
+THRESHOLD 0.75: 19 clusters (13 non-singleton)
+======================================================================
+  Sizes: [76, 71, 35, 20, 11, 11, 6, 5, 2, 2, 2, 2, 2, 1, 1]...
+  Cluster 1 (size=76): Cautious inspection of potential trade partner(3); Rejecting unfavorable rates to prioritize fair flour trades(2); Assessing potential trade partner's inventory and traits(1)
+  Cluster 2 (size=71): Leveraging surplus bread to acquire needed water(1); Exchanging surplus water for needed flour resources(1); Trading surplus flour to acquire needed water(1)
+  Cluster 3 (size=35): Foraging to replenish critically low water reserves(2); Urgent foraging driven by critical starvation risk(1); Emergency foraging to prevent immediate starvation(1)
+  Cluster 4 (size=20): Declining trade due to water surplus and flour focus(2); Ignoring water trade to focus on flour goals(1); Rejecting trade due to water surplus priority(1)
+  Cluster 5 (size=11): Evaluating flour forager inventory and communication habits(1); Inspecting blunt agent's flour stock and social activity(1); Surveying water forager's inventory and stoic demeanor(1)
+  Cluster 6 (size=11): Immediate baking to convert secured resources(1); Baking to reach target stability threshold(1); Baking bread to meet stability target thresholds(1)
+  Cluster 7 (size=6): Establishing public identity and gathering initial resources(1); Publicly advertising surplus resources and gathering more(1); Advertising surplus to acquire specific resource type(1)
+  Cluster 8 (size=5): Avoiding vague terms to protect water reserves(1); Securing reserves while monitoring critical water levels(1); Proactive gathering to sustain strategic water reserves(1)
+  Cluster 9 (size=2): Desperate outreach to secure resources via messaging(1); Desperate direct messaging to secure vital resources(1)
+  Cluster 10 (size=2): Skeptical hesitation prevents baking despite critical need(2)
+
+======================================================================
+THRESHOLD 0.80: 53 clusters (25 non-singleton)
+======================================================================
+  Sizes: [36, 32, 29, 27, 19, 9, 9, 9, 7, 6, 6, 4, 3, 3, 3]...
+

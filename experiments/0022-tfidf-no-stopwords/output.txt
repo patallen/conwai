@@ -1,0 +1,92 @@
+Loaded 251 entries
+
+Shape: (251, 707)
+Mean sim: 0.1165 std: 0.0945
+(Compare: raw TF-IDF 0.186, bge-large 0.797)
+
+Vocab after stopword removal: 707 words
+Most common remaining words:
+  flour                in 235 docs
+  bread                in 210 docs
+  water                in 183 docs
+  secure               in  99 docs
+  trade                in  94 docs
+  offer                in  91 docs
+  reserves             in  87 docs
+  bake                 in  86 docs
+  critically           in  86 docs
+  forage               in  85 docs
+  zero                 in  76 docs
+  trades               in  70 docs
+  must                 in  63 docs
+  hunger               in  62 docs
+  starving             in  59 docs
+  unfavorable          in  59 docs
+  coins                in  56 docs
+  into                 in  52 docs
+  low                  in  52 docs
+  matthew              in  50 docs
+
+======================================================================
+K-MEANS (K=10)
+======================================================================
+
+  Cluster 0 (23 entries) [send_message:15, forage:3, offer:3]
+    Top words: bread, flour, matthew, critically, water
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+    [ 49] I am critically low on bread with zero loaves and only 7 flour, making me vulnerable to starvation. 
+
+  Cluster 1 (5 entries) [offer:3, post_to_board:1, send_message:1]
+    Top words: water, flour, see, bread, reliability
+    [  0] I need to establish my public identity and begin building relationships while managing my resources.
+    [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+
+  Cluster 2 (6 entries) [inspect:4, pay:2]
+    Top words: bread, matthew, coins, water, flour
+    [ 86] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 639 Hunger: 82/100, Thirst:
+    [ 90] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 644 Hunger: 80/100, Thirst:
+    [140] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 580 Hunger: 82/100, Thirst:
+
+  Cluster 3 (56 entries) [forage:26, bake:13, offer:7]
+    Top words: flour, bread, zero, bake, critically
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily 
+    [ 23] I am critically starving with zero bread and flour, and my hunger is dropping. Given my skeptical na
+
+  Cluster 4 (27 entries) [bake:19, forage:5, offer:1]
+    Top words: flour, bread, water, bake, food
+    [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+    [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a se
+    [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+
+  Cluster 5 (27 entries) [forage:11, offer:6, accept:5]
+    Top words: water, flour, bread, baking, offer
+    [ 50] I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critic
+    [ 51] I will immediately accept Christopher's offer of 20 flour for 10 water to secure the raw materials n
+    [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I 
+
+  Cluster 6 (31 entries) [forage:26, bake:3, vote:1]
+    Top words: water, flour, bread, reserves, forage
+    [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to 
+    [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    [ 77] I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids tra
+
+  Cluster 7 (31 entries) [forage:15, accept:7, offer:3]
+    Top words: flour, water, offer, trade, bread
+    [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+    [ 58] [Day 3, 7:00 PM] I will immediately accept Matthew's firm offer of 20 flour for 50 coins to secure a
+    [ 68] I am starving with zero flour and bread, but my strategy dictates I must not trade away my last wate
+
+  Cluster 8 (32 entries) [inspect:28, vote:3, post_to_board:1]
+    Top words: flour, water, bread, hunger, coins
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+
+  Cluster 9 (13 entries) [inspect:8, forage:3, post_to_board:1]
+    Top words: flour, bread, water, coins, matthew
+    [  8] I will post a message to the board acknowledging my current surplus of water and flour to attract po
+    [ 53] I am critically low on flour with only 1 unit remaining and no bread, forcing me to secure more flou
+    [106] I am skeptical of Susan's new presence and Matthew's flour sale, as my priority is securing flour to

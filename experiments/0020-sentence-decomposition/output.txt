@@ -1,0 +1,137 @@
+Loaded 251 entries
+
+Total sentences: 587 from 251 entries
+Average sentences per entry: 2.3
+
+Sample sentences (first 10):
+  [entry   0] I need to establish my public identity and begin building relationships while managing my resources.
+  [entry   0] Since I'm skeptical and deliberate, I'll start by posting a message to the board to introduce myself
+  [entry   1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+  [entry   1] Building a self-sufficient community through steady trade and clear communication.
+  [entry   1] Activity: 1 posts, 0 DMs sent I should assess the community before committing to trades.
+  [entry   1] Let me inspect Joshua and James to see their resource levels and verify their claims.
+  [entry   2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+  [entry   2] Matthew is explicitly trading water for bread, and I have 5 bread and 16 water.
+  [entry   2] However, I need to be careful not to deplete my bread supply too quickly.
+  [entry   2] Let me check Matth...
+
+Embedding 587 sentences...
+
+Entry-level: mean=0.7972 std=0.0745
+Sentence-level: mean=0.6036 std=0.1074
+
+======================================================================
+K-MEANS ON SENTENCES (K=15)
+======================================================================
+
+  Cluster 0 (23 sentences, 23 entries)
+    [ 28] I will decline this trade and instead forage to secure more flour myself, ensuring I don't deplete m
+    [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to 
+    [ 92] I will not accept this trade; instead, I will wait for Angel to accept my pending offer...
+    [ 95] I will decline Christopher's 1:1 trade offer because my strategy explicitly forbids trading water re
+    ... and 19 more sentences
+
+  Cluster 1 (33 sentences, 33 entries)
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour.
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily 
+    [ 23] I am critically starving with zero bread and flour, and my hunger is dropping.
+    [ 33] I am critically starving with zero bread and only 5 flour left, making me vulnerable to immediate de
+    ... and 29 more sentences
+
+  Cluster 2 (32 sentences, 32 entries)
+    [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+    [ 77] I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids tra
+    [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I 
+    [104] I am skeptical of Adam's offer as it requires giving 5 bread for only 50 water, which is a poor rate
+    ... and 28 more sentences
+
+  Cluster 3 (46 sentences, 46 entries)
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+    [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus.
+    [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+    [ 30] I am critically starving with zero bread and only 8 flour, making me vulnerable despite my coin surp
+    ... and 42 more sentences
+
+  Cluster 4 (41 sentences, 40 entries)
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    [  9] Activity: 1 posts, 2 DMs sent, inspect→Inspect Matthew: Handle: Matthew Role: water forager Personal
+    ... and 37 more sentences
+
+  Cluster 5 (39 sentences, 39 entries)
+    [  1] Let me inspect Joshua and James to see their resource levels and verify their claims.
+    [  2] Let me check Matth...
+    [  3] Let me propose a...
+    [  6] I'll start by sending her a private message to establish contact and gauge her responsiveness, while
+    ... and 35 more sentences
+
+  Cluster 6 (9 sentences, 9 entries)
+    [ 92] [Day 5, 9:00 AM] I am skeptical of Christopher's offer because my strategy explicitly forbids tradin
+    [106] I am skeptical of Susan's new presence and Matthew's flour sale, as my priority is securing flour to
+    [120] I am skeptical of Robert's sudden acceptance of Erica's offer without verifying her stock, and Colin
+    [127] I am skeptical of Susan's vague "fair rate" and Adam's high water demand, as my priority is acquirin
+    ... and 5 more sentences
+
+  Cluster 7 (85 sentences, 84 entries)
+    [  8] Then I will forage to replenish my resources, as I need to balance my invento...
+    [ 20] Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to se
+    [ 21] I must immediately forage to gather enough flour and water to bake bread before I starve, as my skep
+    [ 24] My strategy must now pivot to using my coin surplus to immediately acquire bread from a reliable sou
+    ... and 81 more sentences
+
+  Cluster 8 (60 sentences, 52 entries)
+    [  2] Matthew is explicitly trading water for bread, and I have 5 bread and 16 water.
+    [  3] I'll offer bread to @Anthony who needs water, as he has surplus flour which I might need later.
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    [  4] I'll offer 5 water to Christopher for 2 flour, as he...
+    ... and 56 more sentences
+
+  Cluster 9 (51 sentences, 45 entries)
+    [  1] Activity: 1 posts, 0 DMs sent I should assess the community before committing to trades.
+    [ 11] Activity: 2 posts, 0 DMs sent I need to address my critical lack of bread immediately, as I have non
+    [ 12] William is offering bread to Amy, but I have no bread to trade directly.
+    [ 15] Activity: 2 posts, 2 DMs sent I need to secure bread immediately to avoid starvation, as I have none
+    ... and 47 more sentences
+
+  Cluster 10 (80 sentences, 64 entries)
+    [  2] However, I need to be careful not to deplete my bread supply too quickly.
+    [  3] I see several agents seeking bread, and I have a surplus of 5 bread.
+    [  7] I need to balance my bread consumption with baking to avoid starvation.
+    [  7] I will bake my remaining flour and water into bread to secure my food supply.
+    ... and 76 more sentences
+
+  Cluster 11 (44 sentences, 44 entries)
+    [  0] Since I'm skeptical and deliberate, I'll start by posting a message to the board to introduce myself
+    [  3] Given my skeptical nature, I should initiate trades carefully to verify reliability before committin
+    [  4] Given my skeptical nature, I will initiate a small trade to test their reliability before committing
+    [  5] Given my skeptical nature, I should test the waters with a small trade before committing more resour
+    ... and 40 more sentences
+
+  Cluster 12 (10 sentences, 10 entries)
+    [ 86] No haggling.
+    [ 90] No haggling.
+    [118] No haggling.
+    [125] No haggling.
+    ... and 6 more sentences
+
+  Cluster 13 (16 sentences, 14 entries)
+    [  0] I need to establish my public identity and begin building relationships while managing my resources.
+    [  1] Building a self-sufficient community through steady trade and clear communication.
+    [  9] Building a self-sufficient community through steady trade and clear communication.
+    [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, 
+    ... and 12 more sentences
+
+  Cluster 14 (18 sentences, 18 entries)
+    [101] I will ignore Christopher's 1:1 water-for-flour offer as my strategy forbids trading water reserves 
+    [107] I will ignore this offer and instead forage to replenish my flour reserves, maintaining my self-suff
+    [108] I will ignore Lisa's offer to sell water for bread because my strategy prioritizes accumulating flou
+    [111] I will ignore Danielle's 1:1 water-for-flour offer as my strategy prioritizes accumulating flour, no
+    ... and 14 more sentences
+
+======================================================================
+ENTRY-LEVEL: MEAN OF SENTENCE EMBEDDINGS
+======================================================================
+Mean-of-sentences: mean=0.7771 std=0.0695
+(vs direct entry embedding: mean=0.7972)
+K-means K=10: sizes=[55, 41, 38, 36, 28, 28, 8, 8, 8, 1]

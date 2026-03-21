@@ -1,0 +1,258 @@
+Loaded 251 entries
+
+Generating behavioral abstracts via LLM...
+  [0/251] Establishing identity and gathering resources before trading.
+  [25/251] Urgent trade to secure food despite starvation pressure.
+  [50/251] Securing critical resources via direct trade over foraging.
+  [75/251] Prioritizing immediate survival over cautious resource management strategies.
+  [100/251] Rejecting unfavorable trade to pursue better market opportunities.
+  [125/251] Leveraging surplus flour to address bread deficit via trade.
+  [150/251] Urgent pressure applied to resolve critical resource shortage.
+  [175/251] Desperate trade to convert surplus water into food.
+  [200/251] Rejecting unfavorable trade to preserve resource surplus.
+  [225/251] Proactive foraging to maintain surplus and avoid bad trades
+  [250/251] Converting surplus flour to bread while maintaining water reserves.
+  Saved 251 abstracts to cache
+
+Sample abstracts (every 25th):
+  [  0] post_to_board   → Establishing identity and gathering resources before trading.
+  [ 25] offer           → Urgent trade to secure food despite starvation pressure.
+  [ 50] accept          → Securing critical resources via direct trade over foraging.
+  [ 75] bake            → Prioritizing immediate survival over cautious resource management strategies.
+  [100] post_to_board   → Rejecting unfavorable trade to pursue better market opportunities.
+  [125] inspect         → Leveraging surplus flour to address bread deficit via trade.
+  [150] send_message    → Urgent pressure applied to resolve critical resource shortage.
+  [175] offer           → Desperate trade to convert surplus water into food.
+  [200] update_soul     → Rejecting unfavorable trade to preserve resource surplus.
+  [225] forage          → Proactive foraging to maintain surplus and avoid bad trades
+  [250] bake            → Converting surplus flour to bread while maintaining water reserves.
+
+Embedding abstracts...
+Shape: (251, 1024)
+
+Pairwise similarity of abstracts:
+  mean=0.6856 std=0.0913 min=0.4097 max=1.0000
+  (Compare to raw reasoning: mean=0.7972 std=0.0745)
+
+======================================================================
+THRESHOLD 0.60: 1 clusters
+======================================================================
+  Sizes: [251]
+
+  Cluster 1 (size=251):
+    [ 3x] Prioritizing self-sufficiency over risky trade due to starvation.
+    [ 3x] Prioritizing immediate survival over uncertain foraging yields.
+    [ 2x] Verifying reliability before trading to avoid starvation.
+    [ 2x] Rejecting risky trade to prioritize immediate survival needs.
+    [ 2x] Prioritizing immediate survival over uncertain trade opportunities.
+    ... and 232 more unique abstracts
+
+======================================================================
+THRESHOLD 0.65: 2 clusters
+======================================================================
+  Sizes: [166, 85]
+
+  Cluster 1 (size=166):
+    [ 3x] Prioritizing self-sufficiency over risky trade due to starvation.
+    [ 3x] Prioritizing immediate survival over uncertain foraging yields.
+    [ 2x] Verifying reliability before trading to avoid starvation.
+    [ 2x] Rejecting risky trade to prioritize immediate survival needs.
+    [ 2x] Prioritizing immediate survival over uncertain trade opportunities.
+    ... and 149 more unique abstracts
+
+  Cluster 2 (size=85):
+    [ 2x] Urgent trade to replenish critically low resource levels.
+    [ 2x] Desperate purchase driven by starvation and skepticism.
+    [ 1x] Securing food supply by converting remaining resources into bread.
+    [ 1x] Pivoting to purchase food using coin surplus to survive.
+    [ 1x] Urgent trade to secure food despite starvation pressure.
+    ... and 78 more unique abstracts
+
+======================================================================
+THRESHOLD 0.70: 4 clusters
+======================================================================
+  Sizes: [148, 78, 23, 2]
+
+  Cluster 1 (size=148):
+    [ 3x] Prioritizing self-sufficiency over risky trade due to starvation.
+    [ 2x] Verifying reliability before trading to avoid starvation.
+    [ 2x] Rejecting risky trade to prioritize immediate survival needs.
+    [ 2x] Prioritizing immediate survival over uncertain trade opportunities.
+    [ 2x] Rejecting trade to prioritize flour accumulation and self-sufficiency.
+    ... and 133 more unique abstracts
+
+  Cluster 2 (size=78):
+    [ 2x] Urgent trade to replenish critically low resource levels.
+    [ 2x] Desperate purchase driven by starvation and skepticism.
+    [ 1x] Securing food supply by converting remaining resources into bread.
+    [ 1x] Pivoting to purchase food using coin surplus to survive.
+    [ 1x] Urgent trade to secure food despite starvation pressure.
+    ... and 71 more unique abstracts
+
+  Cluster 3 (size=23):
+    [ 3x] Prioritizing immediate survival over uncertain foraging yields.
+    [ 1x] Desperate foraging to survive critical starvation risk.
+    [ 1x] Desperate self-reliance driven by critical starvation and distrust.
+    [ 1x] Prioritizing immediate survival over usual skepticism due to starvation.
+    [ 1x] Prioritizing self-sufficiency over trade due to starvation and skepticism.
+    ... and 16 more unique abstracts
+
+  Cluster 4 (size=2):
+    [ 1x] Proactive community building through surplus sharing and replenishment.
+    [ 1x] Voting for reliable candidate to support community building.
+
+======================================================================
+THRESHOLD 0.75: 11 clusters
+======================================================================
+  Sizes: [131, 48, 35, 18, 11, 2, 2, 1, 1, 1, 1]
+
+  Cluster 1 (size=131):
+    [ 3x] Prioritizing self-sufficiency over risky trade due to starvation.
+    [ 2x] Verifying reliability before trading to avoid starvation.
+    [ 2x] Rejecting risky trade to prioritize immediate survival needs.
+    [ 2x] Prioritizing immediate survival over uncertain trade opportunities.
+    [ 2x] Rejecting trade to prioritize flour accumulation and self-sufficiency.
+    ... and 116 more unique abstracts
+
+  Cluster 2 (size=48):
+    [ 2x] Urgent trade to replenish critically low resource levels.
+    [ 1x] Securing food supply by converting remaining resources into bread.
+    [ 1x] Pivoting to purchase food using coin surplus to survive.
+    [ 1x] Urgent trade to secure food despite starvation pressure.
+    [ 1x] Leveraging coin surplus to urgently acquire critical food.
+    ... and 42 more unique abstracts
+
+  Cluster 3 (size=35):
+    [ 1x] Proactive community building through surplus sharing and replenishment.
+    [ 1x] Proactive foraging to replenish critical raw material reserves.
+    [ 1x] Proactive public posting to secure long-term resource safety.
+    [ 1x] Proactive surplus conversion to prevent future resource crises.
+    [ 1x] Prioritizing stockpile building to ensure starvation buffer.
+    ... and 30 more unique abstracts
+
+  Cluster 4 (size=18):
+    [ 3x] Prioritizing immediate survival over uncertain foraging yields.
+    [ 1x] Desperate foraging to survive critical starvation risk.
+    [ 1x] Desperate self-reliance driven by critical starvation and distrust.
+    [ 1x] Prioritizing immediate survival over usual skepticism due to starvation.
+    [ 1x] Prioritizing self-sufficiency over trade due to starvation and skepticism.
+    ... and 11 more unique abstracts
+
+  Cluster 5 (size=11):
+    [ 1x] Rejecting poor offer to publicly signal resource accumulation strategy.
+    [ 1x] Rejecting undervalued offer to signal stability and intent.
+    [ 1x] Rejecting bad offer to pursue better direct trade.
+    [ 1x] Skeptical verification of vague offers to secure favorable terms.
+    [ 1x] Rejecting unfair offer to leverage secure resource surplus.
+    ... and 6 more unique abstracts
+
+  Cluster 6 (size=2):
+    [ 1x] Deliberate candidate inspection to ensure reliable voting decision.
+    [ 1x] Voting for reliable agents to ensure mutual benefit.
+
+  Cluster 7 (size=2):
+    [ 2x] Desperate purchase driven by starvation and skepticism.
+
+  Cluster 8 (size=1):
+    [ 1x] Voting for reliable candidate to support community building.
+
+  Cluster 9 (size=1):
+    [ 1x] Skeptical of others, prioritizing self-reliance to build reserves.
+
+  Cluster 10 (size=1):
+    [ 1x] Urgent transaction verification driven by critical starvation pressure.
+
+======================================================================
+THRESHOLD 0.80: 30 clusters
+======================================================================
+  Sizes: [78, 34, 24, 24, 16, 10, 9, 8, 7, 6, 6, 6, 4, 2, 2, 1, 1, 1, 1, 1]...
+
+  Cluster 1 (size=78):
+    [ 3x] Prioritizing self-sufficiency over risky trade due to starvation.
+    [ 2x] Rejecting risky trade to prioritize immediate survival needs.
+    [ 2x] Prioritizing immediate survival over uncertain trade opportunities.
+    [ 2x] Rejecting trade to prioritize flour accumulation and self-sufficiency.
+    [ 2x] Rejecting unfavorable trade to prioritize strategic resource accumulation.
+    ... and 66 more unique abstracts
+
+  Cluster 2 (size=34):
+    [ 2x] Urgent trade to replenish critically low resource levels.
+    [ 1x] Urgent trade to secure food despite starvation pressure.
+    [ 1x] Desperate trade to secure food before starvation.
+    [ 1x] Desperate trade using coin surplus to survive starvation.
+    [ 1x] Urgent trade to secure food and stop starvation.
+    ... and 28 more unique abstracts
+
+  Cluster 3 (size=24):
+    [ 2x] Verifying reliability before trading to avoid starvation.
+    [ 1x] Skeptical verification of trade claims before committing resources.
+    [ 1x] Cautious trade initiation to verify agent reliability.
+    [ 1x] Testing reliability with small trade before committing larger amounts.
+    [ 1x] Testing reliability with small trade before committing resources.
+    ... and 18 more unique abstracts
+
+  Cluster 4 (size=24):
+    [ 3x] Prioritizing immediate survival over uncertain foraging yields.
+    [ 1x] Prioritizing immediate survival foraging over potential trade opportunities.
+    [ 1x] Desperate foraging to survive critical starvation risk.
+    [ 1x] Proactive foraging to replenish critical raw material reserves.
+    [ 1x] Prioritizing immediate survival foraging over risky unverified trades.
+    ... and 17 more unique abstracts
+
+  Cluster 5 (size=16):
+    [ 2x] Accepting fair trade to replenish critical resource shortage.
+    [ 2x] Accepting fair trade to convert surplus into reserves.
+    [ 1x] Proactive surplus conversion to prevent future resource crises.
+    [ 1x] Strategic surplus exchange to address critical resource shortage.
+    [ 1x] Converting excess resources to address critical survival shortages.
+    ... and 9 more unique abstracts
+
+  Cluster 6 (size=10):
+    [ 1x] Baking immediately to secure survival against starvation risk.
+    [ 1x] Urgent baking to survive critical resource shortage.
+    [ 1x] Proactive baking to secure food supply stability.
+    [ 1x] Prioritizing flour reserves to ensure robust stability buffer.
+    [ 1x] Baking surplus flour to prevent starvation vulnerability.
+    ... and 5 more unique abstracts
+
+  Cluster 7 (size=9):
+    [ 1x] Securing food supply by converting remaining resources into bread.
+    [ 1x] Leveraging surplus flour to address bread deficit via trade.
+    [ 1x] Converting surplus water into flour for long-term stability.
+    [ 1x] Strategic trade to convert surplus water into critical flour.
+    [ 1x] Converting surplus flour to bread before water depletion.
+    ... and 4 more unique abstracts
+
+  Cluster 8 (size=8):
+    [ 1x] Prioritizing immediate survival over usual skepticism due to starvation.
+    [ 1x] Prioritizing immediate survival over usual deliberate pace.
+    [ 1x] Prioritizing immediate survival over cautious resource gathering strategies.
+    [ 1x] Prioritizing immediate survival over cautious resource management strategies.
+    [ 1x] Prioritizing immediate survival over cautious deliberation due to scarcity.
+    ... and 3 more unique abstracts
+
+  Cluster 9 (size=7):
+    [ 1x] Pivoting to purchase food using coin surplus to survive.
+    [ 1x] Leveraging coin surplus to urgently acquire critical food.
+    [ 1x] Strategic coin expenditure to address critical bread shortage.
+    [ 1x] Strategic coin spending to mitigate starvation risk.
+    [ 1x] Desperate emergency purchase using coin surplus to survive starvation.
+    ... and 2 more unique abstracts
+
+  Cluster 10 (size=6):
+    [ 1x] Skeptical inspection of resources before proposing trade.
+    [ 1x] Skeptical inspection of partners before committing to trade.
+    [ 1x] Skeptical verification of vague offers to secure favorable terms.
+    [ 1x] Skeptical verification of fixed rates before committing trade.
+    [ 1x] Skeptical rejection of inconsistent trade to preserve stability.
+    ... and 1 more unique abstracts
+
+
+======================================================================
+BEST THRESHOLD ANALYSIS
+======================================================================
+  0.60: 1 total, 1 non-singleton
+  0.65: 2 total, 2 non-singleton
+  0.70: 4 total, 4 non-singleton
+  0.75: 11 total, 7 non-singleton
+  0.80: 30 total, 15 non-singleton

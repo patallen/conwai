@@ -1,0 +1,58 @@
+Loaded 251 entries
+
+   K      Inertia   Silhouette   Calinski-H        Gap
+   2        17.74       0.3647         76.8     0.6673
+   3        13.44       0.4272         90.2     0.7835
+   4        10.71       0.5138         96.1     0.8816
+   5         8.39       0.5456        108.7     1.0214
+   6         6.43       0.5844        127.7     1.1930
+   7         5.87       0.5619        120.0     1.2124
+   8         5.39       0.5243        114.8     1.2322
+   9         4.95       0.5191        111.4     1.2418
+  10         4.67       0.5239        106.4     1.2510
+  11         4.37       0.4788        103.5     1.2617
+  12         4.22       0.4424         97.8     1.2546
+  13         3.92       0.4252         97.7     1.2789
+  14         3.76       0.4103         94.2     1.2815
+  15         3.54       0.3429         93.7     1.3050
+  16         3.45       0.3344         89.7     1.2971
+  17         3.31       0.3249         87.9     1.3010
+  18         3.15       0.3082         87.2     1.3170
+  19         3.10       0.2510         83.5     1.2974
+  20         3.00       0.2912         82.0     1.2997
+  21         2.87       0.3119         81.6     1.3155
+  22         2.76       0.2590         80.6     1.3228
+  23         2.70       0.3153         78.8     1.3183
+  24         2.56       0.2566         79.4     1.3481
+
+======================================================================
+OPTIMAL K SELECTION
+======================================================================
+  Silhouette method: K=6 (sil=0.5844)
+  Calinski-Harabasz: K=6 (CH=127.7)
+  Elbow method:      K=3
+  Gap statistic:     K=24 (gap=1.3481)
+
+  Consensus: the methods suggest K in range [6, 6]
+
+======================================================================
+CLUSTERS AT CONSENSUS K=6
+======================================================================
+  Cluster 0 (76) [forage:34, accept:12, offer:11]
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. G
+  Cluster 1 (42) [forage:29, bake:12, accept:1]
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+  Cluster 2 (41) [send_message:15, offer:10, pay:4]
+    [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+  Cluster 3 (29) [bake:19, forage:7, offer:3]
+    [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+    [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inven
+  Cluster 4 (23) [forage:16, post_to_board:3, vote:3]
+    [  0] I need to establish my public identity and begin building relationships while managing my resources.
+    [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+  Cluster 5 (40) [inspect:40]
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:

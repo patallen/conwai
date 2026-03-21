@@ -1,0 +1,170 @@
+Loaded 251 entries
+
+Action type distribution:
+  forage                 89
+  inspect                40
+  bake                   39
+  offer                  24
+  send_message           22
+  accept                 17
+  post_to_board           6
+  vote                    4
+  pay                     4
+  unknown                 4
+  update_soul             2
+
+Embedding all reasoning texts...
+Shape: (251, 1024)
+
+======================================================================
+ACTION: forage (89 entries)
+======================================================================
+  Pairwise sim: mean=0.8266 std=0.0687 min=0.6017 max=1.0000
+  threshold=0.80: 5 clusters (singletons=3) sizes=[81, 5, 1, 1, 1]
+  threshold=0.85: 7 clusters (singletons=5) sizes=[79, 5, 1, 1, 1, 1, 1]
+  threshold=0.90: 16 clusters (singletons=8) sizes=[32, 19, 12, 7, 4, 3, 2, 2, 1, 1]...
+
+  Sub-clusters at 0.85 (top 5):
+    Cluster 1 (size=79):
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more resources before I perish. My ske
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical nature, I w
+    Cluster 2 (size=5):
+      [ 94] I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must not become complacent; I will 
+      [224] I will forage immediately to replenish my water reserves, as my skepticism dictates I avoid relying on trades that might deplete m
+    Cluster 3 (size=1):
+      [102] I will forage to replenish my water reserves, as my current stock is sufficient but my strategy prioritizes maintaining independen
+    Cluster 4 (size=1):
+      [122] I have reached my flour target of 31, but my bread count has dropped to 19 after eating, leaving me just below my stability thresh
+    Cluster 5 (size=1):
+      [209] I will update my journal to record the successful trade with Robert, which secured my flour reserves, and then forage to replenish
+
+======================================================================
+ACTION: inspect (40 entries)
+======================================================================
+  Pairwise sim: mean=0.8810 std=0.0387 min=0.7379 max=0.9963
+  threshold=0.80: 1 clusters (singletons=0) sizes=[40]
+  threshold=0.85: 1 clusters (singletons=0) sizes=[40]
+  threshold=0.90: 3 clusters (singletons=0) sizes=[26, 12, 2]
+
+======================================================================
+ACTION: bake (39 entries)
+======================================================================
+  Pairwise sim: mean=0.8511 std=0.0536 min=0.6940 max=0.9884
+  threshold=0.80: 1 clusters (singletons=0) sizes=[39]
+  threshold=0.85: 6 clusters (singletons=5) sizes=[34, 1, 1, 1, 1, 1]
+  threshold=0.90: 11 clusters (singletons=8) sizes=[14, 12, 5, 1, 1, 1, 1, 1, 1, 1]...
+
+  Sub-clusters at 0.85 (top 5):
+    Cluster 1 (size=34):
+      [ 30] I am critically starving with zero bread and only 8 flour, making me vulnerable despite my coin surplus. I will immediately bake m
+      [ 55] I have secured 20 flour from Bridget but am still starving with zero bread. My strategy dictates I immediately bake my available f
+    Cluster 2 (size=1):
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to balance my bread consumption wit
+    Cluster 3 (size=1):
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger is still precarious 
+    Cluster 4 (size=1):
+      [103] I am alarmed by Susan's death and my own critically low bread count of 1, which puts me at immediate risk if I cannot bake more. M
+    Cluster 5 (size=1):
+      [194] I will bake 10 bread immediately to convert my surplus flour into a larger food reserve, securing my survival against future short
+
+======================================================================
+ACTION: offer (24 entries)
+======================================================================
+  Pairwise sim: mean=0.8556 std=0.0416 min=0.7636 max=1.0000
+  threshold=0.80: 1 clusters (singletons=0) sizes=[24]
+  threshold=0.85: 1 clusters (singletons=0) sizes=[24]
+  threshold=0.90: 9 clusters (singletons=5) sizes=[8, 6, 3, 2, 1, 1, 1, 1, 1]
+
+======================================================================
+ACTION: send_message (22 entries)
+======================================================================
+  Pairwise sim: mean=0.8594 std=0.0535 min=0.7201 max=1.0000
+  threshold=0.80: 2 clusters (singletons=1) sizes=[21, 1]
+  threshold=0.85: 2 clusters (singletons=1) sizes=[21, 1]
+  threshold=0.90: 5 clusters (singletons=3) sizes=[13, 6, 1, 1, 1]
+
+  Sub-clusters at 0.85 (top 5):
+    Cluster 1 (size=21):
+      [ 49] I am critically low on bread with zero loaves and only 7 flour, making me vulnerable to starvation. Matthew is selling 4 bread for
+      [ 62] I am critically starving with zero bread and only 4 flour, having just eaten raw flour out of desperation. My skeptical nature dem
+    Cluster 2 (size=1):
+      [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptical nature requires me to verif
+
+======================================================================
+ACTION: accept (17 entries)
+======================================================================
+  Pairwise sim: mean=0.8659 std=0.0470 min=0.7243 max=0.9723
+  threshold=0.80: 1 clusters (singletons=0) sizes=[17]
+  threshold=0.85: 2 clusters (singletons=1) sizes=[16, 1]
+  threshold=0.90: 4 clusters (singletons=2) sizes=[10, 5, 1, 1]
+
+  Sub-clusters at 0.85 (top 5):
+    Cluster 1 (size=16):
+      [ 50] I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critical for baking bread and my ske
+      [ 51] I will immediately accept Christopher's offer of 20 flour for 10 water to secure the raw materials needed for baking, as my curren
+    Cluster 2 (size=1):
+      [217] I will reject Anthony's unfavorable 1.2:1 rate and instead accept Eric's pending offer #90 for 15 flour in exchange for 30 water, 
+
+======================================================================
+ACTION: post_to_board (6 entries)
+======================================================================
+  Pairwise sim: mean=0.7670 std=0.0494 min=0.7060 max=0.8664
+  threshold=0.80: 4 clusters (singletons=3) sizes=[3, 1, 1, 1]
+  threshold=0.85: 5 clusters (singletons=4) sizes=[2, 1, 1, 1, 1]
+  threshold=0.90: 6 clusters (singletons=6) sizes=[1, 1, 1, 1, 1, 1]
+
+  Sub-clusters at 0.85 (top 5):
+    Cluster 1 (size=2):
+      [ 96] I will ignore Jeffery's 1:1 bread-for-flour offer as my strategy prioritizes flour accumulation over bread when I already have 9 l
+      [100] I am skeptical of Colin's 1.5:1 bread-for-water rate compared to my existing 36 flour reserve, so I will not trade my bread for wa
+    Cluster 2 (size=1):
+      [  0] I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and delib
+    Cluster 3 (size=1):
+      [  8] I will post a message to the board acknowledging my current surplus of water and flour to attract potential trade partners, aligni
+    Cluster 4 (size=1):
+      [ 56] I am now stable with 7 bread and 8 flour, but my strategy requires securing 15+ bread and 20+ flour for long-term safety. I will p
+    Cluster 5 (size=1):
+      [215] I am skeptical of the HANDLER's accusation of intentional ignoring, as I have been actively foraging and baking to maintain my com
+
+======================================================================
+ACTION: vote (4 entries)
+======================================================================
+  Pairwise sim: mean=0.7278 std=0.0704 min=0.5909 max=0.8300
+  threshold=0.80: 3 clusters (singletons=2) sizes=[2, 1, 1]
+  threshold=0.85: 4 clusters (singletons=4) sizes=[1, 1, 1, 1]
+  threshold=0.90: 4 clusters (singletons=4) sizes=[1, 1, 1, 1]
+
+  Sub-clusters at 0.85 (top 5):
+    Cluster 1 (size=1):
+      [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, which aligns with my deliberat
+    Cluster 2 (size=1):
+      [ 95] I will decline Christopher's 1:1 trade offer because my strategy explicitly forbids trading water reserves for bread/flour at unfa
+    Cluster 3 (size=1):
+      [193] I will vote for @Robert to reward his successful trade, as building reliable partnerships is essential for community stability and
+    Cluster 4 (size=1):
+      [243] I will vote for @Debra, a patient resource manager with a public soul emphasizing community resilience and fair trades, as my skep
+
+======================================================================
+ACTION: pay (4 entries)
+======================================================================
+  Pairwise sim: mean=0.8993 std=0.0231 min=0.8626 max=0.9248
+  threshold=0.80: 1 clusters (singletons=0) sizes=[4]
+  threshold=0.85: 1 clusters (singletons=0) sizes=[4]
+  threshold=0.90: 1 clusters (singletons=0) sizes=[4]
+
+======================================================================
+ACTION: unknown (4 entries)
+======================================================================
+  Pairwise sim: mean=0.8729 std=0.0200 min=0.8500 max=0.9077
+  threshold=0.80: 1 clusters (singletons=0) sizes=[4]
+  threshold=0.85: 1 clusters (singletons=0) sizes=[4]
+  threshold=0.90: 3 clusters (singletons=2) sizes=[2, 1, 1]
+
+======================================================================
+ACTION: update_soul (2 entries)
+======================================================================
+  Pairwise sim: mean=0.9060 std=0.0000 min=0.9060 max=0.9060
+  threshold=0.80: 1 clusters (singletons=0) sizes=[2]
+  threshold=0.85: 1 clusters (singletons=0) sizes=[2]
+  threshold=0.90: 1 clusters (singletons=0) sizes=[2]
+

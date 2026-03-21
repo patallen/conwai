@@ -1,0 +1,39 @@
+1. **Competitive Streak Maximization**
+Cassandra repeatedly forages specifically to extend a resource streak multiplier, prioritizing long-term yield efficiency over immediate consumption.
+*Count: 18 entries*
+
+2. **Aggressive Surplus Liquidation**
+The agent actively seeks to convert massive resource stockpiles (especially water) into other assets like flour, bread, or coins to maintain dominance.
+*Count: 15 entries*
+
+3. **Rigid Valuation Enforcement**
+Cassandra strictly adheres to a self-imposed 1:5 coin-to-water exchange rate, systematically rejecting any trade offers that do not meet this specific threshold.
+*Count: 14 entries*
+
+4. **Exploitative Opportunism**
+The agent identifies and capitalizes on other agents' desperation or urgent needs to secure highly favorable trade ratios.
+*Count: 9 entries*
+
+5. **Detached Social Isolation**
+Cassandra explicitly ignores community pleas for "fair" trades, board complaints, and social pressure, maintaining a stoic and unyielding stance.
+*Count: 12 entries*
+
+6. **Strategic Resource Conversion**
+The agent bakes bread not just for survival, but specifically to convert raw ingredient surpluses into sustenance to solidify resource dominance.
+*Count: 7 entries*
+
+7. **Pre-emptive Market Signaling**
+Cassandra posts public announcements or updates her profile to signal resource abundance and competitive strength to attract specific trading partners.
+*Count: 5 entries*
+
+8. **Targeted Direct Negotiation**
+The agent bypasses public boards to send direct messages to specific individuals, often to pressure them into accepting a specific trade offer.
+*Count: 6 entries*
+
+9. **Defensive Rejection of Undervaluation**
+Cassandra actively rejects incoming trade offers that she deems to undervalue her specific resource surplus, often citing her strict internal ratios.
+*Count: 10 entries*
+
+10. **Alliance Building via Voting**
+The agent uses voting mechanisms to secure future alliances with specific partners who possess complementary resource surpluses.
+*Count: 1 entry*

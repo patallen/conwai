@@ -1,0 +1,82 @@
+Loaded 251 entries
+
+Embedding reasoning texts...
+Original: mean=0.7972 std=0.0745 range=[0.3336, 1.0000]
+Residual: mean=-0.0030 std=0.2283 range=[-0.4970, 1.0000]
+  Spread improvement: std 0.0745 → 0.2283
+
+Action-residual: mean=-0.0035 std=0.2009 range=[-1.0000, 1.0000]
+
+======================================================================
+CLUSTERING GLOBAL RESIDUALS
+======================================================================
+  threshold=0.10: 8 clusters (8 non-singleton) top=[60, 49, 45, 31, 30, 20, 10, 6]
+  threshold=0.20: 11 clusters (11 non-singleton) top=[40, 40, 31, 29, 27, 27, 23, 15, 9, 6]
+  threshold=0.30: 24 clusters (17 non-singleton) top=[41, 40, 24, 24, 21, 19, 18, 14, 8, 6]
+  threshold=0.40: 42 clusters (23 non-singleton) top=[40, 22, 22, 21, 18, 16, 15, 14, 10, 7]
+  threshold=0.50: 77 clusters (29 non-singleton) top=[28, 22, 20, 20, 16, 12, 12, 10, 6, 6]
+  threshold=0.60: 122 clusters (36 non-singleton) top=[16, 13, 12, 11, 9, 8, 7, 6, 6, 6]
+  threshold=0.70: 179 clusters (29 non-singleton) top=[11, 10, 6, 6, 4, 4, 4, 4, 4, 4]
+
+======================================================================
+DETAILED VIEW AT THRESHOLD 0.10
+======================================================================
+
+  Cluster 1 (size=60) [forage:34, bake:6, accept:5, send_message:5, offer:5, post_to_board:2, update_soul:2, vote:1]
+    [ 95] I will decline Christopher's 1:1 trade offer because my strategy explicitly forbids trading water reserves for bread/flour at unfa
+    [ 96] I will ignore Jeffery's 1:1 bread-for-flour offer as my strategy prioritizes flour accumulation over bread when I already have 9 l
+    [ 99] I will decline Christopher's 1:1 trade offer as my strategy forbids unfavorable water-for-flour rates, and I already have a secure
+    ... and 57 more
+
+  Cluster 2 (size=49) [inspect:40, post_to_board:3, offer:3, send_message:1, bake:1, vote:1]
+    [  0] I need to establish my public identity and begin building relationships while managing my resources. Since I'm skeptical and delib
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flour: 10, Water: 10, B
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Flour: 10, Water: 29, 
+    ... and 46 more
+
+  Cluster 3 (size=45) [forage:31, bake:13, accept:1]
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more resources before I perish. My ske
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. Given my skeptical nature, I w
+    [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger. I must imme
+    ... and 42 more
+
+  Cluster 4 (size=31) [send_message:16, offer:4, pay:4, forage:2, unknown:2, post_to_board:1, accept:1, vote:1]
+    [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew's offer of 5 bread for 10 wate
+    [ 26] I need to bake bread immediately since I have 70 water and 0 flour, but I cannot bake without flour. My offer to Matthew for bread
+    [ 49] I am critically low on bread with zero loaves and only 7 flour, making me vulnerable to starvation. Matthew is selling 4 bread for
+    ... and 28 more
+
+  Cluster 5 (size=30) [bake:19, forage:9, offer:2]
+    [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger is still precarious 
+    [ 77] I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids trading away water reserves, and 
+    [109] My flour reserve of 32 is sufficient for baking, but my bread count of 14 is below my target of 20+ for true stability. I will bak
+    ... and 27 more
+
+  Cluster 6 (size=20) [accept:10, offer:5, forage:3, unknown:2]
+    [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need every crumb to survive; giving a
+    [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to lose half my stock while starv
+    [ 42] I need to secure bread immediately to stop eating raw flour, and Debra has surplus bread while seeking flour. Given my critical hu
+    ... and 17 more
+
+  Cluster 7 (size=10) [forage:9, vote:1]
+    [209] I will update my journal to record the successful trade with Robert, which secured my flour reserves, and then forage to replenish
+    [210] I have successfully secured my flour reserves through the trade with Robert, but my water level has dropped to 43, which is becomi
+    [223] I will forage immediately to replenish my water reserves, as my strategy prioritizes maintaining a surplus for baking, and my curr
+    ... and 7 more
+
+  Cluster 8 (size=6) [offer:5, forage:1]
+    [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loaf. My strategy dictates I use 
+    [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inventory. My strategy dictates I u
+    [ 34] I have secured 4 bread and 6 flour, but I am still vulnerable to starvation if my foraging yields remain poor. My strategy dictate
+    ... and 3 more
+
+======================================================================
+CLUSTERING ACTION-TYPE RESIDUALS
+======================================================================
+  threshold=0.10: 7 clusters (7 non-singleton) top=[63, 59, 39, 36, 34, 17, 3]
+  threshold=0.20: 20 clusters (19 non-singleton) top=[37, 25, 24, 23, 19, 16, 14, 14, 14, 14]
+  threshold=0.30: 50 clusters (28 non-singleton) top=[34, 27, 18, 17, 15, 12, 10, 9, 9, 9]
+  threshold=0.40: 85 clusters (32 non-singleton) top=[25, 20, 16, 15, 11, 11, 8, 8, 7, 7]
+  threshold=0.50: 133 clusters (37 non-singleton) top=[21, 11, 11, 9, 9, 6, 6, 5, 4, 4]
+  threshold=0.60: 169 clusters (36 non-singleton) top=[15, 10, 7, 6, 5, 4, 4, 4, 3, 3]
+  threshold=0.70: 205 clusters (21 non-singleton) top=[11, 10, 5, 4, 3, 3, 3, 2, 2, 2]

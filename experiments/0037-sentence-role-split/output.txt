@@ -1,0 +1,155 @@
+Loaded 251 entries
+
+Sample splits:
+  [  0] CONDITION: I need to establish my public identity and begin building relationships while managing my resources.
+        DECISION:  Since I'm skeptical and deliberate, I'll start by posting a message to the board to introduce myself
+
+  [ 18] CONDITION: I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+        DECISION:  My skeptical nature dictates I secure my own survival first before attempting any trades.
+
+  [ 50] CONDITION: I will accept Christopher's offer of 20 flour for 10 water immediately, as acquiring flour is critic
+        DECISION:  I have sufficient water (99) to spare 10, and this...
+
+  [ 77] CONDITION: I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy explicitly forbids tra
+        DECISION:  I will immediately forage to gather more flour, as this is the only way to increase my food supply w
+
+  [ 94] CONDITION: I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must 
+        DECISION:  I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must 
+
+  [150] CONDITION: My bread count is critically low at 2, and my pending offers to Matthew and Bridget remain unanswere
+        DECISION:  I will send an urgent DM to Bridget to pressure her to accept my pending o...
+
+Embedding conditions...
+Embedding decisions...
+
+Combined (condition+decision) shape: (251, 6)
+
+======================================================================
+CLUSTERING CONDITION+DECISION PAIRS
+======================================================================
+  K= 5: sil=0.3265 sizes=[67, 65, 41, 41, 37]
+  K= 8: sil=0.3143 sizes=[40, 40, 39, 32, 28, 25, 25, 22]
+  K=10: sil=0.3063 sizes=[40, 30, 28, 28, 25, 25, 21, 19, 19, 16]
+  K=15: sil=0.2697 sizes=[24, 22, 22, 22, 21, 21, 18, 17, 17, 15, 14, 11, 10, 9, 8]
+  K=20: sil=0.2537 sizes=[24, 17, 17, 16, 15, 14, 14, 14, 13, 13, 12, 11, 11, 11, 10, 10, 8, 8, 7, 6]
+
+======================================================================
+CONSOLIDATED PATTERNS (K=10)
+======================================================================
+
+  PATTERN 1 (40 episodes) [inspect:40]
+    Representative condition: Handle: Bridget Role: water forager Personality: deliberate, detached Coins: 414 Hunger: 79/100, Thirst: 81/100 Flour: 4
+    Representative decision:  Instead, I will inspect Bridget to verify her flour and bread reserves, as her post about selling bread for coins or flo
+    Examples:
+      [  1] C: Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hung
+           D: Let me inspect Joshua and James to see their resource levels and verify their cl
+      [  2] C: Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hun
+           D: Let me check Matth...
+      [  9] C: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 H
+           D: Let me check a few agents' profiles first.
+
+  PATTERN 2 (21 episodes) [forage:11, bake:9, offer:1]
+    Representative condition: I am critically starving with zero bread and only 7 flour, and my skeptical nature demands I stop relying on foraging yi
+    Representative decision:  I will immediately bake my available flour and water into bread to secure my survival before seeking larger trades.
+    Examples:
+      [ 30] C: I am critically starving with zero bread and only 8 flour, making me vulnerable 
+           D: I will immediately bake my 8 flour and 8 water into 8 loaves of bread to stop my
+      [ 39] C: I am critically starving with zero bread and only 6 flour, forcing me to priorit
+           D: I will forage immediately to gather more flour so I can bake bread and stop eati
+      [ 55] C: I have secured 20 flour from Bridget but am still starving with zero bread.
+           D: My strategy dictates I immediately bake my available flour and water into bread 
+
+  PATTERN 3 (25 episodes) [forage:6, accept:6, bake:6]
+    Representative condition: I am skeptical of James's 2:1 flour-for-water offer because I have a massive water surplus (98) and need bread, not more
+    Representative decision:  With only 6 bread remaining, I must prioritize trading my flour for bread to avoid starvation, so I will ignore James's 
+    Examples:
+      [ 28] C: I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have
+           D: I will decline this trade and instead forage to secure more flour myself, ensuri
+      [ 36] C: I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour a
+           D: Instead, I will forage to gather more flour immediately, ensuring I have enough 
+      [ 51] C: I will immediately accept Christopher's offer of 20 flour for 10 water to secure
+           D: This direct trade eliminates the risk of foraging failure and allows me to bake 
+
+  PATTERN 4 (28 episodes) [forage:19, bake:4, accept:2]
+    Representative condition: I am critically starving with zero bread and flour, and my hunger is dropping.
+    Representative decision:  Given my skeptical nature, I will not blindly trust offers but will instead forage immediately to gather enough flour to
+    Examples:
+      [ 18] C: I am starving with zero bread and only 1 flour left, so I must forage immediatel
+           D: My skeptical nature dictates I secure my own survival first before attempting an
+      [ 20] C: I am critically low on bread with zero inventory, and my hunger is rising despit
+           D: Given my skeptical nature, I will not blindly trust offers but will instead fora
+      [ 21] C: I am at critical risk with zero bread and zero flour, having eaten raw flour whi
+           D: I must immediately forage to gather enough flour and water to bake bread before 
+
+  PATTERN 5 (30 episodes) [bake:16, forage:11, offer:3]
+    Representative condition: I have reached my flour target of 31, but my bread count has dropped to 19 after eating, leaving me just below my stabil
+    Representative decision:  My strategy prioritizes securing 30+ flour and 30+ bread, so I will forage again to replenish my flour reserves further 
+    Examples:
+      [  7] C: The trade with Eric succeeded, confirming his reliability and improving my water
+           D: I will bake my remaining flour and water into bread to secure my food supply.
+      [ 29] C: I have secured a small surplus of flour and water but remain critically low on b
+           D: My strategy dictates I use my coin surplus to acquire more bread immediately fro
+      [ 32] C: I have secured a small surplus of flour and water but remain critically low on b
+           D: My strategy dictates I use my coin surplus to acquire more bread immediately fro
+
+  PATTERN 6 (19 episodes) [forage:5, vote:4, offer:3]
+    Representative condition: I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptical nature requires m
+    Representative decision:  I'll start by sending her a private message to establish contact and gauge her responsiveness, while also considering...
+    Examples:
+      [  6] C: I see Linda has a significant surplus of water and flour, which complements my n
+           D: I'll start by sending her a private message to establish contact and gauge her r
+      [ 10] C: I will vote for @James, as his soul indicates a commitment to steady trade and c
+           D: Given my skepticism, I prefer candidates who explicitly state their values and s
+      [ 92] C: [Day 5, 9:00 AM] I am skeptical of Christopher's offer because my strategy expli
+           D: I will not accept this trade; instead, I will wait for Angel to accept my pendin
+
+  PATTERN 7 (25 episodes) [forage:23, post_to_board:1, accept:1]
+    Representative condition: I am skeptical of Melanie's demanding 1.5:1 flour-for-water rate, as my strategy prioritizes acquiring flour using my wa
+    Representative decision:  I will forage immediately to replenish my water reserves and secure more raw flour without accepting ex...
+    Examples:
+      [  8] C: I will post a message to the board acknowledging my current surplus of water and
+           D: Then I will forage to replenish my resources, as I need to balance my invento...
+      [ 50] C: I will accept Christopher's offer of 20 flour for 10 water immediately, as acqui
+           D: I have sufficient water (99) to spare 10, and this...
+      [ 77] C: I am skeptical of Christopher's 1:1 water-for-flour trade because my strategy ex
+           D: I will immediately forage to gather more flour, as this is the only way to incre
+
+  PATTERN 8 (28 episodes) [send_message:14, offer:7, accept:3]
+    Representative condition: I am at zero bread and have already resorted to eating raw flour, putting me at immediate risk of starvation.
+    Representative decision:  I must propose a direct coin-for-bread trade to Matthew using my substantial coin surplus t...
+    Examples:
+      [ 25] C: I need to secure bread immediately as I have zero and am starving, despite my co
+           D: Matthew's offer of 5 bread for 10 water is the most direct path to survival, so 
+      [ 35] C: I am critically vulnerable with zero bread and only 6 flour, relying on my coin 
+           D: I will immediately offer Robert 50 coins for 5 bread to replenish my stock befor
+      [ 38] C: I am critically starving with zero bread and only 7 flour, forcing me to rely on
+           D: I will immediately propose a trade to Lisa for 5 bread in exchange for 50 coins,
+
+  PATTERN 9 (16 episodes) [forage:12, bake:2, post_to_board:1]
+    Representative condition: I will forage immediately to replenish my water reserves, as my current stock of 67 is dangerously close to the depletio
+    Representative decision:  I will forage immediately to replenish my water reserves, as my current stock of 67 is dangerously close to the depletio
+    Examples:
+      [  0] C: I need to establish my public identity and begin building relationships while ma
+           D: Since I'm skeptical and deliberate, I'll start by posting a message to the board
+      [ 93] C: I have secured a stable flour reserve but am critically low on bread with only 2
+           D: My skeptical nature dictates I must not rely on foraging yields to meet my survi
+      [ 94] C: I have secured a stable flour reserve and sufficient bread, but my skeptical nat
+           D: I have secured a stable flour reserve and sufficient bread, but my skeptical nat
+
+  PATTERN 10 (19 episodes) [offer:10, accept:4, bake:2]
+    Representative condition: I will accept Robert's offer of 20 flour for 40 water immediately to secure the flour reserves necessary for long-term s
+    Representative decision:  This trade aligns with my strategy to convert excess water into flour at a fair 2:1 r...
+    Examples:
+      [  3] C: I see several agents seeking bread, and I have a surplus of 5 bread.
+           D: Let me propose a...
+      [  4] C: I see Christopher and Jeffrey both have surplus flour and are seeking water, whi
+           D: I'll offer 5 water to Christopher for 2 flour, as he...
+      [  5] C: I see Eric has surplus water and is seeking flour or bread, which complements my
+           D: I'll offer 2 flour for 5 water to Eric to verify his reliability and potentially
+
+======================================================================
+COMPARISON: WHAT TO CLUSTER ON
+======================================================================
+  conditions_only     : sil=0.3950 sizes=[40, 34, 26, 26, 23, 23, 23, 22, 20, 14]
+  decisions_only      : sil=0.3170 sizes=[39, 35, 32, 27, 26, 24, 21, 18, 15, 14]
+  combined            : sil=0.3063 sizes=[40, 30, 28, 28, 25, 25, 21, 19, 19, 16]

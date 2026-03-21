@@ -1,0 +1,31 @@
+1. **Skeptical Self-Sufficiency Prioritization**
+Adam repeatedly chooses to forage and build personal resource streaks over trading, driven by a stated need to verify his own production capabilities before relying on others.
+*Count: ~25 entries*
+
+2. **Public Offer Distrust and Avoidance**
+The agent explicitly ignores or rejects public bulletin board posts, characterizing them as "posturing," "traps," or "rigid demands" that expose his surplus to exploitation.
+*Count: ~15 entries*
+
+3. **Discreet Private Negotiation Preference**
+When engaging in trade, Adam consistently bypasses public channels to initiate private direct messages (DMs) to negotiate rates away from public scrutiny.
+*Count: ~12 entries*
+
+4. **Aggressive Rate Rejection and Counter-Offering**
+Adam frequently rejects public trade offers he deems "inflated" or "exploitative" (often 2:1 ratios) and immediately proposes his own counter-offers based on a strict 1:1 fairness standard.
+*Count: ~10 entries*
+
+5. **Streak Optimization for Yield Maximization**
+The agent makes specific decisions to forage repeatedly solely to reach or maintain a "3x streak bonus," viewing this mechanical multiplier as essential for resource accumulation.
+*Count: ~18 entries*
+
+6. **Pre-Trade Survival Buffering**
+Adam prioritizes baking bread to convert raw flour and water into stable food reserves specifically when his bread count is zero or low, ensuring survival before attempting any trade.
+*Count: ~8 entries*
+
+7. **Strategic Ally Reward Voting**
+The agent casts votes for specific agents not based on general popularity, but specifically to reward those who have previously engaged in fair, verified trades with him.
+*Count: ~2 entries*
+
+8. **Targeted Surplus Liquidation**
+When holding a massive surplus of one resource (specifically water), Adam actively seeks out specific known foragers of the complementary resource (flour) to offload the excess discreetly.
+*Count: ~6 entries*

@@ -1,0 +1,147 @@
+Loaded 251 entries
+
+unigram: shape=(251, 828) mean_sim=0.1860 std=0.0903
+unigram+bigram: shape=(251, 4284) mean_sim=0.0864 std=0.0702
+
+Bigram vocab size: 3456
+
+Interesting bigrams (in 5-50 docs, top 30):
+  to_secure                      in  48 docs
+  and_water                      in  47 docs
+  for_flour                      in  47 docs
+  will_forage                    in  45 docs
+  to_replenish                   in  45 docs
+  to_bake                        in  45 docs
+  skeptical_of                   in  45 docs
+  am_skeptical                   in  45 docs
+  strategy_prioritizes           in  45 docs
+  replenish_my                   in  44 docs
+  dictates_i                     in  44 docs
+  critically_starving            in  44 docs
+  only_flour                     in  42 docs
+  posts_dms                      in  40 docs
+  forager_personality            in  40 docs
+  hunger_thirst                  in  40 docs
+  dms_sent                       in  40 docs
+  flour_water                    in  40 docs
+  activity_posts                 in  40 docs
+  thirst_flour                   in  40 docs
+  coins_hunger                   in  40 docs
+  water_bread                    in  40 docs
+  water_for                      in  40 docs
+  flour_for                      in  40 docs
+  for_water                      in  39 docs
+  for_bread                      in  38 docs
+  but_my                         in  38 docs
+  sent_i                         in  37 docs
+  and_i                          in  37 docs
+  and_only                       in  37 docs
+
+======================================================================
+K-MEANS ON BIGRAM TF-IDF
+======================================================================
+
+  K=8: sizes=[61, 57, 39, 27, 23, 20, 15, 9]
+    Cluster 0:  20 [send_message:14, offer:3, accept:1] top_bigrams=["i_will", "to_matthew", "i_am"]
+      [ 49] I am critically low on bread with zero loaves and only 7 flour, making me vulnerable to starvation. 
+      [126] I will ignore Lisa's offer to sell water for bread since I have a massive water surplus and need bre
+    Cluster 1:   9 [offer:3, post_to_board:2, send_message:2] top_bigrams=["i_will", "i_ll", "my_skeptical"]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    Cluster 2:  39 [inspect:39] top_bigrams=["flour_water", "water_bread", "forager_personality"]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 3:  61 [forage:30, bake:14, offer:7] top_bigrams=["bread_and", "i_am", "i_will"]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 4:  27 [bake:13, forage:12, update_soul:1] top_bigrams=["i_will", "my_flour", "flour_and"]
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+      [ 94] I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must 
+    Cluster 5:  57 [forage:23, offer:10, bake:9] top_bigrams=["i_will", "my_water", "i_am"]
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+    Cluster 6:  15 [forage:12, unknown:1, vote:1] top_bigrams=["i_will", "will_forage", "to_replenish"]
+      [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a se
+      [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    Cluster 7:  23 [forage:11, accept:5, bake:3] top_bigrams=["i_will", "my_strategy", "water_surplus"]
+      [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, 
+      [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+
+  K=10: sizes=[60, 54, 30, 26, 22, 20, 14, 12, 8, 5]
+    Cluster 0:  20 [send_message:15, offer:3, accept:1] top_bigrams=["i_will", "i_am", "to_matthew"]
+      [ 49] I am critically low on bread with zero loaves and only 7 flour, making me vulnerable to starvation. 
+      [126] I will ignore Lisa's offer to sell water for bread since I have a massive water surplus and need bre
+    Cluster 1:   8 [offer:3, post_to_board:2, send_message:2] top_bigrams=["i_will", "i_ll", "message_to"]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    Cluster 2:   5 [inspect:3, vote:1, pay:1] top_bigrams=["flour_water", "water_bread", "i_will"]
+      [ 86] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 639 Hunger: 82/100, Thirst:
+      [ 90] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 644 Hunger: 80/100, Thirst:
+    Cluster 3:  60 [forage:30, bake:14, offer:7] top_bigrams=["bread_and", "i_am", "i_will"]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 4:  26 [bake:13, forage:11, update_soul:1] top_bigrams=["i_will", "my_flour", "flour_and"]
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+      [ 94] I have secured a stable flour reserve and sufficient bread, but my skeptical nature dictates I must 
+    Cluster 5:  54 [forage:20, offer:10, bake:9] top_bigrams=["i_will", "my_water", "i_am"]
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+    Cluster 6:  14 [forage:13, send_message:1] top_bigrams=["i_will", "will_forage", "to_replenish"]
+      [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a se
+      [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    Cluster 7:  22 [forage:11, accept:5, bake:3] top_bigrams=["i_will", "my_strategy", "water_surplus"]
+      [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+      [ 58] [Day 3, 7:00 PM] I will immediately accept Matthew's firm offer of 20 flour for 50 coins to secure a
+    Cluster 8:  30 [inspect:28, vote:2] top_bigrams=["flour_water", "water_bread", "forager_personality"]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 9:  12 [inspect:9, forage:3] top_bigrams=["flour_water", "water_bread", "i_will"]
+      [106] I am skeptical of Susan's new presence and Matthew's flour sale, as my priority is securing flour to
+      [116] Handle: Debra Role: water forager Personality: patient, laid-back Coins: 313 Hunger: 79/100, Thirst:
+
+  K=15: sizes=[48, 31, 29, 28, 20, 15, 13, 12, 10, 10, 10, 10, 6, 5, 4]
+    Cluster 0:  13 [send_message:10, offer:2, unknown:1] top_bigrams=["i_am", "to_matthew", "bread_and"]
+      [ 49] I am critically low on bread with zero loaves and only 7 flour, making me vulnerable to starvation. 
+      [147] My bread count has critically dropped to 4, well below my safety threshold, and I cannot afford to w
+    Cluster 1:   6 [offer:3, post_to_board:2, send_message:1] top_bigrams=["i_ll", "i_see", "my_skeptical"]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+    Cluster 2:   4 [inspect:3, pay:1] top_bigrams=["flour_water", "water_bread", "i_will"]
+      [ 86] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 639 Hunger: 82/100, Thirst:
+      [ 90] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 644 Hunger: 80/100, Thirst:
+    Cluster 3:  48 [forage:29, bake:13, offer:3] top_bigrams=["bread_and", "i_am", "zero_bread"]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 21] I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily 
+    Cluster 4:  20 [bake:13, forage:6, update_soul:1] top_bigrams=["i_will", "flour_and", "my_flour"]
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+    Cluster 5:  31 [forage:12, offer:6, bake:6] top_bigrams=["i_will", "my_water", "but_my"]
+      [ 56] I am now stable with 7 bread and 8 flour, but my strategy requires securing 15+ bread and 20+ flour 
+      [ 91] I am no longer in immediate starvation with 4 bread and 15 flour, but my skeptical nature demands I 
+    Cluster 6:  10 [forage:10] top_bigrams=["i_will", "will_forage", "to_replenish"]
+      [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a se
+      [101] I will ignore Christopher's 1:1 water-for-flour offer as my strategy forbids trading water reserves 
+    Cluster 7:  10 [accept:4, forage:3, bake:2] top_bigrams=["i_will", "my_strategy", "my_water"]
+      [187] I will ignore Susan's offer to trade for grain and bread since my strategy prioritizes converting my
+      [188] I will ignore Angel's offer to trade bread for flour, as my current surplus of 31 flour and 14 bread
+    Cluster 8:  28 [inspect:26, vote:2] top_bigrams=["flour_water", "water_bread", "forager_personality"]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 9:  10 [inspect:9, forage:1] top_bigrams=["flour_water", "water_bread", "i_will"]
+      [116] Handle: Debra Role: water forager Personality: patient, laid-back Coins: 313 Hunger: 79/100, Thirst:
+      [118] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 575 Hunger: 78/100, Thirst:
+    Cluster 10:  10 [offer:4, bake:3, forage:1] top_bigrams=["i_will", "to_bake", "i_have"]
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+    Cluster 11:   5 [accept:3, send_message:1, forage:1] top_bigrams=["i_will", "water_surplus", "i_am"]
+      [142] I am critically low on bread with only 7 loaves, and Debra's offer to trade 3 bread for 15 water is 
+      [146] I am critically low on bread with only 5 loaves, and my massive water surplus makes other offers unf
+    Cluster 12:  15 [forage:9, offer:2, send_message:1] top_bigrams=["i_will", "my_water", "water_surplus"]
+      [107] I am skeptical of Colin's 1.5:1 water-for-bread rate as it depletes my bread surplus for a resource 
+      [112] I will ignore Adam's offer to sell 5 bread for 50 water, as my strategy prioritizes accumulating flo
+    Cluster 13:  29 [forage:17, send_message:4, post_to_board:2] top_bigrams=["i_will", "i_am", "am_skeptical"]
+      [ 28] I am skeptical of Melanie's offer to trade 20 water for 10 flour, as I only have 4 flour and need ev
+      [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to 
+    Cluster 14:  12 [send_message:5, offer:3, accept:3] top_bigrams=["i_will", "rather_than", "relying_on"]
+      [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+      [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inven

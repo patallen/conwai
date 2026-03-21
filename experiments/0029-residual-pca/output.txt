@@ -1,0 +1,182 @@
+Loaded 251 entries, vectors (251, 1024)
+
+
+======================================================================
+RESIDUAL + PCA(2 components)
+======================================================================
+  K= 5: silhouette=0.5398 sizes=[64, 55, 52, 41, 39]
+  K= 8: silhouette=0.4772 sizes=[38, 37, 35, 32, 32, 31, 26, 20]
+  K=10: silhouette=0.3683 sizes=[32, 30, 29, 27, 25, 25, 25, 24, 18, 16]
+  K=12: silhouette=0.2343 sizes=[31, 27, 25, 23, 22, 22, 21, 21, 18, 15, 14, 12]
+  K=15: silhouette=0.1554 sizes=[28, 27, 23, 19, 18, 18, 17, 17, 16, 16, 14, 12, 9, 9, 8]
+  Agglom(ward,K=8): sil=0.4716 sizes=[48, 42, 39, 38, 26, 20, 19, 19]
+  Agglom(ward,K=10): sil=0.3526 sizes=[42, 39, 31, 26, 22, 20, 19, 19, 17, 16]
+  Agglom(average,K=8): sil=0.4420 sizes=[57, 47, 36, 34, 24, 22, 19, 12]
+  Agglom(average,K=10): sil=0.3663 sizes=[47, 37, 34, 24, 24, 22, 20, 19, 12, 12]
+  Agglom(complete,K=8): sil=0.4765 sizes=[56, 39, 35, 34, 30, 24, 21, 12]
+  Agglom(complete,K=10): sil=0.3523 sizes=[39, 38, 35, 30, 26, 24, 21, 18, 12, 8]
+
+  BEST: K=5 (silhouette=0.5398)
+    Cluster 0 (52) [forage:27, bake:21, offer:3]
+      [ 36] I will decline Melanie's offer of 20 water for 5 flour, as I only have 6 flour and cannot afford to 
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+    Cluster 1 (64) [forage:28, accept:10, offer:9]
+      [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+      [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. G
+    Cluster 2 (55) [inspect:38, send_message:7, offer:4]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 3 (41) [forage:29, bake:12]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 4 (39) [send_message:9, offer:8, accept:6]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+
+======================================================================
+RESIDUAL + PCA(3 components)
+======================================================================
+  K= 5: silhouette=0.6015 sizes=[74, 49, 45, 43, 40]
+  K= 8: silhouette=0.5115 sizes=[40, 37, 35, 34, 30, 26, 25, 24]
+  K=10: silhouette=0.4899 sizes=[37, 36, 31, 26, 26, 23, 21, 18, 17, 16]
+  K=12: silhouette=0.4203 sizes=[32, 31, 31, 24, 23, 21, 20, 17, 17, 13, 12, 10]
+  K=15: silhouette=0.3764 sizes=[24, 23, 23, 22, 21, 18, 18, 17, 17, 17, 13, 12, 11, 11, 4]
+  Agglom(ward,K=8): sil=0.4286 sizes=[51, 40, 35, 32, 28, 25, 24, 16]
+  Agglom(ward,K=10): sil=0.4262 sizes=[40, 32, 30, 28, 25, 24, 22, 21, 16, 13]
+  Agglom(average,K=8): sil=0.1799 sizes=[107, 38, 32, 32, 20, 16, 4, 2]
+  Agglom(average,K=10): sil=0.2587 sizes=[60, 47, 38, 32, 32, 16, 13, 7, 4, 2]
+  Agglom(complete,K=8): sil=0.4336 sizes=[50, 43, 40, 36, 32, 30, 10, 10]
+  Agglom(complete,K=10): sil=0.2813 sizes=[50, 43, 33, 32, 30, 21, 19, 10, 10, 3]
+
+  BEST: K=5 (silhouette=0.6015)
+    Cluster 0 (74) [forage:32, offer:11, accept:11]
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+      [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+    Cluster 1 (40) [inspect:40]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 2 (43) [send_message:14, offer:8, forage:4]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+    Cluster 3 (45) [bake:20, forage:19, offer:5]
+      [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+      [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inven
+    Cluster 4 (49) [forage:34, bake:14, accept:1]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+
+======================================================================
+RESIDUAL + PCA(5 components)
+======================================================================
+  K= 5: silhouette=0.5456 sizes=[70, 53, 48, 40, 40]
+  K= 8: silhouette=0.5243 sizes=[41, 40, 38, 30, 30, 27, 25, 20]
+  K=10: silhouette=0.5239 sizes=[40, 37, 37, 28, 26, 25, 22, 16, 13, 7]
+  K=12: silhouette=0.4424 sizes=[37, 37, 28, 25, 23, 22, 22, 17, 16, 13, 6, 5]
+  K=15: silhouette=0.3429 sizes=[31, 23, 23, 22, 20, 18, 18, 17, 17, 15, 15, 12, 11, 6, 3]
+  Agglom(ward,K=8): sil=0.4325 sizes=[49, 48, 40, 25, 25, 22, 22, 20]
+  Agglom(ward,K=10): sil=0.3703 sizes=[49, 40, 28, 25, 25, 22, 20, 20, 19, 3]
+  Agglom(average,K=8): sil=0.4414 sizes=[96, 40, 36, 35, 24, 16, 3, 1]
+  Agglom(average,K=10): sil=0.3362 sizes=[90, 40, 36, 24, 23, 16, 12, 6, 3, 1]
+  Agglom(complete,K=8): sil=0.3940 sizes=[53, 46, 40, 35, 32, 25, 13, 7]
+  Agglom(complete,K=10): sil=0.4686 sizes=[40, 35, 32, 28, 25, 25, 23, 23, 13, 7]
+
+  BEST: K=5 (silhouette=0.5456)
+    Cluster 0 (40) [inspect:40]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 1 (48) [forage:22, bake:21, offer:4]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+    Cluster 2 (53) [send_message:17, offer:11, accept:6]
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+      [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. G
+    Cluster 3 (40) [forage:29, bake:10, accept:1]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 4 (70) [forage:34, accept:10, offer:9]
+      [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+      [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+
+======================================================================
+RESIDUAL + PCA(10 components)
+======================================================================
+  K= 5: silhouette=0.4153 sizes=[76, 48, 46, 41, 40]
+  K= 8: silhouette=0.4151 sizes=[62, 40, 39, 37, 30, 25, 13, 5]
+  K=10: silhouette=0.3661 sizes=[41, 40, 38, 31, 23, 22, 21, 19, 10, 6]
+  K=12: silhouette=0.3303 sizes=[33, 28, 26, 26, 24, 23, 22, 20, 19, 17, 8, 5]
+  K=15: silhouette=0.3793 sizes=[39, 25, 23, 21, 21, 20, 19, 19, 17, 17, 9, 6, 5, 5, 5]
+  Agglom(ward,K=8): sil=0.3792 sizes=[50, 46, 41, 40, 27, 23, 19, 5]
+  Agglom(ward,K=10): sil=0.3372 sizes=[50, 46, 41, 27, 21, 19, 19, 17, 6, 5]
+  Agglom(average,K=8): sil=0.2242 sizes=[116, 53, 40, 27, 6, 5, 3, 1]
+  Agglom(average,K=10): sil=0.1729 sizes=[116, 53, 40, 26, 6, 3, 3, 2, 1, 1]
+  Agglom(complete,K=8): sil=0.3894 sizes=[65, 43, 43, 40, 25, 21, 9, 5]
+  Agglom(complete,K=10): sil=0.3728 sizes=[65, 43, 43, 40, 25, 12, 9, 6, 5, 3]
+
+  BEST: K=5 (silhouette=0.4153)
+    Cluster 0 (76) [forage:36, offer:10, accept:10]
+      [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+      [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. G
+    Cluster 1 (40) [inspect:40]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 2 (41) [forage:28, bake:12, accept:1]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 3 (48) [send_message:16, offer:10, accept:6]
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+      [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to ba
+    Cluster 4 (46) [forage:22, bake:19, offer:4]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+
+======================================================================
+RESIDUAL + PCA(20 components)
+======================================================================
+  K= 5: silhouette=0.3371 sizes=[80, 44, 44, 42, 41]
+  K= 8: silhouette=0.3495 sizes=[61, 43, 40, 32, 28, 27, 15, 5]
+  K=10: silhouette=0.2935 sizes=[54, 38, 36, 28, 23, 21, 19, 17, 10, 5]
+  K=12: silhouette=0.2846 sizes=[44, 37, 28, 27, 24, 20, 19, 17, 12, 11, 8, 4]
+  K=15: silhouette=0.2961 sizes=[39, 26, 23, 22, 20, 18, 18, 18, 16, 16, 14, 10, 6, 3, 2]
+  Agglom(ward,K=8): sil=0.3060 sizes=[60, 40, 40, 37, 28, 25, 18, 3]
+  Agglom(ward,K=10): sil=0.2801 sizes=[60, 40, 37, 28, 28, 18, 15, 12, 10, 3]
+  Agglom(average,K=8): sil=-0.0401 sizes=[190, 40, 6, 5, 5, 3, 1, 1]
+  Agglom(average,K=10): sil=-0.0627 sizes=[190, 40, 6, 3, 3, 3, 2, 2, 1, 1]
+  Agglom(complete,K=8): sil=0.1143 sizes=[81, 70, 66, 18, 7, 3, 3, 3]
+  Agglom(complete,K=10): sil=0.2276 sizes=[70, 47, 41, 40, 19, 18, 7, 3, 3, 3]
+
+  BEST: K=8 (silhouette=0.3495)
+    Cluster 0 (40) [inspect:40]
+      [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 
+      [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst:
+    Cluster 1 (43) [forage:30, bake:12, accept:1]
+      [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more res
+      [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. 
+    Cluster 2 (61) [forage:31, offer:7, accept:7]
+      [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my re
+      [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but my skeptic
+    Cluster 3 (27) [bake:19, forage:7, offer:1]
+      [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as 
+      [109] My flour reserve of 32 is sufficient for baking, but my bread count of 14 is below my target of 20+ 
+    Cluster 4 (28) [send_message:12, offer:8, pay:4]
+      [ 25] I need to secure bread immediately as I have zero and am starving, despite my coin surplus. Matthew'
+      [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loa
+    Cluster 5 (5) [vote:3, post_to_board:2]
+      [  0] I need to establish my public identity and begin building relationships while managing my resources.
+      [ 10] I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, 
+    Cluster 6 (15) [forage:14, post_to_board:1]
+      [  8] I will post a message to the board acknowledging my current surplus of water and flour to attract po
+      [ 57] I will forage immediately to replenish my flour reserves since I only have 8 units left and need to 
+    Cluster 7 (32) [accept:9, offer:8, forage:6]
+      [  3] I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I sh
+      [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. G
+
+======================================================================
+SILHOUETTE SUMMARY (best K per PCA dimension)
+======================================================================
+  PCs  Best K   Silhouette
+    2        5          0.5398
+    3        5          0.6015
+    5        5          0.5456
+   10        5          0.4153
+   20        8          0.3495
+   50        5          0.2739

@@ -1,0 +1,61 @@
+Loaded 251 entries
+
+Entries with personality markers: 121/251
+
+Sample stripping:
+  [3] ORIG:     I see several agents seeking bread, and I have a surplus of 5 bread. Given my skeptical nature, I should initiate trades
+       STRIPPED: I see several agents seeking bread, and I have a surplus of 5 bread. I should initiate trades carefully to verify reliab
+
+Embedding stripped text...
+Original: mean=0.7972 std=0.0745
+Stripped: mean=0.7906 std=0.0752
+
+======================================================================
+K-MEANS K=10 COMPARISON
+======================================================================
+  original: sizes=[63, 41, 39, 27, 25, 19, 12, 9, 9, 7]
+  personality_stripped: sizes=[59, 44, 34, 27, 27, 22, 15, 13, 7, 3]
+
+======================================================================
+STRIPPED CLUSTERS (K=10)
+======================================================================
+
+  Cluster 0 (34 entries) [send_message:17, offer:7, pay:4]
+    [  3] I see several agents seeking bread, and I have a surplus of 5 bread. I should initiate trades carefully to ver
+    [  7] The trade with Eric succeeded, confirming his reliability and improving my water stock. I need to balance my b
+
+  Cluster 1 (7 entries) [post_to_board:3, vote:3, send_message:1]
+    [  0] I need to establish my public identity and begin building relationships while managing my resources. Since I'm
+    [  6] I see Linda has a significant surplus of water and flour, which complements my needs, but me to verify her rel
+
+  Cluster 2 (22 entries) [inspect:22]
+    [ 11] Handle: Amy Role: water forager Personality: dry, competitive Coins: 450 Hunger: 79/100, Thirst: 81/100 Flour:
+    [ 12] Handle: William Role: flour forager Personality: patient, dry Coins: 450 Hunger: 81/100, Thirst: 79/100 Flour:
+
+  Cluster 3 (44 entries) [forage:30, bake:13, offer:1]
+    [ 18] I am starving with zero bread and only 1 flour left, so I must forage immediately to gather more resources bef
+    [ 20] I am critically low on bread with zero inventory, and my hunger is rising despite eating raw flour. I will not
+
+  Cluster 4 (27 entries) [bake:19, forage:7, offer:1]
+    [ 46] I will bake my 4 loaves of bread immediately to secure my food supply before engaging in trades, as my hunger 
+    [109] My flour reserve of 32 is sufficient for baking, but my bread count of 14 is below my target of 20+ for true s
+
+  Cluster 5 (13 entries) [accept:7, offer:4, forage:1]
+    [ 42] I need to secure bread immediately to stop eating raw flour, and Debra has surplus bread while seeking flour. 
+    [ 45] My recent trade with Debra has stabilized my food supply, leaving me with 4 loaves of bread and a secure hunge
+
+  Cluster 6 (27 entries) [forage:24, offer:2, bake:1]
+    [ 29] I have secured a small surplus of flour and water but remain critically low on bread with only 1 loaf. My stra
+    [ 32] I have secured a small surplus of flour and water but remain critically low on bread with zero inventory. My s
+
+  Cluster 7 (59 entries) [forage:26, offer:9, accept:9]
+    [  4] I see Christopher and Jeffrey both have surplus flour and are seeking water, which complements my recent forag
+    [  5] I see Eric has surplus water and is seeking flour or bread, which complements my current holdings. I should te
+
+  Cluster 8 (3 entries) [inspect:3]
+    [  1] Handle: Joshua Role: flour forager Personality: dry, competitive Coins: 475 Hunger: 94/100, Thirst: 96/100 Flo
+    [  9] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 
+
+  Cluster 9 (15 entries) [inspect:15]
+    [  2] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 475 Hunger: 91/100, Thirst: 94/100 Fl
+    [ 24] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 421 Hunger: 80/100, Thirst: 80/100 Fl

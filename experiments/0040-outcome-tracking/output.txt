@@ -1,0 +1,199 @@
+Loaded 251 entries
+
+Resource trajectory (entries with bread count):
+  Crisis entries: 123
+  Stable entries: 164
+  Entries with bread count: 79
+  Bread range: 0-50
+
+======================================================================
+OUTCOME ANALYSIS BY SITUATION AND BRANCH
+======================================================================
+
+  Situation 1 (40 entries):
+    Condition: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirst: 80/100 Flour: 20,
+
+    Branch 1 (24 entries, primary action: inspect):
+      Decision: Instead, I will inspect Bridget to verify her flour and bread reserves, as her post about selling bread for coins or flo
+      Outcomes:
+        Crisis resolved: 1/24 (4%)
+        Stayed in crisis: 11/24
+        Bread improved: 0/24 (0%)
+        Bread worsened: 2/24
+
+    Branch 2 (12 entries, primary action: inspect):
+      Decision: Let me inspect Joshua and James to see their resource levels and verify their claims.
+      Outcomes:
+        Crisis resolved: 2/12 (17%)
+        Stayed in crisis: 1/12
+        Bread improved: 0/12 (0%)
+        Bread worsened: 1/12
+
+    Branch 3 (4 entries, primary action: inspect):
+      Decision: I must convert my surplus water (88) into flour immediately to build the reserves outlined in my strategy, ignoring the 
+      Outcomes:
+        Crisis resolved: 0/4 (0%)
+        Stayed in crisis: 2/4
+        Bread improved: 0/4 (0%)
+        Bread worsened: 0/4
+
+  Situation 2 (37 entries):
+    Condition: I will forage immediately to replenish my water reserves, as my skepticism dictates I avoid relying on trades that might
+
+    Branch 1 (5 entries, primary action: offer):
+      Decision: I will ignore these predatory terms and instead propose a trade to Matthew, who...
+      Outcomes:
+        Crisis resolved: 0/5 (0%)
+        Stayed in crisis: 1/5
+        Bread improved: 0/5 (0%)
+        Bread worsened: 0/5
+
+    Branch 2 (16 entries, primary action: accept):
+      Decision: I am no longer in immediate starvation with 4 bread and 15 flour, but my skeptical nature demands I convert my excess wa
+      Outcomes:
+        Crisis resolved: 3/16 (19%)
+        Stayed in crisis: 2/16
+        Bread improved: 1/16 (6%)
+        Bread worsened: 0/16
+
+    Branch 3 (16 entries, primary action: forage):
+      Decision: I will forage to replenish my water reserves, as my current stock is sufficient but my strategy prioritizes maintaining 
+      Outcomes:
+        Crisis resolved: 0/16 (0%)
+        Stayed in crisis: 1/16
+        Bread improved: 0/16 (0%)
+        Bread worsened: 0/16
+
+  Situation 3 (40 entries):
+    Condition: I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily staved off hunger.
+
+    Branch 1 (6 entries, primary action: bake):
+      Decision: I will forage immediately to gather more flour so I can bake bread and stop eating raw flour, as my hunger is already ri
+      Outcomes:
+        Crisis resolved: 2/6 (33%)
+        Stayed in crisis: 4/6
+        Bread improved: 0/6 (0%)
+        Bread worsened: 1/6
+
+    Branch 2 (22 entries, primary action: forage):
+      Decision: My skeptical nature dictates I must not rely on foraging alone, so I will immediately forage to gather more flour to bak
+      Outcomes:
+        Crisis resolved: 3/22 (14%)
+        Stayed in crisis: 18/22
+        Bread improved: 0/22 (0%)
+        Bread worsened: 0/22
+
+    Branch 3 (12 entries, primary action: send_message):
+      Decision: I will send him a DM to accept his offer and secure the bread.
+      Outcomes:
+        Crisis resolved: 1/12 (8%)
+        Stayed in crisis: 11/12
+        Bread improved: 0/12 (0%)
+        Bread worsened: 0/12
+
+  Situation 4 (43 entries):
+    Condition: I am stable with 45 bread and 72 flour, but my water reserve of 69 is dangerously low for maintaining my baking capacity
+
+    Branch 1 (8 entries, primary action: offer):
+      Decision: I will offer Christopher a trade to exchange 30 water for 30 flour at a fair 1:1 rate, leveraging his lik...
+      Outcomes:
+        Crisis resolved: 0/8 (0%)
+        Stayed in crisis: 3/8
+        Bread improved: 1/8 (12%)
+        Bread worsened: 1/8
+
+    Branch 2 (8 entries, primary action: forage):
+      Decision: My skepticism prevents me from accepting unfavorable trades, so I must rely on foraging to secure resources before the n
+      Outcomes:
+        Crisis resolved: 3/8 (38%)
+        Stayed in crisis: 0/8
+        Bread improved: 0/8 (0%)
+        Bread worsened: 0/8
+
+    Branch 3 (27 entries, primary action: bake):
+      Decision: I will use my surplus flour and water to bake bread and restore my food reserve...
+      Outcomes:
+        Crisis resolved: 5/27 (19%)
+        Stayed in crisis: 4/27
+        Bread improved: 4/27 (15%)
+        Bread worsened: 2/27
+
+  Situation 5 (39 entries):
+    Condition: I am critically starving with zero bread and only 4 flour, and Angel's offer of 30 flour for 20 water is my best chance 
+
+    Branch 1 (6 entries, primary action: bake):
+      Decision: I will forage now to gather flour, as my skeptical nature dictates I not rely solely on pending trades.
+      Outcomes:
+        Crisis resolved: 1/6 (17%)
+        Stayed in crisis: 4/6
+        Bread improved: 0/6 (0%)
+        Bread worsened: 1/6
+
+    Branch 2 (16 entries, primary action: send_message):
+      Decision: I will send a DM to Bridget, who has 29 bread and a history of calculated tra...
+      Outcomes:
+        Crisis resolved: 1/16 (6%)
+        Stayed in crisis: 14/16
+        Bread improved: 1/16 (6%)
+        Bread worsened: 2/16
+
+    Branch 3 (17 entries, primary action: forage):
+      Decision: I will immediately bake my available flour and water into bread to secure my survival before seeking larger trades.
+      Outcomes:
+        Crisis resolved: 1/17 (6%)
+        Stayed in crisis: 16/17
+        Bread improved: 0/17 (0%)
+        Bread worsened: 2/17
+
+  Situation 6 (52 entries):
+    Condition: I am skeptical of James's 2:1 flour-for-water offer because I have a massive water surplus (98) and need bread, not more
+
+    Branch 1 (16 entries, primary action: forage):
+      Decision: I will post a public message clarifying my focus on survival tasks and reaffirm my commitment...
+      Outcomes:
+        Crisis resolved: 0/16 (0%)
+        Stayed in crisis: 0/16
+        Bread improved: 0/16 (0%)
+        Bread worsened: 1/16
+
+    Branch 2 (20 entries, primary action: forage):
+      Decision: I will forage to replenish my flour reserves directly, aligning with my strategy of self-sufficiency and avoidi...
+      Outcomes:
+        Crisis resolved: 3/20 (15%)
+        Stayed in crisis: 2/20
+        Bread improved: 1/20 (5%)
+        Bread worsened: 0/20
+
+    Branch 3 (16 entries, primary action: bake):
+      Decision: With only 6 bread remaining, I must prioritize trading my flour for bread to avoid starvation, so I will ignore James's 
+      Outcomes:
+        Crisis resolved: 1/16 (6%)
+        Stayed in crisis: 2/16
+        Bread improved: 2/16 (12%)
+        Bread worsened: 1/16
+
+======================================================================
+SUMMARY: DECISION EFFECTIVENESS
+======================================================================
+(Which decision branches most often resolve crises or improve bread?)
+
+  Crisis situation: Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 450 Hunger: 80/100, Thirs
+    Branch 1 (24 eps): resolve=1/24 improve=0/24 → Instead, I will inspect Bridget to verify her flour and bread reserves, as her p
+    Branch 2 (12 eps): resolve=2/12 improve=0/12 → Let me inspect Joshua and James to see their resource levels and verify their cl
+    Branch 3 (4 eps): resolve=0/4 improve=0/4 → I must convert my surplus water (88) into flour immediately to build the reserve
+
+  Crisis situation: I am at critical risk with zero bread and zero flour, having eaten raw flour which only temporarily 
+    Branch 1 (6 eps): resolve=2/6 improve=0/6 → I will forage immediately to gather more flour so I can bake bread and stop eati
+    Branch 2 (22 eps): resolve=3/22 improve=0/22 → My skeptical nature dictates I must not rely on foraging alone, so I will immedi
+    Branch 3 (12 eps): resolve=1/12 improve=0/12 → I will send him a DM to accept his offer and secure the bread.
+
+  Crisis situation: I am stable with 45 bread and 72 flour, but my water reserve of 69 is dangerously low for maintainin
+    Branch 1 (8 eps): resolve=0/8 improve=1/8 → I will offer Christopher a trade to exchange 30 water for 30 flour at a fair 1:1
+    Branch 2 (8 eps): resolve=3/8 improve=0/8 → My skepticism prevents me from accepting unfavorable trades, so I must rely on f
+    Branch 3 (27 eps): resolve=5/27 improve=4/27 → I will use my surplus flour and water to bake bread and restore my food reserve.
+
+  Crisis situation: I am critically starving with zero bread and only 4 flour, and Angel's offer of 30 flour for 20 wate
+    Branch 1 (6 eps): resolve=1/6 improve=0/6 → I will forage now to gather flour, as my skeptical nature dictates I not rely so
+    Branch 2 (16 eps): resolve=1/16 improve=1/16 → I will send a DM to Bridget, who has 29 bread and a history of calculated tra...
+    Branch 3 (17 eps): resolve=1/17 improve=0/17 → I will immediately bake my available flour and water into bread to secure my sur
+

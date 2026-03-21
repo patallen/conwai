@@ -1,0 +1,99 @@
+Loaded 251 entries
+
+Embedding...
+
+PCA variance explained:
+  PC 1: 14.46% (cum:  14.5%) ############################
+  PC 2: 11.28% (cum:  25.7%) ######################
+  PC 3:  8.62% (cum:  34.4%) #################
+  PC 4:  7.11% (cum:  41.5%) ##############
+  PC 5:  4.30% (cum:  45.8%) ########
+  PC 6:  3.65% (cum:  49.4%) #######
+  PC 7:  3.32% (cum:  52.7%) ######
+  PC 8:  2.92% (cum:  55.7%) #####
+  PC 9:  2.52% (cum:  58.2%) #####
+  PC10:  2.24% (cum:  60.4%) ####
+  PC11:  1.80% (cum:  62.2%) ###
+  PC12:  1.71% (cum:  63.9%) ###
+  PC13:  1.54% (cum:  65.5%) ###
+  PC14:  1.49% (cum:  67.0%) ##
+  PC15:  1.37% (cum:  68.3%) ##
+  PC16:  1.30% (cum:  69.6%) ##
+  PC17:  1.12% (cum:  70.7%) ##
+  PC18:  1.06% (cum:  71.8%) ##
+  PC19:  1.03% (cum:  72.8%) ##
+  PC20:  0.97% (cum:  73.8%) #
+
+  Top 5 PCs explain: 45.8%
+  Top 10 PCs explain: 60.4%
+  Top 20 PCs explain: 73.8%
+  Top 50 PCs explain: 88.5%
+
+======================================================================
+CLUSTERING ON TOP-N PRINCIPAL COMPONENTS (K=10)
+======================================================================
+   2 PCs: mean_sim=0.0023 std=0.7070 sizes=[47, 31, 28, 26, 26, 25, 25, 15, 14, 14]
+   3 PCs: mean_sim=0.0041 std=0.5843 sizes=[44, 38, 30, 27, 25, 25, 21, 18, 12, 11]
+   5 PCs: mean_sim=0.0009 std=0.4735 sizes=[44, 39, 37, 28, 25, 25, 19, 13, 12, 9]
+  10 PCs: mean_sim=-0.0008 std=0.3749 sizes=[42, 42, 34, 30, 25, 24, 19, 15, 12, 8]
+  20 PCs: mean_sim=-0.0020 std=0.3115 sizes=[42, 38, 34, 30, 28, 28, 15, 13, 12, 11]
+  50 PCs: mean_sim=-0.0026 std=0.2607 sizes=[42, 36, 36, 31, 29, 25, 24, 12, 11, 5]
+
+======================================================================
+TOP PC ANALYSIS: What does each PC separate?
+======================================================================
+
+PC1 (explains 14.46% variance):
+  BOTTOM (most negative):
+    [ 84] [forage         ] I am critically starving with zero bread and only 2 flour, forcing me to abandon my usual deliberate
+    [ 64] [forage         ] I am critically starving with zero bread and only 4 flour, forcing me to abandon my usual deliberate
+    [ 71] [forage         ] I am critically starving with zero bread and only 3 flour, forcing me to abandon my usual deliberate
+  TOP (most positive):
+    [ 86] [inspect        ] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 639 Hunger: 82/100, Thirst:
+    [164] [inspect        ] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 587 Hunger: 80/100, Thirst:
+    [118] [inspect        ] Handle: Matthew Role: water forager Personality: blunt, laid-back Coins: 575 Hunger: 78/100, Thirst:
+  Action means: bake:-0.17, forage:-0.11, post_to_board:+0.04, accept:+0.06, update_soul:+0.06, offer:+0.07, send_message:+0.10, unknown:+0.10, pay:+0.17, vote:+0.20, inspect:+0.23
+
+PC2 (explains 11.28% variance):
+  BOTTOM (most negative):
+    [217] [accept         ] I will reject Anthony's unfavorable 1.2:1 rate and instead accept Eric's pending offer #90 for 15 fl
+    [ 99] [accept         ] I will decline Christopher's 1:1 trade offer as my strategy forbids unfavorable water-for-flour rate
+    [115] [forage         ] I am skeptical of Christopher's 1:1 water-for-flour offer because my strategy prioritizes accumulati
+  TOP (most positive):
+    [ 74] [forage         ] I am critically starving with zero bread and only 3 flour, forcing me to abandon my usual deliberate
+    [166] [forage         ] I am critically starving with zero bread despite having flour and water, and my previous attempts to
+    [ 54] [inspect        ] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 417 Hunger: 78/100, Thirs
+  Action means: update_soul:-0.19, accept:-0.13, post_to_board:-0.07, vote:-0.05, offer:-0.04, bake:-0.03, unknown:-0.03, forage:-0.02, send_message:+0.06, inspect:+0.14, pay:+0.16
+
+PC3 (explains 8.62% variance):
+  BOTTOM (most negative):
+    [193] [vote           ] I will vote for @Robert to reward his successful trade, as building reliable partnerships is essenti
+    [ 10] [vote           ] I will vote for @James, as his soul indicates a commitment to steady trade and clear communication, 
+    [243] [vote           ] I will vote for @Debra, a patient resource manager with a public soul emphasizing community resilien
+  TOP (most positive):
+    [250] [bake           ] My strategy prioritizes converting my flour surplus into bread while maintaining water reserves abov
+    [180] [inspect        ] Handle: Lisa Role: water forager Personality: calculating, stoic Coins: 218 Hunger: 79/100, Thirst: 
+    [170] [inspect        ] Handle: Robert Role: flour forager Personality: cautious, laid-back Coins: 269 Hunger: 78/100, Thirs
+  Action means: vote:-0.24, pay:-0.18, send_message:-0.13, post_to_board:-0.10, update_soul:-0.08, unknown:-0.07, accept:-0.05, offer:-0.04, forage:-0.03, bake:+0.09, inspect:+0.16
+
+PC4 (explains 7.11% variance):
+  BOTTOM (most negative):
+    [168] [bake           ] I am still at zero bread and critically starving, having eaten raw flour to survive. My previous att
+    [162] [offer          ] I am at zero bread and have already resorted to eating raw flour, putting me at immediate risk of st
+    [176] [bake           ] I am starving with zero bread and must immediately bake to survive. I have 30 flour and 87 water, wh
+  TOP (most positive):
+    [102] [forage         ] I will forage to replenish my water reserves, as my current stock is sufficient but my strategy prio
+    [231] [forage         ] I will forage immediately to replenish my water reserves, as my current stock of 59 is dangerously l
+    [243] [vote           ] I will vote for @Debra, a patient resource manager with a public soul emphasizing community resilien
+  Action means: pay:-0.14, send_message:-0.11, unknown:-0.09, accept:-0.09, offer:-0.08, bake:-0.08, update_soul:-0.07, forage:+0.06, inspect:+0.08, post_to_board:+0.08, vote:+0.27
+
+PC5 (explains 4.30% variance):
+  BOTTOM (most negative):
+    [194] [bake           ] I will bake 10 bread immediately to convert my surplus flour into a larger food reserve, securing my
+    [193] [vote           ] I will vote for @Robert to reward his successful trade, as building reliable partnerships is essenti
+    [114] [forage         ] I have reached my stability target of 27 bread with 17 flour remaining, but my strategy requires 25+
+  TOP (most positive):
+    [ 71] [forage         ] I am critically starving with zero bread and only 3 flour, forcing me to abandon my usual deliberate
+    [124] [forage         ] I am skeptical of Christopher's 1:1 water-for-flour offer because I have a massive water surplus of 
+    [213] [forage         ] I am skeptical of Melanie's demanding 1.5:1 flour-for-water rate, as my strategy prioritizes acquiri
+  Action means: vote:-0.12, pay:-0.10, post_to_board:-0.08, bake:-0.06, unknown:-0.03, send_message:-0.03, offer:-0.02, update_soul:+0.01, inspect:+0.03, forage:+0.03, accept:+0.04
