@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import random
 import time
@@ -184,7 +185,13 @@ async def run():
     # --- LLM clients ---
     clients = [
         LLMClient(
-            base_url="https://50d7tuyzqnx256-8000.proxy.runpod.net/v1",
+            base_url="https://ua098y77o7o677-8000.proxy.runpod.net/v1",
+            model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
+            max_tokens=2048,
+            api_key="none",
+        ),
+        LLMClient(
+            base_url="https://soyrq1saijywg5-8000.proxy.runpod.net/v1",
             model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
             max_tokens=2048,
             api_key="none",
@@ -208,11 +215,19 @@ async def run():
     log.info("[WORLD] embedding model ready")
 
     # --- Brain pipeline: round-robin across LLM clients ---
+    from scenarios.bread_economy.processes.consolidation import ConsolidationProcess
     from scenarios.bread_economy.processes.review import StrategicReview
+
+    articulator = LLMClient(
+        base_url="http://ai-lab.lan:8081/v1",
+        model="/mnt/models/Qwen3.5-27B-GPTQ-Int4",
+        max_tokens=256,
+        api_key="none",
+    )
 
     _brain_counter = 0
 
-    def make_brain() -> BlackboardBrain:
+    def make_brain(first_person: bool = True) -> BlackboardBrain:
         nonlocal _brain_counter
         client = clients[_brain_counter % len(clients)]
         _brain_counter += 1
@@ -223,6 +238,12 @@ async def run():
                     recent_ticks=16,
                     timestamp_formatter=tick_to_timestamp,
                     embedder=embedder,
+                ),
+                ConsolidationProcess(
+                    interval=24,
+                    articulator=articulator,
+                    embedder=embedder,
+                    first_person=first_person,
                 ),
                 MemoryRecall(recall_limit=5, embedder=embedder),
                 ContextAssembly(
@@ -238,22 +259,49 @@ async def run():
         )
 
     # --- Agents + Brains ---
+    # A/B test: first-person vs third-person reflections
     brains: dict[str, Brain] = {}
-    roles = ["flour_forager"] * 13 + ["water_forager"] * 13
+    first_person_group: set[str] = set()
+    # 20 agents: indices 0-9 = first-person, 10-19 = third-person
+    # Each group: 5 flour + 5 water, all same neutral personality
+    ab_roles = (
+        ["flour_forager"] * 5 + ["water_forager"] * 5  # first-person
+        + ["flour_forager"] * 5 + ["water_forager"] * 5  # third-person
+    )
+    ab_personality = "practical, observant"
+
+    # Restore A/B group assignments from events DB if resuming
+    saved_groups: dict[str, str] = {}
+    try:
+        import sqlite3 as _sql
+        _edb = _sql.connect("data/events.db")
+        for entity, data in _edb.execute(
+            "SELECT entity, data FROM events WHERE type='ab_group'"
+        ).fetchall():
+            saved_groups[entity] = json.loads(data)["group"]
+        _edb.close()
+    except Exception:
+        pass
 
     # Load all existing agents from storage
-    for handle in repo.list_handles():
+    loaded_handles = list(repo.list_handles())
+    for handle in loaded_handles:
         agent = pool.load_or_create(Agent(handle=handle))
         if agent.alive:
-            brains[agent.handle] = make_brain()
+            if handle in saved_groups:
+                fp = saved_groups[handle] == "first_person"
+            else:
+                fp = len(first_person_group) < 10
+            brains[agent.handle] = make_brain(first_person=fp)
+            if fp:
+                first_person_group.add(agent.handle)
 
     # Create new agents to fill up to target population
-    target = len(roles)
+    target = len(ab_roles)
     alive_count = len(pool.alive())
     existing_handles = {a.handle for a in pool.alive()}
     for i in range(alive_count, target):
-        role = roles[i % len(roles)]
-        personality = ", ".join(assign_traits())
+        role = ab_roles[i]
         handle = fake.first_name()
         while handle in existing_handles:
             handle = fake.first_name()
@@ -262,11 +310,22 @@ async def run():
         agent = pool.load_or_create(
             agent,
             component_overrides={
-                "agent_info": {"role": role, "personality": personality}
+                "agent_info": {"role": role, "personality": ab_personality}
             },
         )
         if agent.alive:
-            brains[agent.handle] = make_brain()
+            fp = len(first_person_group) < 10
+            brains[agent.handle] = make_brain(first_person=fp)
+            if fp:
+                first_person_group.add(agent.handle)
+
+    log.info(f"[WORLD] A/B test: FIRST PERSON for {sorted(first_person_group)}")
+    log.info(f"[WORLD] A/B test: THIRD PERSON for {sorted(set(brains.keys()) - first_person_group)}")
+    # Only log ab_group events for new agents (avoid duplicates on resume)
+    for handle in brains:
+        if handle not in saved_groups:
+            group = "first_person" if handle in first_person_group else "third_person"
+            events.log(handle, "ab_group", {"group": group})
 
     bus.register("HANDLER")
     bus.register("WORLD")
@@ -304,11 +363,15 @@ async def run():
                 "replaced": dead_agent.handle,
             },
         )
+        was_fp = dead_agent.handle in first_person_group
+        if was_fp:
+            first_person_group.discard(dead_agent.handle)
+            first_person_group.add(new_agent.handle)
+        brains[new_agent.handle] = make_brain(first_person=was_fp)
+        group_label = "1P" if was_fp else "3P"
         log.info(
-            f"[{new_agent.handle}] spawned as {role} (replacing {dead_agent.handle})"
+            f"[{new_agent.handle}] spawned as {role} (replacing {dead_agent.handle}, {group_label})"
         )
-
-        brains[new_agent.handle] = make_brain()
 
     # --- Brain phase ---
     brain_phase = BrainPhase(

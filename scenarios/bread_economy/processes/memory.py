@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+
+log = logging.getLogger("conwai")
 
 if TYPE_CHECKING:
     from conwai.embeddings import Embedder
@@ -152,8 +155,25 @@ class MemoryRecall:
 
                 query_vec = self._embedder.embed([perception_text])[0]
                 candidate_vecs = [e["embedding"] for e in candidates]
-                top_indices = cosine_topk(query_vec, candidate_vecs, k=self.recall_limit)
-                board["recalled"] = [candidates[i]["content"] for i in top_indices]
+
+                # Score: cosine similarity with boost for reflections
+                import numpy as np
+                qv = np.array(query_vec)
+                cv = np.array(candidate_vecs)
+                sims = cv @ qv / (np.linalg.norm(cv, axis=1) * np.linalg.norm(qv) + 1e-10)
+                for i, c in enumerate(candidates):
+                    if c.get("content", "").startswith("[Reflection]"):
+                        sims[i] *= 1.5
+                top_indices = list(np.argsort(sims)[-self.recall_limit:][::-1])
+                recalled = [candidates[i]["content"] for i in top_indices]
+                board["recalled"] = recalled
+                agent_id = getattr(percept, "agent_id", "?")
+                n_reflections = sum(1 for r in recalled if r.startswith("[Reflection]"))
+                if n_reflections:
+                    log.info(
+                        f"[@{agent_id}] recall: {n_reflections} reflection(s) "
+                        f"of {len(recalled)} from {len(candidates)}"
+                    )
                 return
 
         # Fallback: handle-based recall
