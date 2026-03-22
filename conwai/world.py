@@ -64,10 +64,6 @@ class World:
         if entity not in self._entities:
             raise KeyError(f"Entity {entity!r} does not exist")
         self._components[entity][type(comp)] = comp
-        if self._storage:
-            self._storage.save_component(
-                entity, type(comp).component_name(), comp.to_dict()
-            )
 
     def has(self, entity: str, comp: type[Component]) -> bool:
         return entity in self._components and comp in self._components[entity]
@@ -98,6 +94,16 @@ class World:
                 yield (entity_id, *components)
 
     # -- Persistence ---------------------------------------------------------
+
+    def flush(self) -> None:
+        """Persist all in-memory components to storage."""
+        if not self._storage:
+            return
+        for entity_id in self._entities:
+            for comp in self._components.get(entity_id, {}).values():
+                self._storage.save_component(
+                    entity_id, type(comp).component_name(), comp.to_dict()
+                )
 
     def load_all(self) -> None:
         if not self._storage:

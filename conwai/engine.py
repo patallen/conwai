@@ -109,3 +109,5 @@ class Engine:
         log.info(f"[ENGINE] tick {tick.value}")
         for system in self._systems:
             await system.run(self.world)
+
+        self.world.flush()

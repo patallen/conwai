@@ -152,13 +152,26 @@ def test_query_returns_references():
 # -- Task 4: Persistence ------------------------------------------------------
 
 
-def test_set_persists_to_storage(tmp_path):
+def test_flush_persists_to_storage(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     world = World(storage=storage)
     world.spawn("e1", defaults=False)
     world.set("e1", Health(hp=42))
-    data = storage.load_component("e1", "health")
-    assert data == {"hp": 42}
+    assert storage.load_component("e1", "health") is None  # not yet persisted
+    world.flush()
+    assert storage.load_component("e1", "health") == {"hp": 42}
+
+
+def test_flush_persists_mutations(tmp_path):
+    storage = SQLiteStorage(tmp_path / "test.db")
+    world = World(storage=storage)
+    world.spawn("e1", defaults=False)
+    world.set("e1", Health(hp=100))
+    world.flush()
+    # mutate in place
+    world.get("e1", Health).hp = 42
+    world.flush()
+    assert storage.load_component("e1", "health") == {"hp": 42}
 
 
 def test_load_all_restores_state(tmp_path):
@@ -167,6 +180,7 @@ def test_load_all_restores_state(tmp_path):
     world1.register(Health)
     world1.spawn("e1", defaults=False)
     world1.set("e1", Health(hp=42))
+    world1.flush()
 
     world2 = World(storage=storage)
     world2.register(Health)
@@ -180,6 +194,7 @@ def test_destroy_persists(tmp_path):
     world = World(storage=storage)
     world.register(Health)
     world.spawn("e1")
+    world.flush()
     world.destroy("e1")
     world2 = World(storage=storage)
     world2.register(Health)
