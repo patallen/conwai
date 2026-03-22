@@ -108,8 +108,4 @@ class Engine:
             await system.run(self.world)
 
         self.world.flush()
-
-        if hasattr(self.world, '_storage') and self.world._storage:
-            self.world._storage.save_component(
-                "WORLD", "tick", {"value": tick.value}
-            )
+        self.world.save_metadata("tick", {"value": tick.value})

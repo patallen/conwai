@@ -380,7 +380,7 @@ async def run():
 
     # --- Tick loop ---
     tick_number = world.get_resource(TickNumber)
-    tick_data = storage.load_component("WORLD", "tick")
+    tick_data = storage.load_component("_meta", "tick")
     if tick_data:
         tick_number.value = tick_data["value"]
 
@@ -388,7 +388,7 @@ async def run():
         config.reload()
         await wait_for_llm(clients[0])
         tick_start = time.monotonic()
-        storage.save_component("WORLD", "tick", {"value": tick_number.value + 1})
+        storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
         await engine.tick()
         log.info(
             f"[WORLD] tick {tick_number.value} completed in {time.monotonic() - tick_start:.1f}s"

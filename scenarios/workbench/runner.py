@@ -132,7 +132,7 @@ async def run(args):
     engine.add_system(brain_system)
 
     tick_number = world.get_resource(TickNumber)
-    tick_data = storage.load_component("WORLD", "tick")
+    tick_data = storage.load_component("_meta", "tick")
     if tick_data:
         tick_number.value = tick_data["value"]
 
@@ -211,7 +211,7 @@ async def run(args):
             parts = line.split()
             n = int(parts[1]) if len(parts) > 1 else 1
             for _ in range(n):
-                storage.save_component("WORLD", "tick", {"value": tick_number.value + 1})
+                storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
                 await engine.tick()
             print(f"  advanced to tick {tick_number.value}")
             continue
@@ -232,7 +232,7 @@ async def run(args):
             print(f"  [WORLD]: {line}")
 
         # Auto-tick after input
-        storage.save_component("WORLD", "tick", {"value": tick_number.value + 1})
+        storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
         await engine.tick()
 
 

@@ -10,7 +10,7 @@ client = TestClient(app)
 
 def test_status_returns_tick_alive_total(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
-    storage.save_component("WORLD", "tick", {"value": 42})
+    storage.save_component("_meta", "tick", {"value": 42})
     storage.save_component("agent1", "agent_info", {"role": "forager", "personality": "bold"})
     storage.save_component("agent2", "agent_info", {"role": "baker", "personality": "shy"})
 

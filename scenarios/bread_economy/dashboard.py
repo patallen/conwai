@@ -62,7 +62,7 @@ def api_events(since: int = Query(0)):
 
 @app.get("/api/status")
 def api_status():
-    tick_data = _storage.load_component("WORLD", "tick")
+    tick_data = _storage.load_component("_meta", "tick")
     tick = tick_data["value"] if tick_data else 0
     alive = sum(1 for a in read_agents() if a.get("alive", True))
     return {"tick": tick, "alive": alive, "total_events": _events.count()}
@@ -70,7 +70,7 @@ def api_status():
 
 @app.get("/api/cipher")
 def api_cipher():
-    state = _storage.load_component("WORLD", "world_events")
+    state = _storage.load_component("_meta", "world_events")
     if not state:
         return None
     # Extract cipher status fields
@@ -90,12 +90,12 @@ def api_cipher():
 
 @app.get("/api/election")
 def api_election():
-    state = _storage.load_component("WORLD", "world_events")
+    state = _storage.load_component("_meta", "world_events")
     if not state:
         return None
     if not state.get("election_active"):
         return None
-    tick_data = _storage.load_component("WORLD", "tick")
+    tick_data = _storage.load_component("_meta", "tick")
     tick = tick_data["value"] if tick_data else 0
     votes = state.get("votes", {})
     # Tally

@@ -89,6 +89,16 @@ def test_spawn_without_defaults():
     assert not world.has("e1", Health)
 
 
+def test_spawn_duplicate_raises():
+    world = World()
+    world.spawn("e1", defaults=False)
+    try:
+        world.spawn("e1", defaults=False)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
 # -- Task 3: Resources and queries --------------------------------------------
 
 

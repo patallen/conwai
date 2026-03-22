@@ -72,12 +72,12 @@ class WorldEvents:
             **self.ciphers.save_state(),
         }
         if self._storage:
-            self._storage.save_component("WORLD", "world_events", state)
+            self._storage.save_component("_meta", "world_events", state)
 
     def _load_state(self) -> None:
         if not self._storage:
             return
-        state = self._storage.load_component("WORLD", "world_events")
+        state = self._storage.load_component("_meta", "world_events")
         if not state:
             return
         self.questions.load_state(state)
