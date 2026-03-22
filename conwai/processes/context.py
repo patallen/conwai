@@ -11,7 +11,7 @@ from conwai.processes.types import (
     LLMSnapshot,
     Observations,
     RecalledMemories,
-    TickNumber,
+    PerceptTick,
     WorkingMemory,
     WorkingMemoryEntry,
 )
@@ -30,7 +30,7 @@ class ContextAssembly:
         recalled = bb.get(RecalledMemories)
         identity = percept.get(Identity)
         obs = percept.get(Observations)
-        tick_num = percept.get(TickNumber)
+        tick_num = percept.get(PerceptTick)
 
         entries = wm.entries
 

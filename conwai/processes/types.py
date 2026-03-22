@@ -33,8 +33,8 @@ class AgentHandle:
 
 
 @dataclass
-class TickNumber:
-    """Current tick number (engine concept, passed through for processes that need it)."""
+class PerceptTick:
+    """Current tick as perceived by the agent."""
     value: int = 0
 
 

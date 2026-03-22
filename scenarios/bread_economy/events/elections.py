@@ -4,14 +4,14 @@ import logging
 import random
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.bulletin_board import BulletinBoard
-    from conwai.cognition.perception import PerceptionBuilder
-    from conwai.pool import AgentPool
-    from conwai.store import ComponentStore
+from conwai.bulletin_board import BulletinBoard
+from conwai.engine import TickNumber
 
 from scenarios.bread_economy.components import Economy
+from scenarios.bread_economy.perception import BreadPerceptionBuilder
+
+if TYPE_CHECKING:
+    from conwai.world import World
 
 log = logging.getLogger("conwai")
 
@@ -21,18 +21,12 @@ class ElectionSystem:
 
     def __init__(
         self,
-        board: BulletinBoard,
-        pool: AgentPool,
-        store: ComponentStore,
-        perception: PerceptionBuilder,
+        world: World,
         interval: int = 50,
         duration: int = 15,
         reward: int = 200,
     ):
-        self._board = board
-        self._pool = pool
-        self._store = store
-        self._perception = perception
+        self._world = world
         self.interval = interval
         self.duration = duration
         self._reward = reward
@@ -47,16 +41,18 @@ class ElectionSystem:
         elif tick == 10 or (tick > 10 and tick % self.interval == 0):
             self._start(tick)
 
-    def cast_vote(self, agent: Agent, candidate: str, tick: int) -> str:
+    def cast_vote(self, entity_id: str, candidate: str) -> str:
         if not self._active:
             return "No active election."
         candidate = candidate.strip()
-        if not self._pool.by_handle(candidate):
+        alive = set(self._world.entities())
+        if candidate not in alive:
             return f"Unknown agent: {candidate}"
-        if candidate == agent.handle:
+        if candidate == entity_id:
             return "You cannot vote for yourself."
-        old = self._votes.get(agent.handle)
-        self._votes[agent.handle] = candidate
+        tick = self._world.get_resource(TickNumber).value
+        old = self._votes.get(entity_id)
+        self._votes[entity_id] = candidate
         ticks_left = self.duration - (tick - self._started_tick)
         if old and old != candidate:
             return f"Vote changed from {old} to {candidate}. {ticks_left} ticks left."
@@ -68,7 +64,8 @@ class ElectionSystem:
         self._active = True
         self._started_tick = tick
         self._votes.clear()
-        self._board.post(
+        board = self._world.get_resource(BulletinBoard)
+        board.post(
             "WORLD",
             f"ELECTION: Vote for one agent to receive {self._reward} coins. "
             f"Use the vote action. You can change your vote. "
@@ -83,7 +80,8 @@ class ElectionSystem:
         self._active = False
 
         if not self._votes:
-            self._board.post("WORLD", "ELECTION ENDED: No votes cast. No winner.")
+            board = self._world.get_resource(BulletinBoard)
+            board.post("WORLD", "ELECTION ENDED: No votes cast. No winner.")
             log.info("[WORLD] election ended with no votes")
             return
 
@@ -99,15 +97,15 @@ class ElectionSystem:
         vote_count = len(tally[winner])
 
         # Award coins
-        if self._store.has(winner, Economy):
-            eco = self._store.get(winner, Economy)
+        if self._world.has(winner, Economy):
+            eco = self._world.get(winner, Economy)
             eco.coins += self._reward
-            self._store.set(winner, eco)
-            self._perception.notify(winner, f"+{self._reward} coins (won election)")
+            self._world.get_resource(BreadPerceptionBuilder).notify(winner, f"+{self._reward} coins (won election)")
 
         # Announce results
+        board = self._world.get_resource(BulletinBoard)
         results = ", ".join(f"{c}: {len(v)} votes" for c, v in sorted(tally.items(), key=lambda x: -len(x[1])))
-        self._board.post(
+        board.post(
             "WORLD",
             f"ELECTION WON by {winner} with {vote_count} votes! "
             f"They receive {self._reward} coins. Results: {results}",

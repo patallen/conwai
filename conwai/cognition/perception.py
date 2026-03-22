@@ -5,11 +5,8 @@ from typing import TYPE_CHECKING, Protocol
 from conwai.cognition.percept import ActionFeedback
 
 if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.bulletin_board import BulletinBoard
-    from conwai.messages import MessageBus
-    from conwai.store import ComponentStore
     from conwai.typemap import Percept
+    from conwai.world import World
 
 
 class PerceptionBuilder(Protocol):
@@ -17,11 +14,8 @@ class PerceptionBuilder(Protocol):
 
     def build(
         self,
-        agent: Agent,
-        store: ComponentStore,
-        board: BulletinBoard,
-        bus: MessageBus,
-        tick: int,
+        entity_id: str,
+        world: World,
         action_feedback: list[ActionFeedback] | None = None,
     ) -> Percept: ...
 

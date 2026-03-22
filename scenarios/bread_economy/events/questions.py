@@ -4,8 +4,10 @@ import logging
 import random
 from typing import TYPE_CHECKING
 
+from conwai.bulletin_board import BulletinBoard
+
 if TYPE_CHECKING:
-    from conwai.bulletin_board import BulletinBoard
+    from conwai.world import World
 
 log = logging.getLogger("conwai")
 
@@ -26,8 +28,8 @@ QUESTIONS = [
 class QuestionSystem:
     """Posts periodic discussion questions to the bulletin board."""
 
-    def __init__(self, board: BulletinBoard, interval: int = 60):
-        self._board = board
+    def __init__(self, world: World, interval: int = 60):
+        self._world = world
         self.interval = interval
         self._used: set[int] = set()
 
@@ -46,7 +48,8 @@ class QuestionSystem:
         self._used.add(idx)
 
         question = QUESTIONS[idx]
-        self._board.post("WORLD", f"QUESTION FOR ALL: {question}")
+        board = self._world.get_resource(BulletinBoard)
+        board.post("WORLD", f"QUESTION FOR ALL: {question}")
         log.info(f"[WORLD] question: {question}")
 
     # -- State persistence helpers --

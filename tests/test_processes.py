@@ -22,7 +22,7 @@ from conwai.processes.types import (
     Observations,
     PerceptFeedback,
     RecalledMemories,
-    TickNumber,
+    PerceptTick,
     WorkingMemory,
     WorkingMemoryEntry,
 )
@@ -62,7 +62,7 @@ def _make_percept(
 ) -> Percept:
     p = Percept()
     p.set(AgentHandle(value=agent_id))
-    p.set(TickNumber(value=tick))
+    p.set(PerceptTick(value=tick))
     p.set(Identity(text=identity))
     p.set(Observations(text=observations))
     if feedback:

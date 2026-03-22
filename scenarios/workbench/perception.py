@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from conwai.bulletin_board import BulletinBoard
 from conwai.cognition.percept import ActionFeedback
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, TickNumber
+from conwai.engine import TickNumber
+from conwai.messages import MessageBus
+from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
 from conwai.typemap import Percept
 from scenarios.workbench.components import AgentInfo
 
 if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.bulletin_board import BulletinBoard
-    from conwai.messages import MessageBus
-    from conwai.store import ComponentStore
+    from conwai.world import World
 
 
 class WorkbenchPerceptionBuilder:
@@ -35,17 +35,18 @@ class WorkbenchPerceptionBuilder:
 
     def build(
         self,
-        agent: Agent,
-        store: ComponentStore,
-        board: BulletinBoard | None = None,
-        bus: MessageBus | None = None,
-        tick: int = 0,
+        entity_id: str,
+        world: World,
         action_feedback: list[ActionFeedback] | None = None,
     ) -> Percept:
-        info = store.get(agent.handle, AgentInfo)
+        tick = world.get_resource(TickNumber).value
+        board = world.get_resource(BulletinBoard)
+        bus = world.get_resource(MessageBus)
+
+        info = world.get(entity_id, AgentInfo)
 
         identity = (
-            f"You are @{agent.handle}. "
+            f"You are @{entity_id}. "
             f"Your temperament is {info.personality} — this is innate."
         )
         if info.role:
@@ -53,24 +54,22 @@ class WorkbenchPerceptionBuilder:
 
         parts = []
 
-        if board:
-            new_posts = board.read_new(agent.handle)
-            if new_posts:
-                parts.append(
-                    "Broadcast:\n"
-                    + "\n".join(f"@{p.handle}: {p.content}" for p in new_posts)
-                )
+        new_posts = board.read_new(entity_id)
+        if new_posts:
+            parts.append(
+                "Broadcast:\n"
+                + "\n".join(f"@{p.handle}: {p.content}" for p in new_posts)
+            )
 
-        if bus:
-            new_dms = bus.receive(agent.handle)
-            if new_dms:
-                parts.append(
-                    "\n".join(
-                        f"DM from @{dm.from_handle}: {dm.content}" for dm in new_dms
-                    )
+        new_dms = bus.receive(entity_id)
+        if new_dms:
+            parts.append(
+                "\n".join(
+                    f"DM from @{dm.from_handle}: {dm.content}" for dm in new_dms
                 )
+            )
 
-        stimuli = self._stimuli.pop(agent.handle, [])
+        stimuli = self._stimuli.pop(entity_id, [])
         if stimuli:
             parts.extend(stimuli)
 
@@ -80,8 +79,8 @@ class WorkbenchPerceptionBuilder:
         observations = "\n\n".join(parts)
 
         percept = Percept()
-        percept.set(AgentHandle(value=agent.handle))
-        percept.set(TickNumber(value=tick))
+        percept.set(AgentHandle(value=entity_id))
+        percept.set(PerceptTick(value=tick))
         percept.set(Identity(text=identity))
         percept.set(Observations(text=observations))
         percept.set(PerceptFeedback(entries=action_feedback or []))

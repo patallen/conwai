@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from scenarios.bread_economy.components import Economy, Inventory
 from scenarios.bread_economy.config import get_config
+
+if TYPE_CHECKING:
+    from conwai.world import World
 
 
 def _capped_add(inv: Inventory, resource: str, amount: int) -> int:
@@ -13,11 +18,10 @@ def _capped_add(inv: Inventory, resource: str, amount: int) -> int:
     return actual
 
 
-def charge(store, handle: str, amount: int, reason: str) -> str | None:
+def charge(world: World, entity_id: str, amount: int, reason: str) -> str | None:
     """Deduct coins. Returns error string if insufficient, None on success."""
-    eco = store.get(handle, Economy)
+    eco = world.get(entity_id, Economy)
     if amount > eco.coins:
         return f"not enough coins for {reason} ({amount} needed, have {int(eco.coins)})"
     eco.coins -= amount
-    store.set(handle, eco)
     return None

@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from conwai.engine import TickNumber
+from conwai.events import EventLog
+
 from scenarios.bread_economy.actions.helpers import _capped_add
 from scenarios.bread_economy.components import Economy, Inventory
+from scenarios.bread_economy.perception import BreadPerceptionBuilder
 
 if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.engine import TickContext
+    from conwai.world import World
 
 log = logging.getLogger("conwai")
 
@@ -44,7 +47,7 @@ class OfferBook:
         return sum(1 for o in self._offers.values() if o["from"] == handle)
 
 
-def _pay(agent: Agent, ctx: TickContext, args: dict) -> str:
+def _pay(entity_id: str, world: World, args: dict) -> str:
     to = args.get("to", "").lstrip("@")
     amount = args.get("amount", 0)
     try:
@@ -53,30 +56,26 @@ def _pay(agent: Agent, ctx: TickContext, args: dict) -> str:
         return "invalid amount"
     if amount <= 0:
         return "amount must be positive"
-    eco = ctx.store.get(agent.handle, Economy)
+    eco = world.get(entity_id, Economy)
     if amount > eco.coins:
         return f"not enough coins to pay {amount} (have {int(eco.coins)})"
-    if not ctx.pool:
-        return "payment unavailable"
-    other = ctx.pool.by_handle(to)
-    if not other:
+    alive = set(world.entities())
+    if to not in alive:
         return f"unknown agent: {to}"
-    if to == agent.handle:
+    if to == entity_id:
         return "cannot pay yourself"
     eco.coins -= amount
-    ctx.store.set(agent.handle, eco)
-    other_eco = ctx.store.get(to, Economy)
+    other_eco = world.get(to, Economy)
     other_eco.coins += amount
-    ctx.store.set(to, other_eco)
-    if ctx.perception:
-        ctx.perception.notify(agent.handle, f"-{amount} coins (paid to @{to})")
-        ctx.perception.notify(to, f"+{amount} coins (payment from @{agent.handle})")
-    ctx.events.log(agent.handle, "payment", {"to": to, "amount": amount})
-    log.info(f"[{agent.handle}] paid {amount} coins to {to}")
+    perception = world.get_resource(BreadPerceptionBuilder)
+    perception.notify(entity_id, f"-{amount} coins (paid to @{to})")
+    perception.notify(to, f"+{amount} coins (payment from @{entity_id})")
+    world.get_resource(EventLog).log(entity_id, "payment", {"to": to, "amount": amount})
+    log.info(f"[{entity_id}] paid {amount} coins to {to}")
     return f"paid {amount} coins to {to}"
 
 
-def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
+def _give(entity_id: str, world: World, args: dict) -> str:
     resource = args.get("resource", "")
     to = args.get("to", "").lstrip("@")
     amount = args.get("amount", 0)
@@ -88,27 +87,23 @@ def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
         return "amount must be positive"
     if resource not in ("flour", "water", "bread"):
         return f"invalid resource: {resource}. Must be flour, water, or bread."
-    inv = ctx.store.get(agent.handle, Inventory)
+    inv = world.get(entity_id, Inventory)
     if amount > getattr(inv, resource):
         return f"not enough {resource} to give {amount} (have {getattr(inv, resource)})"
-    if not ctx.pool:
-        return "giving unavailable"
-    other = ctx.pool.by_handle(to)
-    if not other:
+    alive = set(world.entities())
+    if to not in alive:
         return f"unknown agent: {to}"
-    if to == agent.handle:
+    if to == entity_id:
         return "cannot give to yourself"
     setattr(inv, resource, getattr(inv, resource) - amount)
-    ctx.store.set(agent.handle, inv)
-    other_inv = ctx.store.get(to, Inventory)
+    other_inv = world.get(to, Inventory)
     _capped_add(other_inv, resource, amount)
-    ctx.store.set(to, other_inv)
-    if ctx.perception:
-        ctx.perception.notify(to, f"received {amount} {resource} from @{agent.handle}")
-    ctx.events.log(
-        agent.handle, "give", {"to": to, "resource": resource, "amount": amount}
+    perception = world.get_resource(BreadPerceptionBuilder)
+    perception.notify(to, f"received {amount} {resource} from @{entity_id}")
+    world.get_resource(EventLog).log(
+        entity_id, "give", {"to": to, "resource": resource, "amount": amount}
     )
-    log.info(f"[{agent.handle}] gave {amount} {resource} to {to}")
+    log.info(f"[{entity_id}] gave {amount} {resource} to {to}")
     return f"gave {amount} {resource} to {to}"
 
 
@@ -117,8 +112,9 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
     if offer_book is None:
         offer_book = OfferBook()
 
-    def _offer(agent: Agent, ctx: TickContext, args: dict) -> str:
-        offer_book.expire(ctx.tick)
+    def _offer(entity_id: str, world: World, args: dict) -> str:
+        tick = world.get_resource(TickNumber).value
+        offer_book.expire(tick)
 
         to = args.get("to", "").lstrip("@")
         give_type = args.get("give_type", "")
@@ -132,47 +128,49 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             return f"invalid resource. Must be one of: {', '.join(VALID_RESOURCES)}"
         if give_amount <= 0 or want_amount <= 0:
             return "amounts must be positive"
-        if to == agent.handle:
+        if to == entity_id:
             return "cannot trade with yourself"
-        if not ctx.pool or not ctx.pool.by_handle(to):
+        alive = set(world.entities())
+        if to not in alive:
             return f"unknown agent: {to}"
 
         # Check the offerer actually has the resources
         if give_type == "coins":
-            eco = ctx.store.get(agent.handle, Economy)
+            eco = world.get(entity_id, Economy)
             if give_amount > eco.coins:
                 return f"not enough coins (have {int(eco.coins)})"
         else:
-            inv = ctx.store.get(agent.handle, Inventory)
+            inv = world.get(entity_id, Inventory)
             if give_amount > getattr(inv, give_type):
                 return f"not enough {give_type} (have {getattr(inv, give_type)})"
 
         # Max 3 pending offers per agent
-        if offer_book.count_by_agent(agent.handle) >= 3:
+        if offer_book.count_by_agent(entity_id) >= 3:
             return "you already have 3 pending offers. Wait for them to be accepted or expire."
 
         oid = offer_book.create({
-            "from": agent.handle, "to": to,
+            "from": entity_id, "to": to,
             "give_type": give_type, "give_amount": give_amount,
             "want_type": want_type, "want_amount": want_amount,
-            "tick": ctx.tick,
+            "tick": tick,
         })
 
-        if ctx.perception:
-            ctx.perception.notify(
-                to,
-                f"Trade offer #{oid} from @{agent.handle}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
-            )
+        perception = world.get_resource(BreadPerceptionBuilder)
+        perception.notify(
+            to,
+            f"Trade offer #{oid} from @{entity_id}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
+        )
 
-        ctx.events.log(agent.handle, "offer", {
+        world.get_resource(EventLog).log(entity_id, "offer", {
             "id": oid, "to": to, "give_type": give_type, "give_amount": give_amount,
             "want_type": want_type, "want_amount": want_amount,
         })
-        log.info(f"[{agent.handle}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}")
+        log.info(f"[{entity_id}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}")
         return f"Offer #{oid} sent to {to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks."
 
-    def _accept(agent: Agent, ctx: TickContext, args: dict) -> str:
-        offer_book.expire(ctx.tick)
+    def _accept(entity_id: str, world: World, args: dict) -> str:
+        tick = world.get_resource(TickNumber).value
+        offer_book.expire(tick)
 
         try:
             oid = int(args.get("offer_id", 0))
@@ -181,7 +179,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         offer = offer_book.get(oid)
         if not offer:
             return f"Offer #{oid} not found or expired."
-        if offer["to"] != agent.handle:
+        if offer["to"] != entity_id:
             return f"Offer #{oid} is not for you."
 
         offerer = offer["from"]
@@ -192,76 +190,69 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
 
         # Verify offerer still has resources
         if give_type == "coins":
-            off_eco = ctx.store.get(offerer, Economy)
+            off_eco = world.get(offerer, Economy)
             if give_amount > off_eco.coins:
                 offer_book.remove(oid)
                 return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
         else:
-            off_inv = ctx.store.get(offerer, Inventory)
+            off_inv = world.get(offerer, Inventory)
             if give_amount > getattr(off_inv, give_type):
                 offer_book.remove(oid)
                 return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
 
         # Verify accepter has the wanted resources
         if want_type == "coins":
-            acc_eco = ctx.store.get(agent.handle, Economy)
+            acc_eco = world.get(entity_id, Economy)
             if want_amount > acc_eco.coins:
                 return f"You don't have enough coins (have {int(acc_eco.coins)}, need {want_amount})."
         else:
-            acc_inv = ctx.store.get(agent.handle, Inventory)
+            acc_inv = world.get(entity_id, Inventory)
             if want_amount > getattr(acc_inv, want_type):
                 return f"You don't have enough {want_type} (have {getattr(acc_inv, want_type)}, need {want_amount})."
 
         # Execute the swap atomically
         # Offerer gives give_type, accepter receives it
         if give_type == "coins":
-            off_eco = ctx.store.get(offerer, Economy)
+            off_eco = world.get(offerer, Economy)
             off_eco.coins -= give_amount
-            ctx.store.set(offerer, off_eco)
-            acc_eco = ctx.store.get(agent.handle, Economy)
+            acc_eco = world.get(entity_id, Economy)
             acc_eco.coins += give_amount
-            ctx.store.set(agent.handle, acc_eco)
         else:
-            off_inv = ctx.store.get(offerer, Inventory)
+            off_inv = world.get(offerer, Inventory)
             setattr(off_inv, give_type, getattr(off_inv, give_type) - give_amount)
-            ctx.store.set(offerer, off_inv)
-            acc_inv = ctx.store.get(agent.handle, Inventory)
+            acc_inv = world.get(entity_id, Inventory)
             _capped_add(acc_inv, give_type, give_amount)
-            ctx.store.set(agent.handle, acc_inv)
 
         # Accepter gives want_type, offerer receives it
         if want_type == "coins":
-            acc_eco = ctx.store.get(agent.handle, Economy)
+            acc_eco = world.get(entity_id, Economy)
             acc_eco.coins -= want_amount
-            ctx.store.set(agent.handle, acc_eco)
-            off_eco = ctx.store.get(offerer, Economy)
+            off_eco = world.get(offerer, Economy)
             off_eco.coins += want_amount
-            ctx.store.set(offerer, off_eco)
         else:
-            acc_inv = ctx.store.get(agent.handle, Inventory)
+            acc_inv = world.get(entity_id, Inventory)
             setattr(acc_inv, want_type, getattr(acc_inv, want_type) - want_amount)
-            ctx.store.set(agent.handle, acc_inv)
-            off_inv = ctx.store.get(offerer, Inventory)
+            off_inv = world.get(offerer, Inventory)
             _capped_add(off_inv, want_type, want_amount)
-            ctx.store.set(offerer, off_inv)
 
         offer_book.remove(oid)
 
-        if ctx.perception:
-            ctx.perception.notify(offerer, f"Offer #{oid} accepted by @{agent.handle}: gave {give_amount} {give_type}, received {want_amount} {want_type}")
-            ctx.perception.notify(agent.handle, f"Accepted offer #{oid} from @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}")
+        perception = world.get_resource(BreadPerceptionBuilder)
+        perception.notify(offerer, f"Offer #{oid} accepted by @{entity_id}: gave {give_amount} {give_type}, received {want_amount} {want_type}")
+        perception.notify(entity_id, f"Accepted offer #{oid} from @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}")
 
-        ctx.events.log(agent.handle, "trade", {
+        events = world.get_resource(EventLog)
+        events.log(entity_id, "trade", {
             "id": oid, "with": offerer,
             "received_type": give_type, "received_amount": give_amount,
             "gave_type": want_type, "gave_amount": want_amount,
         })
-        ctx.events.log(offerer, "trade", {
-            "id": oid, "with": agent.handle,
+        events.log(offerer, "trade", {
+            "id": oid, "with": entity_id,
             "received_type": want_type, "received_amount": want_amount,
             "gave_type": give_type, "gave_amount": give_amount,
         })
-        log.info(f"[TRADE] #{oid}: {offerer} gave {give_amount} {give_type}, {agent.handle} gave {want_amount} {want_type}")
+        log.info(f"[TRADE] #{oid}: {offerer} gave {give_amount} {give_type}, {entity_id} gave {want_amount} {want_type}")
         return f"Trade complete: received {give_amount} {give_type} from {offerer}, gave {want_amount} {want_type}."
 
     return _offer, _accept

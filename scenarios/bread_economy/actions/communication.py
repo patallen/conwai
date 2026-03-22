@@ -3,73 +3,75 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from conwai.actions import ActionRegistry
+from conwai.bulletin_board import BulletinBoard
+from conwai.engine import TickNumber
+from conwai.events import EventLog
+from conwai.messages import MessageBus
+
 from scenarios.bread_economy.actions.helpers import charge
 from scenarios.bread_economy.components import AgentMemory, Economy
 from scenarios.bread_economy.config import get_config
+from scenarios.bread_economy.perception import BreadPerceptionBuilder
 
 if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.engine import TickContext
+    from conwai.world import World
 
 log = logging.getLogger("conwai")
 
 
-def _post_to_board(agent: Agent, ctx: TickContext, args: dict) -> str:
+def _post_to_board(entity_id: str, world: World, args: dict) -> str:
     cfg = get_config()
+    tick = world.get_resource(TickNumber).value
     # Cooldown: 6 ticks between board posts
-    mem = ctx.store.get(agent.handle, AgentMemory)
-    if mem.last_board_post and ctx.tick - mem.last_board_post < 6:
-        return f"You posted recently. Wait {6 - (ctx.tick - mem.last_board_post)} more ticks."
-    err = charge(ctx.store, agent.handle, 25, "post_to_board")
+    mem = world.get(entity_id, AgentMemory)
+    if mem.last_board_post and tick - mem.last_board_post < 6:
+        return f"You posted recently. Wait {6 - (tick - mem.last_board_post)} more ticks."
+    err = charge(world, entity_id, 25, "post_to_board")
     if err:
         return err
     content = args.get("message", "")
-    ctx.board.post(agent.handle, content)
-    mem.last_board_post = ctx.tick
-    ctx.store.set(agent.handle, mem)
-    ctx.events.log(agent.handle, "board_post", {"content": content})
-    log.info(f"[{agent.handle}] posted: {content}")
-    if ctx.pool:
-        for a in ctx.pool.alive():
-            if a.handle != agent.handle and f"@{a.handle}" in content:
-                other_eco = ctx.store.get(a.handle, Economy)
-                other_eco.coins += cfg.energy_gain["referenced"]
-                ctx.store.set(a.handle, other_eco)
-                if ctx.perception:
-                    ctx.perception.notify(
-                        a.handle,
-                        f"+{cfg.energy_gain['referenced']} coins (referenced on board)",
-                    )
+    board = world.get_resource(BulletinBoard)
+    board.post(entity_id, content)
+    mem.last_board_post = tick
+    world.get_resource(EventLog).log(entity_id, "board_post", {"content": content})
+    log.info(f"[{entity_id}] posted: {content}")
+    perception = world.get_resource(BreadPerceptionBuilder)
+    for other in world.entities():
+        if other != entity_id and f"@{other}" in content:
+            other_eco = world.get(other, Economy)
+            other_eco.coins += cfg.energy_gain["referenced"]
+            perception.notify(
+                other,
+                f"+{cfg.energy_gain['referenced']} coins (referenced on board)",
+            )
     return f"posted to board: {content}"
 
 
-def _send_message(agent: Agent, ctx: TickContext, args: dict) -> str:
+def _send_message(entity_id: str, world: World, args: dict) -> str:
     cfg = get_config()
     to = args.get("to", "").lstrip("@")
     message = args.get("message", "")
     if not to:
         return "missing 'to' field"
-    tick_data = ctx.tick_state.get(agent.handle, {})
-    dm_sent = tick_data.get("dm_sent", 0)
+    action_reg = world.get_resource(ActionRegistry)
+    dm_sent = action_reg.get_tick_state(entity_id, "dm_sent", 0)
     if dm_sent >= 2:
         return "you already sent 2 DMs this tick. Wait until next tick."
-    err = ctx.bus.send(agent.handle, to, message)
+    bus = world.get_resource(MessageBus)
+    err = bus.send(entity_id, to, message)
     if err:
-        log.info(f"[{agent.handle}] SEND FAILED: {err}")
+        log.info(f"[{entity_id}] SEND FAILED: {err}")
         return f"DM failed: {err}"
-    tick_data["dm_sent"] = dm_sent + 1
-    ctx.tick_state[agent.handle] = tick_data
-    ctx.events.log(agent.handle, "dm_sent", {"to": to, "content": message})
-    log.info(f"[{agent.handle}] -> [{to}]: {message}")
-    if ctx.pool:
-        recipient = ctx.pool.by_handle(to)
-        if recipient:
-            rec_eco = ctx.store.get(to, Economy)
-            rec_eco.coins += cfg.energy_gain["dm_received"]
-            ctx.store.set(to, rec_eco)
-            if ctx.perception:
-                ctx.perception.notify(
-                    to,
-                    f"+{cfg.energy_gain['dm_received']} coins (received DM)",
-                )
+    action_reg.set_tick_state(entity_id, "dm_sent", dm_sent + 1)
+    world.get_resource(EventLog).log(entity_id, "dm_sent", {"to": to, "content": message})
+    log.info(f"[{entity_id}] -> [{to}]: {message}")
+    alive = set(world.entities())
+    if to in alive:
+        rec_eco = world.get(to, Economy)
+        rec_eco.coins += cfg.energy_gain["dm_received"]
+        world.get_resource(BreadPerceptionBuilder).notify(
+            to,
+            f"+{cfg.energy_gain['dm_received']} coins (received DM)",
+        )
     return f"sent DM to {to}"

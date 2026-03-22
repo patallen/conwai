@@ -19,7 +19,7 @@ from conwai.processes.types import (
     Observations,
     PerceptFeedback,
     RecalledMemories,
-    TickNumber,
+    PerceptTick,
     WorkingMemory,
     WorkingMemoryEntry,
 )
@@ -38,7 +38,7 @@ __all__ = [
     "Observations",
     "PerceptFeedback",
     "RecalledMemories",
-    "TickNumber",
+    "PerceptTick",
     "WorkingMemory",
     "WorkingMemoryEntry",
 ]

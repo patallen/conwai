@@ -1,8 +1,8 @@
-from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
+from conwai.engine import TickNumber
 from conwai.messages import MessageBus
 from conwai.processes.types import Observations
-from conwai.store import ComponentStore
+from conwai.world import World
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
@@ -13,86 +13,79 @@ from scenarios.bread_economy.components import (
 from scenarios.bread_economy.perception import make_bread_perception
 
 
-def _make_store():
-    store = ComponentStore()
-    store.register(Economy)
-    store.register(Inventory)
-    store.register(Hunger)
-    store.register(AgentMemory)
-    store.register(AgentInfo)
-    return store
+def _setup(tick=1):
+    world = World()
+    world.register(Economy)
+    world.register(Inventory)
+    world.register(Hunger)
+    world.register(AgentMemory)
+    world.register(AgentInfo)
+
+    board = BulletinBoard()
+    bus = MessageBus()
+    perception = make_bread_perception()
+    world.set_resource(TickNumber(tick))
+    world.set_resource(board)
+    world.set_resource(bus)
+    world.set_resource(perception)
+    return world, board, bus, perception
 
 
-def _init_agent(store, handle="A1", role="baker", personality="test"):
-    store.init_agent(handle, overrides=[AgentInfo(role=role, personality=personality)])
+def _add(world, handle="A1", role="baker", personality="test"):
+    world.spawn(handle, overrides=[AgentInfo(role=role, personality=personality)])
 
 
 def test_perception_includes_board_posts():
-    store = _make_store()
-    _init_agent(store, "A1", "baker")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus, perception = _setup()
+    _add(world, "A1", "baker")
     bus.register("A1")
     board.post("A2", "hello world")
 
-    p = make_bread_perception()
-    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = perception.build("A1", world)
     text = percept.get(Observations).text
     assert "hello world" in text
     assert "@A2" in text
 
 
 def test_perception_includes_dms():
-    store = _make_store()
-    _init_agent(store, "A1", "baker")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus, perception = _setup()
+    _add(world, "A1", "baker")
     bus.register("A1")
     bus.send("A2", "A1", "secret message")
 
-    p = make_bread_perception()
-    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = perception.build("A1", world)
     text = percept.get(Observations).text
     assert "secret message" in text
 
 
 def test_perception_includes_hunger_warning():
-    store = _make_store()
-    _init_agent(store, "A1", "baker")
-    store.set("A1", Hunger(hunger=20, thirst=100))
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus, perception = _setup()
+    _add(world, "A1", "baker")
     bus.register("A1")
+    world.set("A1", Hunger(hunger=20, thirst=100))
 
-    p = make_bread_perception()
-    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = perception.build("A1", world)
     text = percept.get(Observations).text
     assert "hungry" in text.lower() or "hunger" in text.lower()
 
 
 def test_perception_includes_state():
-    store = _make_store()
-    _init_agent(store, "A1", "baker")
-    store.set("A1", Economy(coins=42))
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus, perception = _setup()
+    _add(world, "A1", "baker")
     bus.register("A1")
+    world.set("A1", Economy(coins=42))
 
-    p = make_bread_perception()
-    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = perception.build("A1", world)
     text = percept.get(Observations).text
     assert "42" in text
 
 
 def test_perception_includes_notifications():
-    store = _make_store()
-    _init_agent(store, "A1", "baker")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus, perception = _setup()
+    _add(world, "A1", "baker")
     bus.register("A1")
 
-    p = make_bread_perception()
-    p.notify("A1", "coins -5 (daily tax)")
-    percept = p.build(Agent(handle="A1"), store, board, bus, tick=1)
+    perception.notify("A1", "coins -5 (daily tax)")
+    percept = perception.build("A1", world)
     text = percept.get(Observations).text
     assert "daily tax" in text

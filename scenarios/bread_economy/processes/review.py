@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from conwai.processes.types import AgentHandle, Episodes, Identity, TickNumber
+from conwai.processes.types import AgentHandle, Episodes, Identity, PerceptTick
 from conwai.typemap import Blackboard, Percept
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class StrategicReview:
         self._review_tpl = (d / "morning_review.md").read_text()
 
     async def run(self, percept: Percept, bb: Blackboard) -> None:
-        tick_num = percept.get(TickNumber)
+        tick_num = percept.get(PerceptTick)
         tick = tick_num.value if tick_num else 0
         if tick == 0 or tick % self.interval != 0:
             return
