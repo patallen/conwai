@@ -11,8 +11,8 @@ client = TestClient(app)
 def test_status_returns_tick_alive_total(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     storage.save_component("WORLD", "tick", {"value": 42})
-    storage.save_component("agent1", "_identity", {"handle": "agent1", "alive": True, "born_tick": 0})
-    storage.save_component("agent2", "_identity", {"handle": "agent2", "alive": False, "born_tick": 0})
+    storage.save_component("agent1", "agent_info", {"role": "forager", "personality": "bold"})
+    storage.save_component("agent2", "agent_info", {"role": "baker", "personality": "shy"})
 
     mock_events = MagicMock()
     mock_events.count.return_value = 3
@@ -25,7 +25,7 @@ def test_status_returns_tick_alive_total(tmp_path):
         assert resp.status_code == 200
         data = resp.json()
         assert data["tick"] == 42
-        assert data["alive"] == 1
+        assert data["alive"] == 2
         assert data["total_events"] == 3
 
 

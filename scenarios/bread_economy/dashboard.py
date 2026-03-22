@@ -19,27 +19,18 @@ _storage = SQLiteStorage()
 def read_agents() -> list[dict]:
     agents = []
     for entity in _storage.list_entities():
-        identity = _storage.load_component(entity, "_identity")
-        if identity is None:
+        info = _storage.load_component(entity, "agent_info")
+        if info is None:
             continue  # Not an agent (e.g. WORLD)
-        if not identity.get("alive", True):
-            continue
 
         agent = {
-            "handle": identity["handle"],
+            "handle": entity,
             "soul": "",
-            "born_tick": identity.get("born_tick", 0),
+            "born_tick": 0,
             "alive": True,
+            "role": info.get("role", ""),
+            "personality": info.get("personality", ""),
         }
-
-        # Read agent_info component for role/personality
-        info = _storage.load_component(entity, "agent_info")
-        if info:
-            agent["role"] = info.get("role", "")
-            agent["personality"] = info.get("personality", "")
-        else:
-            agent["role"] = ""
-            agent["personality"] = ""
 
         for comp_name, fields in [
             ("economy", ["coins"]),
