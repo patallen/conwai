@@ -92,9 +92,11 @@ class BrainSystem:
 
 
 class Engine:
-    def __init__(self, world: World):
+    def __init__(self, world: World, systems: list[System] | None = None):
         self.world = world
         self._systems: list[System] = []
+        for system in systems or []:
+            self.add_system(system)
 
     def add_system(self, system: System) -> None:
         self._systems.append(system)
