@@ -1,100 +1,95 @@
-from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
 from conwai.cognition.percept import ActionFeedback
+from conwai.engine import TickNumber
 from conwai.messages import MessageBus
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, TickNumber
-from conwai.store import ComponentStore
+from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, TickNumber as PerceptTickNumber
+from conwai.world import World
 from scenarios.workbench.components import AgentInfo, BrainState
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
 
-def _make_store():
-    store = ComponentStore()
-    store.register(AgentInfo)
-    store.register(BrainState)
-    return store
+def _setup():
+    world = World()
+    world.register(AgentInfo)
+    world.register(BrainState)
+
+    board = BulletinBoard()
+    bus = MessageBus()
+
+    world.set_resource(TickNumber(1))
+    world.set_resource(board)
+    world.set_resource(bus)
+    return world, board, bus
 
 
-def _init_agent(store, handle="A1", role="observer", personality="curious"):
-    store.init_agent(handle, overrides=[AgentInfo(role=role, personality=personality)])
+def _add(world, handle="A1", role="observer", personality="curious"):
+    world.spawn(handle, overrides=[AgentInfo(role=role, personality=personality)])
 
 
 def test_percept_includes_broadcast():
-    store = _make_store()
-    _init_agent(store, "A1")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus = _setup()
+    _add(world, "A1")
     bus.register("A1")
     board.post("WORLD", "hello everyone")
 
     builder = WorkbenchPerceptionBuilder()
-    percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = builder.build("A1", world)
     assert "hello everyone" in percept.get(Observations).text
     assert percept.get(AgentHandle).value == "A1"
-    assert percept.get(TickNumber).value == 1
+    assert percept.get(PerceptTickNumber).value == 1
 
 
 def test_percept_includes_dms():
-    store = _make_store()
-    _init_agent(store, "A1")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus = _setup()
+    _add(world, "A1")
     bus.register("A1")
     bus.send("Bob", "A1", "private info")
 
     builder = WorkbenchPerceptionBuilder()
-    percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = builder.build("A1", world)
     assert "private info" in percept.get(Observations).text
 
 
 def test_percept_includes_identity():
-    store = _make_store()
-    _init_agent(store, "A1", role="analyst", personality="methodical, quiet")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus = _setup()
+    _add(world, "A1", role="analyst", personality="methodical, quiet")
     bus.register("A1")
 
     builder = WorkbenchPerceptionBuilder()
-    percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = builder.build("A1", world)
     assert "methodical" in percept.get(Identity).text
     assert "A1" in percept.get(Identity).text
 
 
 def test_percept_includes_action_feedback():
-    store = _make_store()
-    _init_agent(store, "A1")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus = _setup()
+    _add(world, "A1")
     bus.register("A1")
 
     builder = WorkbenchPerceptionBuilder()
     feedback = [ActionFeedback(action="broadcast", args={"content": "hi"}, result="sent")]
-    percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1, action_feedback=feedback)
+    percept = builder.build("A1", world, action_feedback=feedback)
     assert percept.get(PerceptFeedback).entries == feedback
 
 
 def test_percept_includes_injected_stimulus():
-    store = _make_store()
-    _init_agent(store, "A1")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus = _setup()
+    _add(world, "A1")
     bus.register("A1")
 
     builder = WorkbenchPerceptionBuilder()
     builder.inject("A1", "A strange sound echoes from the north.")
-    percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = builder.build("A1", world)
     assert "strange sound" in percept.get(Observations).text
 
 
 def test_percept_no_activity():
-    store = _make_store()
-    _init_agent(store, "A1")
-    board = BulletinBoard()
-    bus = MessageBus()
+    world, board, bus = _setup()
+    _add(world, "A1")
     bus.register("A1")
 
     builder = WorkbenchPerceptionBuilder()
-    percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
+    percept = builder.build("A1", world)
     text = percept.get(Observations).text
     assert isinstance(text, str)
     assert len(text) > 0

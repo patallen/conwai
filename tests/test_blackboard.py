@@ -1,10 +1,9 @@
 import asyncio
-from dataclasses import dataclass
 
 from conwai.cognition import BlackboardBrain, BrainState, Decision
 from conwai.processes.types import Decisions, WorkingMemory, WorkingMemoryEntry
-from conwai.store import ComponentStore
 from conwai.typemap import Blackboard, Percept
+from conwai.world import World
 
 
 class AppendDecision:
@@ -31,23 +30,23 @@ def test_processes_run_in_order():
 
 
 def test_brain_state_committed_to_store():
-    store = ComponentStore()
-    store.register(BrainState)
-    store.init_agent("A1")
+    world = World()
+    world.register(BrainState)
+    world.spawn("A1")
 
     brain = BlackboardBrain(processes=[MarkLastTick()])
     asyncio.run(brain.think(Percept()))
-    store.set("A1", BrainState.save_from(brain.bb))
+    world.set("A1", BrainState.save_from(brain.bb))
 
-    saved = store.get("A1", BrainState)
+    saved = world.get("A1", BrainState)
     assert saved.last_tick == 99
 
 
 def test_brain_state_loaded_from_store():
-    store = ComponentStore()
-    store.register(BrainState)
-    store.init_agent("A1")
-    store.set("A1", BrainState(
+    world = World()
+    world.register(BrainState)
+    world.spawn("A1")
+    world.set("A1", BrainState(
         working_memory=[{"content": "old", "kind": "observation"}],
     ))
 
@@ -59,7 +58,7 @@ def test_brain_state_loaded_from_store():
             assert wm.entries[0].content == "old"
 
     brain = BlackboardBrain(processes=[CheckMemory()])
-    brain_state = store.get("A1", BrainState)
+    brain_state = world.get("A1", BrainState)
     brain_state.load_into(brain.bb)
     asyncio.run(brain.think(Percept()))
 

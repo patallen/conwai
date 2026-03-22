@@ -1,57 +1,41 @@
-import tempfile
 from pathlib import Path
 
-from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
-from conwai.engine import TickContext
+from conwai.engine import TickNumber
 from conwai.events import EventLog
 from conwai.messages import MessageBus
-from conwai.pool import AgentPool
-from conwai.repository import AgentRepository
-from conwai.storage import SQLiteStorage
-from conwai.store import ComponentStore
+from conwai.world import World
 from scenarios.workbench.actions import create_registry
 from scenarios.workbench.components import AgentInfo, BrainState
-from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
 
 def _setup():
-    store = ComponentStore()
-    store.register(AgentInfo)
-    store.register(BrainState)
+    world = World()
+    world.register(AgentInfo)
+    world.register(BrainState)
+
     board = BulletinBoard()
     bus = MessageBus()
     events = EventLog(path=Path(":memory:"))
-    perception = WorkbenchPerceptionBuilder()
-    tmp = Path(tempfile.mkdtemp())
-    storage = SQLiteStorage(tmp / "test.db")
-    repo = AgentRepository(storage=storage)
-    pool = AgentPool(repo, store, bus=bus)
-    return store, board, bus, events, perception, pool
+
+    world.set_resource(TickNumber(1))
+    world.set_resource(board)
+    world.set_resource(bus)
+    world.set_resource(events)
+    return world, board, bus
 
 
-def _add(pool, store, handle):
-    return pool.load_or_create(
-        Agent(handle=handle),
-        component_overrides=[AgentInfo(role="test", personality="test")],
-    )
-
-
-def _make_ctx(store, board, bus, events, perception, pool, tick=1):
-    return TickContext(
-        tick=tick, pool=pool, store=store,
-        perception=perception, board=board, bus=bus, events=events,
-    )
+def _add(world, handle):
+    world.spawn(handle, overrides=[AgentInfo(role="test", personality="test")])
+    world.get_resource(MessageBus).register(handle)
 
 
 def test_broadcast_posts_to_board():
-    store, board, bus, events, perception, pool = _setup()
-    _add(pool, store, "A1")
-    agent = pool.by_handle("A1")
-    ctx = _make_ctx(store, board, bus, events, perception, pool)
+    world, board, bus = _setup()
+    _add(world, "A1")
     registry = create_registry()
 
-    result = registry.execute(agent, "broadcast", {"content": "hello world"}, ctx)
+    result = registry.execute("A1", "broadcast", {"content": "hello world"}, world)
     assert "hello world" in result
 
     posts = board.read_new("OTHER")
@@ -61,14 +45,12 @@ def test_broadcast_posts_to_board():
 
 
 def test_message_sends_dm():
-    store, board, bus, events, perception, pool = _setup()
-    _add(pool, store, "A1")
-    _add(pool, store, "A2")
-    agent = pool.by_handle("A1")
-    ctx = _make_ctx(store, board, bus, events, perception, pool)
+    world, board, bus = _setup()
+    _add(world, "A1")
+    _add(world, "A2")
     registry = create_registry()
 
-    result = registry.execute(agent, "message", {"to": "A2", "content": "secret"}, ctx)
+    result = registry.execute("A1", "message", {"to": "A2", "content": "secret"}, world)
     assert "A2" in result
 
     dms = bus.receive("A2")
@@ -78,11 +60,9 @@ def test_message_sends_dm():
 
 
 def test_message_to_unknown_handle():
-    store, board, bus, events, perception, pool = _setup()
-    _add(pool, store, "A1")
-    agent = pool.by_handle("A1")
-    ctx = _make_ctx(store, board, bus, events, perception, pool)
+    world, board, bus = _setup()
+    _add(world, "A1")
     registry = create_registry()
 
-    result = registry.execute(agent, "message", {"to": "nobody", "content": "hi"}, ctx)
+    result = registry.execute("A1", "message", {"to": "nobody", "content": "hi"}, world)
     assert "unknown" in result.lower() or "not delivered" in result.lower()
