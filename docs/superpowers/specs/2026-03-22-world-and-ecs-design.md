@@ -26,7 +26,7 @@ class World:
     def has(self, entity: str, comp: type[Component]) -> bool
 
     # Resources - singleton typed state (backed by TypeMap)
-    def resource[T](self, typ: type[T]) -> T
+    def get_resource[T](self, typ: type[T]) -> T
     def set_resource[T](self, val: T) -> None
     def has_resource(self, typ: type) -> bool
 
@@ -109,7 +109,7 @@ class TaxSystem:
     name = "tax"
 
     async def run(self, world: World) -> None:
-        tick = world.resource(TickNumber)
+        tick = world.get_resource(TickNumber)
         if tick.value % self.interval != 0:
             return
         for entity, eco in world.query(Economy):
@@ -171,8 +171,8 @@ The engine never registers or references any resources. It doesn't know what a B
 | `Phase` protocol | `System` protocol (`run(world)`) |
 | `BrainPhase` | `BrainSystem` |
 | `Engine.__init__(pool, store, perception, board, bus, events)` | `Engine.__init__(world)` |
-| `ctx.tick` | `world.resource(TickNumber)` |
-| `ctx.board` | `world.resource(BulletinBoard)` |
+| `ctx.tick` | `world.get_resource(TickNumber)` |
+| `ctx.board` | `world.get_resource(BulletinBoard)` |
 | `ctx.bus` | `world.resource(MessageBus)` |
 | `ctx.events` | `world.resource(EventLog)` |
 | `ctx.pool.alive()` | `world.entities()` or query |
