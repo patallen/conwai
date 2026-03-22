@@ -3,48 +3,35 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from conwai.cognition.percept import ActionFeedback
-from conwai.cognition.perception import PerceptionBuilder
 from conwai.cognition.types import BrainState
 from conwai.processes.types import WorkingMemory
 
 if TYPE_CHECKING:
     from conwai.actions import ActionRegistry
-    from conwai.agent import Agent
-    from conwai.bulletin_board import BulletinBoard
     from conwai.cognition.blackboard import BlackboardBrain
-    from conwai.events import EventLog
-    from conwai.messages import MessageBus
-    from conwai.pool import AgentPool
-    from conwai.store import ComponentStore
+    from conwai.cognition.perception import PerceptionBuilder
     from conwai.typemap import Percept
+    from conwai.world import World
 
 log = logging.getLogger("conwai")
 
 
 @dataclass
-class TickContext:
-    tick: int
-    pool: AgentPool
-    store: ComponentStore
-    perception: PerceptionBuilder
-    tick_state: dict = field(default_factory=dict)
-    board: BulletinBoard | None = None
-    bus: MessageBus | None = None
-    events: EventLog | None = None
+class TickNumber:
+    value: int = 0
 
 
 @runtime_checkable
-class Phase(Protocol):
+class System(Protocol):
     name: str
+    async def run(self, world: World) -> None: ...
 
-    async def run(self, ctx: TickContext) -> None: ...
 
-
-class BrainPhase:
+class BrainSystem:
     name = "brain"
 
     def __init__(
@@ -58,49 +45,43 @@ class BrainPhase:
         self.perception = perception
         self._action_feedback: dict[str, list[ActionFeedback]] = {}
 
-    async def run(self, ctx: TickContext) -> None:
-        agents = ctx.pool.alive()
-        alive_handles = {a.handle for a in agents}
-        self._action_feedback = {h: fb for h, fb in self._action_feedback.items() if h in alive_handles}
-        self.actions.begin_tick(ctx, [a.handle for a in agents])
+    async def run(self, world: World) -> None:
+        alive = world.entities()
+        alive_set = set(alive)
+        self._action_feedback = {
+            h: fb for h, fb in self._action_feedback.items() if h in alive_set
+        }
+        self.actions.begin_tick(world, [h for h in alive if h in self.brains])
         tasks = [
-            asyncio.create_task(self._tick_agent(a, ctx))
-            for a in agents
-            if a.handle in self.brains
+            asyncio.create_task(self._tick_agent(handle, world))
+            for handle in alive
+            if handle in self.brains
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        for agent, result in zip(
-            [a for a in agents if a.handle in self.brains], results
+        for handle, result in zip(
+            [h for h in alive if h in self.brains], results
         ):
             if isinstance(result, Exception):
-                log.error(f"[{agent.handle}] brain error: {result}")
+                log.error(f"[{handle}] brain error: {result}")
 
-    async def _tick_agent(self, agent: Agent, ctx: TickContext) -> None:
+    async def _tick_agent(self, handle: str, world: World) -> None:
         start = time.monotonic()
-        brain = self.brains[agent.handle]
-        feedback = self._action_feedback.pop(agent.handle, [])
+        brain = self.brains[handle]
+        feedback = self._action_feedback.pop(handle, [])
 
-        # Build percept — the perception builder returns a Percept
-        percept: Percept = self.perception.build(
-            agent, ctx.store, ctx.board, ctx.bus, ctx.tick,
-            action_feedback=feedback,
-        )
+        tick = world.get_resource(TickNumber)
+        percept: Percept = self.perception.build(handle, world, action_feedback=feedback)
 
-        # Load persistent state on first tick
         if not brain.bb.has(WorkingMemory):
-            if ctx.store.has(agent.handle, BrainState):
-                ctx.store.get(agent.handle, BrainState).load_into(brain.bb)
+            if world.has(handle, BrainState):
+                world.get(handle, BrainState).load_into(brain.bb)
 
-        # Think — brain owns its blackboard, returns decisions
         decisions = await brain.think(percept)
+        world.set(handle, BrainState.save_from(brain.bb))
 
-        # Persist brain state
-        ctx.store.set(agent.handle, BrainState.save_from(brain.bb))
-
-        # Execute decisions as actions
         tick_feedback: list[ActionFeedback] = []
         for decision in decisions:
-            result = self.actions.execute(agent, decision.action, decision.args, ctx)
+            result = self.actions.execute(handle, decision.action, decision.args, world)
             tick_feedback.append(ActionFeedback(
                 action=decision.action,
                 args=decision.args,
@@ -108,43 +89,23 @@ class BrainPhase:
             ))
 
         if tick_feedback:
-            self._action_feedback[agent.handle] = tick_feedback
+            self._action_feedback[handle] = tick_feedback
 
-        log.info(f"[{agent.handle}] tick {ctx.tick} took {time.monotonic() - start:.1f}s")
+        log.info(f"[{handle}] tick {tick.value} took {time.monotonic() - start:.1f}s")
 
 
 class Engine:
-    def __init__(
-        self,
-        pool: AgentPool,
-        store: ComponentStore,
-        perception: PerceptionBuilder,
-        board: BulletinBoard | None = None,
-        bus: MessageBus | None = None,
-        events: EventLog | None = None,
-    ):
-        self.pool = pool
-        self.store = store
-        self.perception = perception
-        self.board = board
-        self.bus = bus
-        self.events = events
-        self._phases: list[Phase] = []
+    def __init__(self, world: World):
+        self.world = world
+        self._systems: list[System] = []
 
-    def add_phase(self, phase: Phase) -> None:
-        self._phases.append(phase)
-        log.info(f"[ENGINE] registered phase: {phase.name}")
+    def add_system(self, system: System) -> None:
+        self._systems.append(system)
+        log.info(f"[ENGINE] registered system: {system.name}")
 
-    async def tick(self, tick: int) -> None:
-        ctx = TickContext(
-            tick=tick,
-            pool=self.pool,
-            store=self.store,
-            perception=self.perception,
-            board=self.board,
-            bus=self.bus,
-            events=self.events,
-        )
-
-        for phase in self._phases:
-            await phase.run(ctx)
+    async def tick(self) -> None:
+        tick = self.world.get_resource(TickNumber)
+        tick.value += 1
+        log.info(f"[ENGINE] tick {tick.value}")
+        for system in self._systems:
+            await system.run(self.world)

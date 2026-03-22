@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.engine import TickContext
+    from conwai.world import World
 
 
 @dataclass
@@ -33,7 +32,7 @@ class Action:
 class ActionRegistry:
     def __init__(self):
         self._actions: dict[str, Action] = {}
-        self._current_tick: int = 0
+        self._tick_state: dict[str, dict] = {}
 
     def register(self, action: Action):
         self._actions[action.name] = action
@@ -44,18 +43,21 @@ class ActionRegistry:
     def tool_definitions(self) -> list[dict]:
         return [a.tool_schema() for a in self._actions.values()]
 
-    def begin_tick(self, ctx: TickContext, handles: list[str]) -> None:
-        self._current_tick = ctx.tick
-        ctx.tick_state = {h: {} for h in handles}
+    def begin_tick(self, world: World, handles: list[str]) -> None:
+        self._tick_state = {h: {} for h in handles}
 
-    def execute(self, agent: Agent, name: str, args: dict, ctx: TickContext) -> str:
+    def block(self, entity_id: str, reason: str) -> None:
+        if entity_id in self._tick_state:
+            self._tick_state[entity_id]["blocked"] = reason
+
+    def execute(self, entity_id: str, name: str, args: dict, world: World) -> str:
         action = self._actions.get(name)
         if not action:
             return f"unknown action: {name}"
 
-        ts = ctx.tick_state.get(agent.handle, {})
+        ts = self._tick_state.get(entity_id, {})
         if ts.get("blocked"):
             return ts["blocked"]
 
-        result = action.handler(agent, ctx, args) if action.handler else "ok"
+        result = action.handler(entity_id, world, args) if action.handler else "ok"
         return result or "ok"
