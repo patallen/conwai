@@ -3,8 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from conwai.bulletin_board import BulletinBoard
 from conwai.cognition.percept import ActionFeedback
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, TickNumber
+from conwai.engine import TickNumber
+from conwai.messages import MessageBus
+from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback
+from conwai.processes.types import TickNumber as PerceptTickNumber
 from conwai.typemap import Percept
 from scenarios.bread_economy.components import (
     AgentInfo,
@@ -15,10 +19,7 @@ from scenarios.bread_economy.components import (
 )
 
 if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.bulletin_board import BulletinBoard
-    from conwai.messages import MessageBus
-    from conwai.store import ComponentStore
+    from conwai.world import World
 
 _DEFAULT_PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -55,21 +56,21 @@ class BreadPerceptionBuilder:
     def build_system_prompt(self) -> str:
         return self.system_prompt
 
-    def build_identity(self, agent: Agent, store: ComponentStore) -> str:
+    def build_identity(self, entity_id: str, world: World) -> str:
         from scenarios.bread_economy.config import get_config
 
-        info = store.get(agent.handle, AgentInfo)
+        info = world.get(entity_id, AgentInfo)
         role_desc = get_config().role_descriptions.get(info.role, "unknown role")
-        mem = store.get(agent.handle, AgentMemory)
+        mem = world.get(entity_id, AgentMemory)
         soul = mem.soul or "(empty)"
         soul_block = self.soul_tpl.format(soul=soul)
         journal = mem.memory or "(empty)"
         journal_block = self.memory_tpl.format(memory=journal)
-        strategy = mem.strategy or "(no strategy yet — set one at your next morning review)"
+        strategy = mem.strategy or "(no strategy yet -- set one at your next morning review)"
         strategy_block = self.strategy_tpl.format(strategy=strategy)
         return (
             self.identity_tpl.format(
-                handle=f"@{agent.handle}",
+                handle=f"@{entity_id}",
                 personality=info.personality,
                 role_description=role_desc,
                 soul=soul_block,
@@ -82,20 +83,21 @@ class BreadPerceptionBuilder:
 
     def build(
         self,
-        agent: Agent,
-        store: ComponentStore,
-        board: BulletinBoard,
-        bus: MessageBus,
-        tick: int,
+        entity_id: str,
+        world: World,
         action_feedback: list[ActionFeedback] | None = None,
     ) -> Percept:
-        eco = store.get(agent.handle, Economy)
-        inv = store.get(agent.handle, Inventory)
-        hun = store.get(agent.handle, Hunger)
-        mem = store.get(agent.handle, AgentMemory)
-        notifications = self.drain_notifications(agent.handle)
+        tick = world.get_resource(TickNumber).value
+        board = world.get_resource(BulletinBoard)
+        bus = world.get_resource(MessageBus)
 
-        new_posts = board.read_new(agent.handle)
+        eco = world.get(entity_id, Economy)
+        inv = world.get(entity_id, Inventory)
+        hun = world.get(entity_id, Hunger)
+        mem = world.get(entity_id, AgentMemory)
+        notifications = self.drain_notifications(entity_id)
+
+        new_posts = board.read_new(entity_id)
         if new_posts:
             parts = [
                 "New on the board:\n"
@@ -104,7 +106,7 @@ class BreadPerceptionBuilder:
         else:
             parts = ["No new activity on the board."]
 
-        new_dms = bus.receive(agent.handle)
+        new_dms = bus.receive(entity_id)
         if new_dms:
             parts.append(
                 "\n".join(f"DM from @{dm.from_handle}: {dm.content}" for dm in new_dms)
@@ -141,9 +143,9 @@ class BreadPerceptionBuilder:
         )
 
         percept = Percept()
-        percept.set(AgentHandle(value=agent.handle))
-        percept.set(TickNumber(value=tick))
-        percept.set(Identity(text=self.build_identity(agent, store)))
+        percept.set(AgentHandle(value=entity_id))
+        percept.set(PerceptTickNumber(value=tick))
+        percept.set(Identity(text=self.build_identity(entity_id, world)))
         percept.set(Observations(text=prompt_text))
         percept.set(PerceptFeedback(entries=action_feedback or []))
         return percept

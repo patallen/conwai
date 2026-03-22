@@ -3,19 +3,15 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from conwai.engine import TickNumber
+
 from scenarios.bread_economy.events.ciphers import CipherSystem
 from scenarios.bread_economy.events.elections import ElectionSystem
 from scenarios.bread_economy.events.questions import QuestionSystem
 
 if TYPE_CHECKING:
-    from conwai.agent import Agent
-    from conwai.bulletin_board import BulletinBoard
-    from conwai.cognition.perception import PerceptionBuilder
-    from conwai.engine import TickContext
-    from conwai.messages import MessageBus
-    from conwai.pool import AgentPool
     from conwai.storage import Storage
-    from conwai.store import ComponentStore
+    from conwai.world import World
 
 log = logging.getLogger("conwai")
 
@@ -27,45 +23,42 @@ class WorldEvents:
 
     def __init__(
         self,
-        board: BulletinBoard,
-        bus: MessageBus,
-        pool: AgentPool,
-        store: ComponentStore,
-        perception: PerceptionBuilder,
+        world: World,
         question_interval: int = 60,
         cipher_interval: int = 40,
         election_interval: int = 50,
         election_duration: int = 15,
         storage: Storage | None = None,
     ):
+        self._world = world
         self._tick = 0
         self._storage = storage
-        self.questions = QuestionSystem(board, interval=question_interval)
+        self.questions = QuestionSystem(world, interval=question_interval)
         self.elections = ElectionSystem(
-            board, pool, store, perception,
+            world,
             interval=election_interval,
             duration=election_duration,
         )
         self.ciphers = CipherSystem(
-            board, bus, pool, store, perception,
+            world,
             interval=cipher_interval,
         )
         self._load_state()
 
-    async def run(self, ctx: TickContext) -> None:
-        self._tick = ctx.tick
-        self.questions.tick(ctx.tick)
-        self.ciphers.tick(ctx.tick)
-        self.elections.tick(ctx.tick)
+    async def run(self, world: World) -> None:
+        self._tick = world.get_resource(TickNumber).value
+        self.questions.tick(self._tick)
+        self.ciphers.tick(self._tick)
+        self.elections.tick(self._tick)
         self._save_state()
 
     # -- Delegation methods for action handlers --
 
-    def submit_code(self, agent: Agent, guess: str) -> str:
-        return self.ciphers.submit_code(agent, guess)
+    def submit_code(self, entity_id: str, guess: str) -> str:
+        return self.ciphers.submit_code(entity_id, guess)
 
-    def cast_vote(self, agent: Agent, candidate: str) -> str:
-        return self.elections.cast_vote(agent, candidate, self._tick)
+    def cast_vote(self, entity_id: str, candidate: str) -> str:
+        return self.elections.cast_vote(entity_id, candidate)
 
     def get_cipher_status(self) -> dict | None:
         return self.ciphers.get_status()
