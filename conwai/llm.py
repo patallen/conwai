@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
+from typing import Protocol, runtime_checkable
 
 from openai import AsyncOpenAI
 
@@ -20,6 +21,13 @@ class LLMResponse:
     tool_calls: list[ToolCall]
     prompt_tokens: int
     completion_tokens: int
+
+
+@runtime_checkable
+class LLMProvider(Protocol):
+    async def call(
+        self, system: str, messages: list[dict], tools: list[dict] | None = None
+    ) -> LLMResponse: ...
 
 
 @dataclass

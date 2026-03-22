@@ -10,7 +10,7 @@ from conwai.processes.types import AgentHandle, Decisions, LLMSnapshot, WorkingM
 from conwai.typemap import Blackboard, Percept
 
 if TYPE_CHECKING:
-    from conwai.llm_protocol import LLMProvider
+    from conwai.llm import LLMProvider
 
 log = logging.getLogger("conwai")
 

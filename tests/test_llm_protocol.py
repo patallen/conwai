@@ -1,5 +1,5 @@
 from conwai.llm import LLMClient, AnthropicLLMClient
-from conwai.llm_protocol import LLMProvider
+from conwai.llm import LLMProvider
 
 
 def test_openai_client_satisfies_protocol():
@@ -13,5 +13,5 @@ def test_anthropic_client_satisfies_protocol():
 
 
 def test_protocol_exists():
-    from conwai.llm_protocol import LLMProvider
+    from conwai.llm import LLMProvider
     assert hasattr(LLMProvider, "call")

@@ -10,7 +10,7 @@ from conwai.processes.types import AgentHandle, Episodes, Identity, PerceptTick
 from conwai.typemap import Blackboard, Percept
 
 if TYPE_CHECKING:
-    from conwai.llm_protocol import LLMProvider
+    from conwai.llm import LLMProvider
 
 from scenarios.bread_economy.components import AgentMemory, Economy, Inventory
 
