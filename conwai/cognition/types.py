@@ -3,15 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
-
 from conwai.component import Component
-
-
-@dataclass
-class Decision:
-    action: str
-    args: dict[str, Any] = field(default_factory=dict)
 from conwai.processes.types import (
     Episodes,
     Episode,

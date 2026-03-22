@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from conwai.actions import ActionRegistry
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
 from conwai.events import EventLog

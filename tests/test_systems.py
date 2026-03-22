@@ -13,7 +13,7 @@ from scenarios.bread_economy.components import (
     Hunger,
     Inventory,
 )
-from scenarios.bread_economy.perception import BreadPerceptionBuilder, make_bread_perception
+from scenarios.bread_economy.perception import make_bread_perception
 from scenarios.bread_economy.systems import (
     ConsumptionSystem,
     DecaySystem,

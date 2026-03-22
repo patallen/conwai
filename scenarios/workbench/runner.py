@@ -139,7 +139,7 @@ async def run(args):
     print(f"\n  Agents: {', '.join(f'@{h}' for h in agent_names)}")
     print(f"  Model:  {args.model}")
     print(f"  Tick:   {tick_number.value}")
-    print(f"  Type anything to broadcast, @HANDLE for DM, !help for commands\n")
+    print("  Type anything to broadcast, @HANDLE for DM, !help for commands\n")
 
     while True:
         try:

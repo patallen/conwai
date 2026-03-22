@@ -1,7 +1,7 @@
 import asyncio
 
 from conwai.cognition import BlackboardBrain, BrainState, Decision
-from conwai.processes.types import Decisions, WorkingMemory, WorkingMemoryEntry
+from conwai.processes.types import Decisions, WorkingMemory
 from conwai.typemap import Blackboard, Percept
 from conwai.world import World
 

@@ -7,9 +7,15 @@ builder. Blackboard types are read/written by processes during a cycle.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from conwai.actions import ActionFeedback
-from conwai.cognition.types import Decision
+
+
+@dataclass
+class Decision:
+    action: str
+    args: dict[str, Any] = field(default_factory=dict)
 
 
 # -- Percept entries (read-only, loaded by scenario) -----------------------

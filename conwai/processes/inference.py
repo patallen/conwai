@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from conwai.cognition.types import Decision
+from conwai.processes.types import Decision
 from conwai.processes.types import AgentHandle, Decisions, LLMSnapshot, WorkingMemory, WorkingMemoryEntry
 from conwai.typemap import Blackboard, Percept
 

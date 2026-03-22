@@ -7,7 +7,6 @@ import time
 from faker import Faker
 
 import scenarios.bread_economy.config as config
-from conwai.actions import ActionRegistry
 from conwai.bulletin_board import BulletinBoard
 from conwai.cognition import BlackboardBrain
 from conwai.engine import BrainSystem, Engine, TickNumber
