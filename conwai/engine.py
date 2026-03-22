@@ -46,21 +46,18 @@ class BrainSystem:
         self._action_feedback: dict[str, list[ActionFeedback]] = {}
 
     async def run(self, world: World) -> None:
-        alive = world.entities()
-        alive_set = set(alive)
+        entities = set(world.entities())
+        handles = [h for h in self.brains if h in entities]
         self._action_feedback = {
-            h: fb for h, fb in self._action_feedback.items() if h in alive_set
+            h: fb for h, fb in self._action_feedback.items() if h in entities
         }
-        self.actions.begin_tick(world, [h for h in alive if h in self.brains])
+        self.actions.begin_tick(world, handles)
         tasks = [
             asyncio.create_task(self._tick_agent(handle, world))
-            for handle in alive
-            if handle in self.brains
+            for handle in handles
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        for handle, result in zip(
-            [h for h in alive if h in self.brains], results
-        ):
+        for handle, result in zip(handles, results):
             if isinstance(result, Exception):
                 log.error(f"[{handle}] brain error: {result}")
 
