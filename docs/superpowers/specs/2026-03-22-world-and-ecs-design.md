@@ -43,6 +43,26 @@ Entities are just IDs. What makes something an agent is having agent-specific co
 
 Entity destruction tags rather than removes (details deferred). Dead entities can still be inspected.
 
+### Entity initialization
+
+World supports registering component types with defaults. When an entity is spawned, it can receive default components automatically, or components can be set manually after spawn. This replaces `ComponentStore.register()` and `init_agent()`.
+
+```python
+# Register defaults (scenario setup)
+world.register(Hunger, Hunger(hunger=100, thirst=100))
+world.register(Inventory, Inventory())
+
+# Spawn with defaults
+world.spawn("agent_alice")  # gets default Hunger, Inventory, etc.
+
+# Spawn with overrides
+world.spawn("agent_alice", overrides=[Hunger(hunger=50)])
+
+# Bare entity (no defaults)
+world.spawn("market_stall", defaults=False)
+world.set("market_stall", Inventory(flour=100))
+```
+
 ### No deepcopy
 
 Components are returned by reference. Systems mutate in place. No get/set round-trip.
@@ -160,6 +180,10 @@ The engine never registers or references any resources. It doesn't know what a B
 | `ctx.store.set(handle, c)` | Mutate in place |
 | `Agent.alive` | Component or destruction tag |
 | `Agent.born_tick` | Component |
+| `ctx.tick_state` | Internal to `ActionRegistry` (not world state) |
+| `ctx.perception` | `world.resource(PerceptionBuilder)` or internal to BrainSystem |
+| `ComponentStore.register()` | `world.register()` |
+| `ComponentStore.init_agent()` | `world.spawn()` with registered defaults |
 
 ## Not in scope
 
