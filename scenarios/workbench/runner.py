@@ -128,8 +128,7 @@ async def run(args):
 
     brain_system = BrainSystem(actions=registry, brains=brains, perception=perception)
 
-    engine = Engine(world)
-    engine.add_system(brain_system)
+    engine = Engine(world, systems=[brain_system])
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")

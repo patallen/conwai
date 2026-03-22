@@ -361,14 +361,15 @@ async def run():
     )
 
     # --- Engine ---
-    engine = Engine(world)
-    engine.add_system(DecaySystem())
-    engine.add_system(TaxSystem())
-    engine.add_system(SpoilageSystem())
-    engine.add_system(DeathSystem(on_death=on_death))
-    engine.add_system(world_events)
-    engine.add_system(brain_system)
-    engine.add_system(ConsumptionSystem())
+    engine = Engine(world, systems=[
+        DecaySystem(),
+        TaxSystem(),
+        SpoilageSystem(),
+        DeathSystem(on_death=on_death),
+        world_events,
+        brain_system,
+        ConsumptionSystem(),
+    ])
 
     asyncio.create_task(
         process_commands(

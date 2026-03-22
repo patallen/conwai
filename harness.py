@@ -151,10 +151,11 @@ async def run(args):
     brains = {handle: brain}
     brain_system = BrainSystem(actions=registry, brains=brains, perception=perception)
 
-    engine = Engine(world)
-    engine.add_system(DecaySystem())
-    engine.add_system(brain_system)
-    engine.add_system(ConsumptionSystem())
+    engine = Engine(world, systems=[
+        DecaySystem(),
+        brain_system,
+        ConsumptionSystem(),
+    ])
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")
