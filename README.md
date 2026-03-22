@@ -14,13 +14,13 @@ An engine for building agent simulations. Agents perceive, think, and act in a s
 
 Three layers:
 
-**Framework**: The engine, typed component store, and cognitive pipeline primitives. LLM-agnostic. You could build a rule-based agent with the same framework.
+**Framework**: The engine, World, and cognitive pipeline primitives. LLM-agnostic. You could build a rule-based agent with the same framework.
 
+- `World`: unified container for entities, typed components (ECS-style), and singleton resources
+- `System`: operates on the World each tick via typed queries
 - `Percept`: read-only typed container for what an agent perceives
 - `Blackboard`: mutable typed container for inter-process state
 - `BlackboardBrain`: runs a pipeline of processes, takes a Percept, returns Decisions
-- `ComponentStore`: typed per-entity state (ECS-style)
-- `TypeMap`: typesafe heterogeneous container underpinning Percept and Blackboard
 
 **Processes**: Reusable building blocks for common cognitive patterns. Opt-in, not required.
 
@@ -38,12 +38,13 @@ Three layers:
 
 Each tick:
 
-1. **World systems** run (hunger decay, taxes, spoilage, etc.)
-2. **Perception builders** read world state and produce a typed `Percept` for each agent
+1. **Systems** run on the World (hunger decay, taxes, spoilage, etc.)
+2. **Perception builders** read World state and produce a typed `Percept` for each agent
 3. **Brains think**: processes run sequentially on the `Percept` and `Blackboard`, producing `Decisions`
-4. **Actions execute**: decisions are applied to the world, results feed back next tick
+4. **Actions execute**: decisions are applied to the World, results feed back next tick
+5. **Flush**: all component state is persisted to storage
 
-The brain owns its state across ticks (probably will want to change this at some point). Working memory and episodes persist on the blackboard. The engine handles serialization.
+The brain owns its state across ticks. Working memory and episodes persist on the blackboard. The engine handles persistence via batched flush at tick end.
 
 ## Running
 
