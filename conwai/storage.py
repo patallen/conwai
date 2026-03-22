@@ -13,6 +13,7 @@ class Storage(Protocol):
     def load_component(self, entity: str, component: str) -> dict | None: ...
     def list_entities(self) -> list[str]: ...
     def list_components(self, entity: str) -> list[str]: ...
+    def delete_entity(self, entity: str) -> None: ...
 
 
 class SQLiteStorage:
@@ -84,6 +85,11 @@ class SQLiteStorage:
             (entity,),
         ).fetchall()
         return [r[0] for r in rows]
+
+    def delete_entity(self, entity: str) -> None:
+        conn = self._conn()
+        conn.execute("DELETE FROM components WHERE entity = ?", (entity,))
+        conn.commit()
 
     def push_command(self, data: dict) -> None:
         conn = self._conn()
