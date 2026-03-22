@@ -221,6 +221,6 @@ def assign_traits(n: int = 2) -> list[str]:
 
 
 def register_components(store) -> None:
-    """Register all bread-economy components on a ComponentStore."""
+    """Register all bread-economy components on a World."""
     from scenarios.bread_economy.components import AgentInfo
     store.register(AgentInfo)
