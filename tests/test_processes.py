@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 
 from conwai.cognition import Decision
-from conwai.cognition.percept import ActionFeedback
+from conwai.actions import ActionFeedback
 from conwai.processes import (
     ContextAssembly,
     InferenceProcess,

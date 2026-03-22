@@ -1,5 +1,5 @@
 from conwai.bulletin_board import BulletinBoard
-from conwai.cognition.percept import ActionFeedback
+from conwai.actions import ActionFeedback
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
 from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick

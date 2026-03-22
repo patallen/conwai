@@ -1,11 +1,17 @@
-"""Persistence types for the cognitive pipeline."""
+"""Types for the cognitive pipeline."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from conwai.component import Component
+
+
+@dataclass
+class Decision:
+    action: str
+    args: dict[str, Any] = field(default_factory=dict)
 from conwai.processes.types import (
     Episodes,
     Episode,

@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from conwai.cognition.percept import ActionFeedback
+from conwai.actions import ActionFeedback
 from conwai.cognition.types import BrainState
 from conwai.processes.types import WorkingMemory
 

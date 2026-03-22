@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
-from conwai.cognition.percept import ActionFeedback
+from conwai.actions import ActionFeedback
 
 if TYPE_CHECKING:
     from conwai.typemap import Percept

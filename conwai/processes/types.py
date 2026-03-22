@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from conwai.cognition.brain import Decision
-from conwai.cognition.percept import ActionFeedback
+from conwai.actions import ActionFeedback
+from conwai.cognition.types import Decision
 
 
 # -- Percept entries (read-only, loaded by scenario) -----------------------

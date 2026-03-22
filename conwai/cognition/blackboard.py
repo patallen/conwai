@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Protocol
 
-from conwai.cognition.brain import Decision
+from conwai.cognition.types import Decision
 from conwai.processes.types import Decisions
 from conwai.typemap import Blackboard, Percept
 
