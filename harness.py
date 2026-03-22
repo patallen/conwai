@@ -23,21 +23,19 @@ Commands:
 
 import argparse
 import asyncio
+import json
 import logging
 import sys
 
-from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
 from conwai.cognition import BlackboardBrain
 from conwai.embeddings import FastEmbedder
-from conwai.engine import BrainPhase, Engine, TickContext
+from conwai.engine import BrainSystem, Engine, TickNumber
 from conwai.events import EventLog
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
-from conwai.pool import AgentPool
-from conwai.repository import AgentRepository
 from conwai.storage import SQLiteStorage
-from conwai.store import ComponentStore
+from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
 from scenarios.bread_economy.components import (
     AgentInfo,
@@ -73,25 +71,32 @@ async def run(args):
 
     storage = SQLiteStorage(path=args.data_dir / "state.db")
 
-    store = ComponentStore(storage=storage)
-    store.register(Economy, Economy(coins=cfg.starting_coins))
-    store.register(
+    # --- World ---
+    world = World(storage=storage)
+    world.register(Economy, Economy(coins=cfg.starting_coins))
+    world.register(
         Inventory,
         Inventory(flour=cfg.starting_flour, water=cfg.starting_water, bread=cfg.starting_bread),
     )
-    store.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
-    store.register(AgentMemory)
-    store.register(BrainState)
-    store.register(AgentInfo)
-    store.load_all()
+    world.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
+    world.register(AgentMemory)
+    world.register(BrainState)
+    world.register(AgentInfo)
 
+    # --- Infrastructure ---
     board = BulletinBoard(storage=storage)
     bus = MessageBus(storage=storage)
     events = EventLog(path=args.data_dir / "events.db")
     perception = make_bread_perception()
 
-    repo = AgentRepository(storage=storage)
-    pool = AgentPool(repo, store, bus=bus)
+    world.set_resource(board)
+    world.set_resource(bus)
+    world.set_resource(events)
+    world.set_resource(perception)
+    world.set_resource(TickNumber(value=0))
+
+    # --- Load persisted state ---
+    world.load_all()
 
     client = LLMClient(
         base_url=args.base_url,
@@ -102,15 +107,15 @@ async def run(args):
     embedder = FastEmbedder()
 
     registry = create_registry()
+    world.set_resource(registry)
 
     handle = args.handle
-    if repo.exists(handle):
-        agent = pool.load_or_create(Agent(handle=handle))
-    else:
-        agent = Agent(handle=handle, born_tick=0)
-        pool.load_or_create(
-            agent,
-            component_overrides=[AgentInfo(role="flour_forager", personality="skeptical, calculating")],
+
+    # Load or create the test agent
+    if handle not in set(world.entities()):
+        world.spawn(
+            handle,
+            overrides=[AgentInfo(role="flour_forager", personality="skeptical, calculating")],
         )
 
     bus.register(handle)
@@ -119,15 +124,15 @@ async def run(args):
 
     # Register some fake agents for the agent to interact with
     for fake_name in ["Christopher", "Bridget", "Matthew", "Angel", "Debra"]:
-        fake_agent = Agent(handle=fake_name)
-        pool.load_or_create(
-            fake_agent,
-            component_overrides=[AgentInfo(role="water_forager", personality="blunt, detached")],
-        )
+        if fake_name not in set(world.entities()):
+            world.spawn(
+                fake_name,
+                overrides=[AgentInfo(role="water_forager", personality="blunt, detached")],
+            )
 
     brain = BlackboardBrain(
         processes=[
-            StrategicReview(client=client, store=store, interval=24),
+            StrategicReview(client=client, store=world, interval=24),
             MemoryCompression(
                 recent_ticks=16,
                 timestamp_formatter=tick_to_timestamp,
@@ -144,29 +149,28 @@ async def run(args):
     )
 
     brains = {handle: brain}
-    brain_phase = BrainPhase(actions=registry, brains=brains, perception=perception)
+    brain_system = BrainSystem(actions=registry, brains=brains, perception=perception)
 
-    engine = Engine(
-        pool=pool, store=store, perception=perception,
-        board=board, bus=bus, events=events,
-    )
-    engine.add_phase(DecaySystem())
-    engine.add_phase(brain_phase)
-    engine.add_phase(ConsumptionSystem())
+    engine = Engine(world)
+    engine.add_system(DecaySystem())
+    engine.add_system(brain_system)
+    engine.add_system(ConsumptionSystem())
 
+    tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("WORLD", "tick")
-    tick = tick_data["value"] if tick_data else 0
+    if tick_data:
+        tick_number.value = tick_data["value"]
 
     print(f"\n  Agent: @{handle}")
     print(f"  Model: {args.model}")
-    print(f"  Tick:  {tick}")
+    print(f"  Tick:  {tick_number.value}")
     print(f"  Fake agents: Christopher, Bridget, Matthew, Angel, Debra")
     print(f"  Type anything to post to board, or !help for commands\n")
 
     while True:
         try:
             import readline  # noqa: F811 — enables line editing in input()
-            line = await asyncio.get_event_loop().run_in_executor(None, lambda: input(f"[tick {tick}] > "))
+            line = await asyncio.get_event_loop().run_in_executor(None, lambda: input(f"[tick {tick_number.value}] > "))
         except (EOFError, KeyboardInterrupt):
             break
 
@@ -184,30 +188,27 @@ async def run(args):
             if len(parts) >= 3:
                 key, val = parts[1], int(parts[2])
                 if key in ("flour", "water", "bread"):
-                    inv = store.get(handle, Inventory)
+                    inv = world.get(handle, Inventory)
                     setattr(inv, key, val)
-                    store.set(handle, inv)
                 elif key == "coins":
-                    eco = store.get(handle, Economy)
+                    eco = world.get(handle, Economy)
                     eco.coins = val
-                    store.set(handle, eco)
                 elif key in ("hunger", "thirst"):
-                    hun = store.get(handle, Hunger)
+                    hun = world.get(handle, Hunger)
                     setattr(hun, key, val)
-                    store.set(handle, hun)
                 print(f"  {key} = {val}")
             continue
         elif line == "!rich":
-            store.set(handle, Inventory(flour=80, water=80, bread=30))
-            store.set(handle, Economy(coins=500))
-            store.set(handle, Hunger(hunger=100, thirst=100))
+            world.set(handle, Inventory(flour=80, water=80, bread=30))
+            world.set(handle, Economy(coins=500))
+            world.set(handle, Hunger(hunger=100, thirst=100))
             print("  set: 80 flour, 80 water, 30 bread, 500 coins, full hunger/thirst")
             continue
         elif line == "!inspect":
-            eco = store.get(handle, Economy)
-            inv = store.get(handle, Inventory)
-            hun = store.get(handle, Hunger)
-            mem = store.get(handle, AgentMemory)
+            eco = world.get(handle, Economy)
+            inv = world.get(handle, Inventory)
+            hun = world.get(handle, Hunger)
+            mem = world.get(handle, AgentMemory)
             print(f"\n  @{handle}")
             print(f"  Coins: {int(eco.coins)}  Hunger: {hun.hunger}  Thirst: {hun.thirst}")
             print(f"  Flour: {inv.flour}  Water: {inv.water}  Bread: {inv.bread}")
@@ -217,7 +218,7 @@ async def run(args):
             print()
             continue
         elif line == "!memory":
-            bs = store.get(handle, BrainState)
+            bs = world.get(handle, BrainState)
             summaries = [e for e in bs.working_memory if e.get("kind") == "tick_summary"]
             print(f"\n  === RECENT SUMMARIES ({len(summaries)}) ===")
             for s in summaries[-5:]:
@@ -230,12 +231,11 @@ async def run(args):
             print()
             continue
         elif line == "!strategy":
-            mem = store.get(handle, AgentMemory)
+            mem = world.get(handle, AgentMemory)
             print(f"\n  {mem.strategy or '(no strategy yet)'}\n")
             continue
         elif line == "!brain":
-            bs = store.get(handle, BrainState)
-            import json
+            bs = world.get(handle, BrainState)
             dumped = json.dumps(bs.to_dict(), indent=2)
             print(dumped[:3000])
             if len(dumped) > 3000:
@@ -245,10 +245,9 @@ async def run(args):
             parts = line.split()
             n = int(parts[1]) if len(parts) > 1 else 1
             for _ in range(n):
-                tick += 1
-                storage.save_component("WORLD", "tick", {"value": tick})
-                await engine.tick(tick)
-            print(f"  advanced to tick {tick}")
+                storage.save_component("WORLD", "tick", {"value": tick_number.value + 1})
+                await engine.tick()
+            print(f"  advanced to tick {tick_number.value}")
             continue
         elif line.startswith("@"):
             # DM from a fake agent to our agent
@@ -265,9 +264,8 @@ async def run(args):
             print(f"  [WORLD]: {line}")
 
         # Auto-tick after each input
-        tick += 1
-        storage.save_component("WORLD", "tick", {"value": tick})
-        await engine.tick(tick)
+        storage.save_component("WORLD", "tick", {"value": tick_number.value + 1})
+        await engine.tick()
 
 
 def main():
