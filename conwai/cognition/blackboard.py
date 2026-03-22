@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from conwai.processes.types import Decision, Decisions
+from conwai.processes.types import Decisions
+
+if TYPE_CHECKING:
+    from conwai.cognition.types import Decision
 from conwai.typemap import Blackboard, Percept
 
 log = logging.getLogger("conwai")
