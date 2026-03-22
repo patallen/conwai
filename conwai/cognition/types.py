@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any
 
 from conwai.component import Component
 
@@ -29,8 +29,6 @@ class BrainState(Component):
     component store. Call ``load_into`` to hydrate a Blackboard on
     startup, and ``save_from`` to dehydrate for storage.
     """
-
-    __component_name__: ClassVar[str] = "brain"
 
     working_memory: list[dict] = field(default_factory=list)
     episodes: list[dict] = field(default_factory=list)

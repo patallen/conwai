@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar
 
 from conwai.cognition.types import BrainState
 from conwai.component import Component
@@ -32,8 +31,6 @@ class Hunger(Component):
 
 @dataclass
 class AgentMemory(Component):
-    __component_name__: ClassVar[str] = "memory"
-
     memory: str = ""
     code_fragment: str | None = None
     soul: str = ""
@@ -43,7 +40,5 @@ class AgentMemory(Component):
 
 @dataclass
 class AgentInfo(Component):
-    __component_name__: ClassVar[str] = "agent_info"
-
     role: str = ""
     personality: str = ""

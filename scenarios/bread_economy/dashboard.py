@@ -36,7 +36,7 @@ def read_agents() -> list[dict]:
             ("economy", ["coins"]),
             ("inventory", ["flour", "water", "bread"]),
             ("hunger", ["hunger", "thirst"]),
-            ("memory", ["memory", "soul"]),
+            ("agent_memory", ["memory", "soul"]),
         ]:
             data = _storage.load_component(entity, comp_name)
             if data:
@@ -221,7 +221,7 @@ def api_handler_thread(handle: str):
 
 @app.get("/api/agent/{handle}/context")
 def api_agent_context(handle: str):
-    data = _storage.load_component(handle, "brain")
+    data = _storage.load_component(handle, "brain_state")
     if not data:
         return {"error": "no context available"}
     return data
@@ -229,7 +229,7 @@ def api_agent_context(handle: str):
 
 @app.get("/api/agent/{handle}/memory")
 def api_agent_memory(handle: str):
-    brain = _storage.load_component(handle, "brain")
+    brain = _storage.load_component(handle, "brain_state")
     if not brain:
         return {"memory": ""}
     parts = []
