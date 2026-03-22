@@ -26,7 +26,7 @@ from faker import Faker
 
 from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
-from conwai.cognition import BlackboardBrain, Brain
+from conwai.cognition import BlackboardBrain
 from conwai.embeddings import FastEmbedder
 from conwai.engine import BrainPhase, Engine
 from conwai.events import EventLog
@@ -43,6 +43,7 @@ from scenarios.bread_economy.processes import (
     MemoryRecall,
 )
 from scenarios.workbench.actions import create_registry
+from scenarios.workbench.components import AgentInfo, BrainState
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
 log = logging.getLogger("conwai")
@@ -60,8 +61,8 @@ async def run(args):
     storage = SQLiteStorage(path=data_dir / "state.db")
 
     store = ComponentStore(storage=storage)
-    store.register_component("agent_info", {"role": "", "personality": ""})
-    store.register_component("brain", {"messages": [], "diary": []})
+    store.register(AgentInfo)
+    store.register(BrainState)
     store.load_all()
 
     board = BulletinBoard(storage=storage)
@@ -98,13 +99,12 @@ async def run(args):
                 ),
                 InferenceProcess(client=client, tools=registry.tool_definitions()),
             ],
-            store=store,
         )
 
     # Load or create agents
     fake = Faker()
 
-    brains: dict[str, Brain] = {}
+    brains: dict[str, BlackboardBrain] = {}
     loaded_handles = list(repo.list_handles())
     for handle in loaded_handles:
         agent = pool.load_or_create(Agent(handle=handle))
@@ -119,7 +119,7 @@ async def run(args):
         existing_handles.add(handle)
         agent = pool.load_or_create(
             Agent(handle=handle, born_tick=0),
-            component_overrides={"agent_info": {"role": "", "personality": "observant, adaptive"}},
+            component_overrides=[AgentInfo(role="", personality="observant, adaptive")],
         )
         brains[agent.handle] = make_brain()
 
@@ -162,36 +162,34 @@ async def run(args):
             continue
         elif line == "!agents":
             for a in pool.alive():
-                info = store.get(a.handle, "agent_info")
-                print(f"  @{a.handle} — {info.get('personality', '')}")
+                info = store.get(a.handle, AgentInfo)
+                print(f"  @{a.handle} — {info.personality}")
             continue
         elif line.startswith("!inspect"):
             parts = line.split()
             handle = parts[1] if len(parts) > 1 else agent_names[0]
-            if not store.has(handle, "agent_info"):
+            if not store.has(handle, AgentInfo):
                 print(f"  unknown agent: {handle}")
                 continue
-            info = store.get(handle, "agent_info")
+            info = store.get(handle, AgentInfo)
             print(f"\n  @{handle}")
-            print(f"  Role: {info.get('role', '(none)')}")
-            print(f"  Personality: {info.get('personality', '(none)')}")
+            print(f"  Role: {info.role or '(none)'}")
+            print(f"  Personality: {info.personality or '(none)'}")
             print()
             continue
         elif line.startswith("!memory"):
             parts = line.split()
             handle = parts[1] if len(parts) > 1 else agent_names[0]
-            if not store.has(handle, "brain"):
+            if not store.has(handle, BrainState):
                 print(f"  unknown agent: {handle}")
                 continue
-            brain_state = store.get(handle, "brain")
-            diary = brain_state.get("diary", [])
-            messages = brain_state.get("messages", [])
-            summaries = [m for m in messages if m.get("_tick_summary")]
+            brain_state = store.get(handle, BrainState)
+            summaries = [e for e in brain_state.working_memory if e.get("kind") == "tick_summary"]
             print(f"\n  === RECENT SUMMARIES ({len(summaries)}) ===")
             for s in summaries[-5:]:
                 print(f"  {s['content'][:120]}")
-            print(f"\n  === DIARY ({len(diary)} entries) ===")
-            for d in diary[-10:]:
+            print(f"\n  === EPISODES ({len(brain_state.episodes)} entries) ===")
+            for d in brain_state.episodes[-10:]:
                 print(f"  {d['content'][:120]}")
                 if d.get("embedding"):
                     print(f"    [embedded, {len(d['embedding'])} dims]")
@@ -200,11 +198,11 @@ async def run(args):
         elif line.startswith("!brain"):
             parts = line.split()
             handle = parts[1] if len(parts) > 1 else agent_names[0]
-            if not store.has(handle, "brain"):
+            if not store.has(handle, BrainState):
                 print(f"  unknown agent: {handle}")
                 continue
-            brain_state = store.get(handle, "brain")
-            dumped = json.dumps(brain_state, indent=2)
+            brain_state = store.get(handle, BrainState)
+            dumped = json.dumps(brain_state.to_dict(), indent=2)
             print(dumped[:3000])
             if len(dumped) > 3000:
                 print("...")

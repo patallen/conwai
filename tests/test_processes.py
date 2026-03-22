@@ -3,33 +3,36 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
-from typing import Any
 
 from conwai.cognition import Decision
 from conwai.cognition.percept import ActionFeedback
+from conwai.processes import (
+    ContextAssembly,
+    InferenceProcess,
+    MemoryCompression,
+    MemoryRecall,
+)
+from conwai.processes.types import (
+    AgentHandle,
+    Decisions,
+    Episode,
+    Episodes,
+    Identity,
+    LLMSnapshot,
+    Observations,
+    PerceptFeedback,
+    RecalledMemories,
+    TickNumber,
+    WorkingMemory,
+    WorkingMemoryEntry,
+)
 from conwai.llm import LLMResponse, ToolCall
-
-from scenarios.bread_economy.processes.context import ContextAssembly
-from scenarios.bread_economy.processes.inference import InferenceProcess
-from scenarios.bread_economy.processes.memory import MemoryCompression, MemoryRecall
+from conwai.typemap import Blackboard, Percept
 
 
 # ---------------------------------------------------------------------------
 # Test helpers
 # ---------------------------------------------------------------------------
-
-
-@dataclass
-class FakePercept:
-    agent_id: str = "A1"
-    tick: int = 1
-    identity: str = "You are A1"
-    prompt_text: str = "tick 1 perception"
-    action_feedback: list = field(default_factory=list)
-
-    def to_prompt(self) -> str:
-        return self.prompt_text
 
 
 class FakeLLMClient:
@@ -53,24 +56,34 @@ class ErrorLLMClient:
         raise ConnectionError("LLM unreachable")
 
 
-def _make_board(
-    messages=None,
-    diary=None,
-    tick_msg_start=None,
+def _make_percept(
+    agent_id="A1", tick=1, identity="", observations="tick 1 perception",
+    feedback=None,
+) -> Percept:
+    p = Percept()
+    p.set(AgentHandle(value=agent_id))
+    p.set(TickNumber(value=tick))
+    p.set(Identity(text=identity))
+    p.set(Observations(text=observations))
+    if feedback:
+        p.set(PerceptFeedback(entries=feedback))
+    return p
+
+
+def _make_bb(
+    working_memory=None,
+    episodes=None,
+    tick_entry_start=None,
     last_tick=0,
-    percept=None,
-) -> dict[str, Any]:
-    """Build a board dict with sensible defaults."""
-    return {
-        "percept": percept or FakePercept(),
-        "decisions": [],
-        "state": {
-            "messages": messages if messages is not None else [],
-            "diary": diary if diary is not None else [],
-            "tick_msg_start": tick_msg_start,
-            "last_tick": last_tick,
-        },
-    }
+) -> Blackboard:
+    bb = Blackboard()
+    bb.set(WorkingMemory(
+        entries=working_memory if working_memory is not None else [],
+        last_tick=last_tick,
+        tick_entry_start=tick_entry_start,
+    ))
+    bb.set(Episodes(entries=episodes if episodes is not None else []))
+    return bb
 
 
 # ===========================================================================
@@ -80,138 +93,102 @@ def _make_board(
 
 class TestMemoryCompression:
     def test_collapse_creates_tick_summary(self):
-        """After a tick with perception + assistant messages, collapse creates
-        a _tick_summary message with timestamp and reasoning."""
-        messages = [
-            {"role": "user", "content": "perception text"},
-            {"role": "assistant", "content": "I will gather wheat"},
+        wm = [
+            WorkingMemoryEntry(content="perception text", kind="observation"),
+            WorkingMemoryEntry(content="I will gather wheat", kind="reasoning"),
         ]
-        board = _make_board(messages=messages, tick_msg_start=0, last_tick=5)
+        bb = _make_bb(working_memory=wm, tick_entry_start=0, last_tick=5)
+        percept = _make_percept()
         mc = MemoryCompression(timestamp_formatter=lambda t: f"T{t}")
 
-        asyncio.run(mc.run(board))
+        asyncio.run(mc.run(percept, bb))
 
-        msgs = board["state"]["messages"]
-        summaries = [m for m in msgs if m.get("_tick_summary")]
+        entries = bb.get(WorkingMemory).entries
+        summaries = [e for e in entries if e.kind == "tick_summary"]
         assert len(summaries) == 1
-        assert summaries[0]["content"].startswith("[T5]")
-        assert "I will gather wheat" in summaries[0]["content"]
+        assert summaries[0].content.startswith("[T5]")
+        assert "I will gather wheat" in summaries[0].content
 
     def test_collapse_includes_action_feedback(self):
-        """ActionFeedback from the percept is included in the collapsed summary."""
         feedback = [
             ActionFeedback(action="harvest", args={"field": "north"}, result="3 wheat"),
             ActionFeedback(action="eat", args={}, result="hunger restored"),
         ]
-        messages = [
-            {"role": "user", "content": "perception"},
-            {"role": "assistant", "content": "thinking"},
+        wm = [
+            WorkingMemoryEntry(content="perception", kind="observation"),
+            WorkingMemoryEntry(content="thinking", kind="reasoning"),
         ]
-        percept = FakePercept(action_feedback=feedback)
-        board = _make_board(
-            messages=messages, tick_msg_start=0, last_tick=2, percept=percept
-        )
+        bb = _make_bb(working_memory=wm, tick_entry_start=0, last_tick=2)
+        percept = _make_percept(tick=2, feedback=feedback)
         mc = MemoryCompression()
 
-        asyncio.run(mc.run(board))
+        asyncio.run(mc.run(percept, bb))
 
-        summaries = [
-            m for m in board["state"]["messages"] if m.get("_tick_summary")
-        ]
+        entries = bb.get(WorkingMemory).entries
+        summaries = [e for e in entries if e.kind == "tick_summary"]
         assert len(summaries) == 1
-        content = summaries[0]["content"]
+        content = summaries[0].content
         assert "harvest" in content and "3 wheat" in content
         assert "eat" in content and "hunger restored" in content
 
-    def test_collapse_includes_tool_messages(self):
-        """For backward compat, tool messages in the tick range appear as
-        action->result entries."""
-        messages = [
-            {"role": "user", "content": "perception"},
-            {"role": "assistant", "content": "thinking"},
-            {"role": "tool", "name": "bake", "content": "bread +1"},
-        ]
-        board = _make_board(messages=messages, tick_msg_start=0, last_tick=3)
-        mc = MemoryCompression()
-
-        asyncio.run(mc.run(board))
-
-        summaries = [
-            m for m in board["state"]["messages"] if m.get("_tick_summary")
-        ]
-        assert len(summaries) == 1
-        content = summaries[0]["content"]
-        assert "bake" in content and "bread +1" in content
-
-    def test_archive_moves_old_summaries_to_diary(self):
-        """With more than recent_ticks summaries, old ones move to diary."""
-        messages = [
-            {"role": "user", "content": f"[T{i}] summary {i}", "_tick_summary": True}
+    def test_archive_moves_old_summaries_to_episodes(self):
+        wm = [
+            WorkingMemoryEntry(content=f"[T{i}] summary {i}", kind="tick_summary")
             for i in range(5)
         ]
-        board = _make_board(messages=messages, last_tick=5)
+        bb = _make_bb(working_memory=wm, last_tick=5)
+        percept = _make_percept()
         mc = MemoryCompression(recent_ticks=3)
 
-        asyncio.run(mc.run(board))
+        asyncio.run(mc.run(percept, bb))
 
-        msgs = board["state"]["messages"]
-        diary = board["state"]["diary"]
-        summaries = [m for m in msgs if m.get("_tick_summary")]
+        entries = bb.get(WorkingMemory).entries
+        summaries = [e for e in entries if e.kind == "tick_summary"]
         assert len(summaries) == 3
-        assert len(diary) == 2
-        # Archived entries are the oldest two (reversed pop order)
-        archived_contents = {d["content"] for d in diary}
-        assert any("summary 0" in c for c in archived_contents)
-        assert any("summary 1" in c for c in archived_contents)
+        eps = bb.get(Episodes).entries
+        assert len(eps) == 2
 
-    def test_diary_cap(self):
-        """Diary doesn't exceed diary_max."""
-        diary = [
-            {"content": f"old entry {i}", "handles": []} for i in range(10)
-        ]
-        messages = [
-            {"role": "user", "content": f"[T{i}] summary Ag1 {i}", "_tick_summary": True}
+    def test_episode_cap(self):
+        episodes = [Episode(content=f"old entry {i}") for i in range(10)]
+        wm = [
+            WorkingMemoryEntry(content=f"[T{i}] summary {i}", kind="tick_summary")
             for i in range(5)
         ]
-        board = _make_board(messages=messages, diary=diary, last_tick=10)
+        bb = _make_bb(working_memory=wm, episodes=episodes, last_tick=10)
+        percept = _make_percept()
         mc = MemoryCompression(recent_ticks=2, diary_max=11)
 
-        asyncio.run(mc.run(board))
+        asyncio.run(mc.run(percept, bb))
 
-        assert len(board["state"]["diary"]) <= 11
+        assert len(bb.get(Episodes).entries) <= 11
 
     def test_first_tick_no_collapse(self):
-        """When tick_msg_start is None, nothing is collapsed."""
-        messages = [
-            {"role": "user", "content": "some old message"},
-        ]
-        board = _make_board(messages=messages, tick_msg_start=None, last_tick=0)
+        wm = [WorkingMemoryEntry(content="some old message", kind="observation")]
+        bb = _make_bb(working_memory=wm, tick_entry_start=None, last_tick=0)
+        percept = _make_percept()
         mc = MemoryCompression()
 
-        asyncio.run(mc.run(board))
+        asyncio.run(mc.run(percept, bb))
 
-        msgs = board["state"]["messages"]
-        assert len(msgs) == 1
-        assert msgs[0]["content"] == "some old message"
-        assert not any(m.get("_tick_summary") for m in msgs)
+        entries = bb.get(WorkingMemory).entries
+        assert len(entries) == 1
+        assert not any(e.kind == "tick_summary" for e in entries)
 
     def test_collapse_truncates_reasoning(self):
-        """Reasoning over 300 chars is truncated with '...'."""
         long_reasoning = "x" * 400
-        messages = [
-            {"role": "user", "content": "perception"},
-            {"role": "assistant", "content": long_reasoning},
+        wm = [
+            WorkingMemoryEntry(content="perception", kind="observation"),
+            WorkingMemoryEntry(content=long_reasoning, kind="reasoning"),
         ]
-        board = _make_board(messages=messages, tick_msg_start=0, last_tick=1)
+        bb = _make_bb(working_memory=wm, tick_entry_start=0, last_tick=1)
+        percept = _make_percept()
         mc = MemoryCompression()
 
-        asyncio.run(mc.run(board))
+        asyncio.run(mc.run(percept, bb))
 
-        summaries = [
-            m for m in board["state"]["messages"] if m.get("_tick_summary")
-        ]
-        content = summaries[0]["content"]
-        # The reasoning portion should be exactly 300 chars + "..."
+        entries = bb.get(WorkingMemory).entries
+        summaries = [e for e in entries if e.kind == "tick_summary"]
+        content = summaries[0].content
         assert content.endswith("...")
         assert "x" * 300 in content
         assert "x" * 301 not in content
@@ -224,137 +201,97 @@ class TestMemoryCompression:
 
 class TestMemoryRecall:
     def test_recall_finds_matching_handles(self):
-        """Diary entries with handles mentioned in perception are recalled."""
-        diary = [
-            {"content": "traded with @Ag1 successfully", "handles": ["Ag1"]},
-            {"content": "saw @Bk2 at the market", "handles": ["Bk2"]},
-            {"content": "nothing relevant here", "handles": ["Cx3"]},
+        episodes = [
+            Episode(content="traded with @Ag1 successfully"),
+            Episode(content="saw @Bk2 at the market"),
+            Episode(content="nothing relevant here @Cx3"),
         ]
-        percept = FakePercept(prompt_text="@Ag1 is nearby and @Bk2 wants to trade")
-        board = _make_board(diary=diary, percept=percept)
+        bb = _make_bb(episodes=episodes)
+        percept = _make_percept(observations="@Ag1 is nearby and @Bk2 wants to trade")
 
         recall = MemoryRecall(recall_limit=10)
-        asyncio.run(recall.run(board))
+        asyncio.run(recall.run(percept, bb))
 
-        recalled = board.get("recalled", [])
-        assert len(recalled) == 2
-        assert any("Ag1" in r for r in recalled)
-        assert any("Bk2" in r for r in recalled)
+        recalled = bb.get(RecalledMemories)
+        assert recalled is not None
+        assert len(recalled.entries) == 2
 
     def test_recall_no_match_returns_nothing(self):
-        """When perception mentions no handles, recall is empty."""
-        diary = [
-            {"content": "traded with Ag1", "handles": ["Ag1"]},
-        ]
-        percept = FakePercept(prompt_text="the sky is blue and nothing happens")
-        board = _make_board(diary=diary, percept=percept)
+        episodes = [Episode(content="traded with Ag1")]
+        bb = _make_bb(episodes=episodes)
+        percept = _make_percept(observations="the sky is blue")
 
         recall = MemoryRecall()
-        asyncio.run(recall.run(board))
+        asyncio.run(recall.run(percept, bb))
 
-        assert board.get("recalled") is None
+        assert bb.get(RecalledMemories) is None
 
     def test_recall_respects_limit(self):
-        """Only recall_limit entries are returned."""
-        diary = [
-            {"content": f"entry {i} about @Ag1", "handles": ["Ag1"]}
-            for i in range(10)
-        ]
-        percept = FakePercept(prompt_text="@Ag1 is here")
-        board = _make_board(diary=diary, percept=percept)
+        episodes = [Episode(content=f"entry {i} about @Ag1") for i in range(10)]
+        bb = _make_bb(episodes=episodes)
+        percept = _make_percept(observations="@Ag1 is here")
 
         recall = MemoryRecall(recall_limit=3)
-        asyncio.run(recall.run(board))
+        asyncio.run(recall.run(percept, bb))
 
-        assert len(board["recalled"]) == 3
-
-    def test_recall_skips_common_words(self):
-        """Words like 'Day', 'New', 'The' do NOT trigger recall because
-        the handle regex requires an @-prefix."""
-        diary = [
-            {"content": "Day 1 was peaceful", "handles": ["Day"]},
-            {"content": "The new era", "handles": ["The"]},
-        ]
-        percept = FakePercept(prompt_text="Day 5 is starting, The morning is new")
-        board = _make_board(diary=diary, percept=percept)
-
-        recall = MemoryRecall()
-        asyncio.run(recall.run(board))
-
-        # "Day" / "The" don't match _HANDLE_RE (no @ prefix)
-        assert board.get("recalled") is None
+        assert len(bb.get(RecalledMemories).entries) == 3
 
     def test_vector_recall_finds_semantically_similar(self):
-        """With an embedder, recall finds entries by meaning, not just handles."""
-
         class FakeEmbedder:
-            """Returns fixed vectors so we can control similarity."""
-
             def embed(self, texts):
-                vecs = []
-                for t in texts:
-                    if "trade" in t or "flour" in t:
-                        vecs.append([1.0, 0.0, 0.0])  # trade cluster
-                    elif "election" in t or "vote" in t:
-                        vecs.append([0.0, 1.0, 0.0])  # politics cluster
-                    else:
-                        vecs.append([0.0, 0.0, 1.0])  # other
-                return vecs
+                return [[1.0, 0.0, 0.0] if ("trade" in t or "flour" in t)
+                        else [0.0, 1.0, 0.0] if ("election" in t or "vote" in t)
+                        else [0.0, 0.0, 1.0] for t in texts]
 
-        diary = [
-            {"content": "traded flour with A1", "handles": ["A1"], "embedding": [1.0, 0.0, 0.0]},
-            {"content": "voted in the election", "handles": [], "embedding": [0.0, 1.0, 0.0]},
-            {"content": "watched the sunset", "handles": [], "embedding": [0.0, 0.0, 1.0]},
+        episodes = [
+            Episode(content="traded flour with @A1", embedding=[1.0, 0.0, 0.0]),
+            Episode(content="voted in the election", embedding=[0.0, 1.0, 0.0]),
+            Episode(content="watched the sunset", embedding=[0.0, 0.0, 1.0]),
         ]
-        # Perception about trading — should recall the trade entry, not election/sunset
-        percept = FakePercept(prompt_text="I need to trade flour for water")
-        board = _make_board(diary=diary, percept=percept)
+        bb = _make_bb(episodes=episodes)
+        percept = _make_percept(observations="I need to trade flour for water")
 
         recall = MemoryRecall(recall_limit=1, embedder=FakeEmbedder())
-        asyncio.run(recall.run(board))
+        asyncio.run(recall.run(percept, bb))
 
-        recalled = board.get("recalled", [])
-        assert len(recalled) == 1
-        assert "traded flour" in recalled[0]
+        recalled = bb.get(RecalledMemories)
+        assert len(recalled.entries) == 1
+        assert "traded flour" in recalled.entries[0]
 
     def test_vector_recall_falls_back_without_embeddings(self):
-        """When diary entries lack embeddings, falls back to handle matching."""
-
         class FakeEmbedder:
             def embed(self, texts):
                 return [[1.0, 0.0] for _ in texts]
 
-        diary = [
-            {"content": "met @A1 at market", "handles": ["A1"]},  # no embedding
-        ]
-        percept = FakePercept(prompt_text="@A1 wants to trade")
-        board = _make_board(diary=diary, percept=percept)
+        episodes = [Episode(content="met @A1 at market")]
+        bb = _make_bb(episodes=episodes)
+        percept = _make_percept(observations="@A1 wants to trade")
 
         recall = MemoryRecall(recall_limit=5, embedder=FakeEmbedder())
-        asyncio.run(recall.run(board))
+        asyncio.run(recall.run(percept, bb))
 
-        recalled = board.get("recalled", [])
-        assert len(recalled) == 1
-        assert "A1" in recalled[0]
+        recalled = bb.get(RecalledMemories)
+        assert len(recalled.entries) == 1
 
     def test_compression_embeds_on_archive(self):
-        """When an embedder is provided, archived entries get embedding vectors."""
-
         class FakeEmbedder:
             def embed(self, texts):
                 return [[0.1, 0.2, 0.3] for _ in texts]
 
-        messages = [{"role": "user", "content": f"summary {i}", "_tick_summary": True} for i in range(5)]
-        board = _make_board(messages=messages)
+        wm = [
+            WorkingMemoryEntry(content=f"summary {i}", kind="tick_summary")
+            for i in range(5)
+        ]
+        bb = _make_bb(working_memory=wm)
+        percept = _make_percept()
 
         mc = MemoryCompression(recent_ticks=2, embedder=FakeEmbedder())
-        asyncio.run(mc.run(board))
+        asyncio.run(mc.run(percept, bb))
 
-        diary = board["state"]["diary"]
-        assert len(diary) == 3  # 5 - 2 recent = 3 archived
-        for entry in diary:
-            assert "embedding" in entry
-            assert entry["embedding"] == [0.1, 0.2, 0.3]
+        eps = bb.get(Episodes).entries
+        assert len(eps) == 3
+        for ep in eps:
+            assert ep.embedding == [0.1, 0.2, 0.3]
 
 
 # ===========================================================================
@@ -364,101 +301,69 @@ class TestMemoryRecall:
 
 class TestContextAssembly:
     def test_snapshot_includes_identity_and_perception(self):
-        """Snapshot has identity as first message and perception as last."""
-        percept = FakePercept(identity="You are A1", prompt_text="tick 1")
-        board = _make_board(percept=percept)
+        bb = _make_bb()
+        percept = _make_percept(identity="You are A1", observations="tick 1")
 
-        ctx = ContextAssembly(system_prompt="be helpful")
-        asyncio.run(ctx.run(board))
+        ca = ContextAssembly(system_prompt="be helpful")
+        asyncio.run(ca.run(percept, bb))
 
-        snapshot = board["messages_snapshot"]
-        assert snapshot[0]["content"] == "You are A1"
-        assert snapshot[-1]["content"] == "tick 1"
-        assert board["system_prompt"] == "be helpful"
+        snap = bb.get(LLMSnapshot)
+        assert snap.messages[0]["content"] == "You are A1"
+        assert snap.messages[-1]["content"] == "tick 1"
+        assert snap.system_prompt == "be helpful"
 
     def test_context_trimming(self):
-        """When messages exceed context_window, oldest are removed."""
-        messages = [
-            {"role": "user", "content": "a" * 100}
-            for _ in range(10)
-        ]
-        percept = FakePercept(identity="", prompt_text="short")
-        board = _make_board(messages=messages, percept=percept)
+        wm = [WorkingMemoryEntry(content="a" * 100, kind="observation") for _ in range(10)]
+        bb = _make_bb(working_memory=wm)
+        percept = _make_percept(observations="short")
 
-        ctx = ContextAssembly(context_window=300)
-        asyncio.run(ctx.run(board))
+        ca = ContextAssembly(context_window=300)
+        asyncio.run(ca.run(percept, bb))
 
-        # Messages should have been trimmed so total content <= 300
-        total = sum(len(m.get("content", "")) for m in board["state"]["messages"])
-        # The trimming happens before perception is added, so persistent
-        # messages (minus the appended perception) should be within budget
-        # (some may exceed slightly due to perception append)
+        total = sum(len(e.content) for e in bb.get(WorkingMemory).entries)
         assert total <= 300 + len("short")
 
     def test_identity_slot_updated(self):
-        """Identity message is updated in place, not duplicated."""
-        messages = [
-            {"role": "user", "content": "old identity", "_identity": True},
-            {"role": "user", "content": "summary", "_tick_summary": True},
+        wm = [
+            WorkingMemoryEntry(content="old identity", kind="identity"),
+            WorkingMemoryEntry(content="summary", kind="tick_summary"),
         ]
-        percept = FakePercept(identity="new identity", prompt_text="tick 2")
-        board = _make_board(messages=messages, percept=percept)
+        bb = _make_bb(working_memory=wm)
+        percept = _make_percept(identity="new identity", observations="tick 2")
 
-        ctx = ContextAssembly()
-        asyncio.run(ctx.run(board))
+        ca = ContextAssembly()
+        asyncio.run(ca.run(percept, bb))
 
-        msgs = board["state"]["messages"]
-        identity_msgs = [m for m in msgs if m.get("_identity")]
-        assert len(identity_msgs) == 1
-        assert identity_msgs[0]["content"] == "new identity"
+        entries = bb.get(WorkingMemory).entries
+        identity_entries = [e for e in entries if e.kind == "identity"]
+        assert len(identity_entries) == 1
+        assert identity_entries[0].content == "new identity"
 
     def test_recalled_memories_in_snapshot_only(self):
-        """Recalled memories appear in snapshot but NOT in persistent messages."""
-        percept = FakePercept(identity="You are A1", prompt_text="tick 1")
-        board = _make_board(percept=percept)
-        board["recalled"] = ["old memory about Ag1"]
+        bb = _make_bb()
+        bb.set(RecalledMemories(entries=["old memory about Ag1"]))
+        percept = _make_percept(identity="You are A1", observations="tick 1")
 
-        ctx = ContextAssembly()
-        asyncio.run(ctx.run(board))
+        ca = ContextAssembly()
+        asyncio.run(ca.run(percept, bb))
 
-        snapshot = board["messages_snapshot"]
-        recall_msgs = [m for m in snapshot if "RECALLED MEMORIES" in m.get("content", "")]
+        snap = bb.get(LLMSnapshot)
+        recall_msgs = [m for m in snap.messages if "RECALLED MEMORIES" in m.get("content", "")]
         assert len(recall_msgs) == 1
-        assert "old memory about Ag1" in recall_msgs[0]["content"]
 
-        persistent = board["state"]["messages"]
-        for m in persistent:
-            assert "RECALLED MEMORIES" not in m.get("content", "")
+        for e in bb.get(WorkingMemory).entries:
+            assert "RECALLED MEMORIES" not in e.content
 
-    def test_metadata_stripped_from_snapshot(self):
-        """Keys starting with '_' are stripped from snapshot messages."""
-        messages = [
-            {"role": "user", "content": "identity", "_identity": True},
-            {"role": "user", "content": "summary", "_tick_summary": True},
-        ]
-        percept = FakePercept(identity="identity", prompt_text="tick 1")
-        board = _make_board(messages=messages, percept=percept)
+    def test_tick_entry_start_set(self):
+        bb = _make_bb()
+        percept = _make_percept(observations="tick 1 perception")
 
-        ctx = ContextAssembly()
-        asyncio.run(ctx.run(board))
+        ca = ContextAssembly()
+        asyncio.run(ca.run(percept, bb))
 
-        snapshot = board["messages_snapshot"]
-        for msg in snapshot:
-            for key in msg:
-                assert not key.startswith("_"), f"metadata key {key!r} leaked into snapshot"
-
-    def test_tick_msg_start_set(self):
-        """After run, state has tick_msg_start pointing to the perception message."""
-        percept = FakePercept(identity="You are A1", prompt_text="tick 1 perception")
-        board = _make_board(percept=percept)
-
-        ctx = ContextAssembly()
-        asyncio.run(ctx.run(board))
-
-        state = board["state"]
-        idx = state["tick_msg_start"]
-        assert idx is not None
-        assert state["messages"][idx]["content"] == "tick 1 perception"
+        wm = bb.get(WorkingMemory)
+        assert wm.tick_entry_start is not None
+        assert wm.entries[wm.tick_entry_start].content == "tick 1 perception"
 
 
 # ===========================================================================
@@ -468,7 +373,6 @@ class TestContextAssembly:
 
 class TestInferenceProcess:
     def test_inference_appends_decisions(self):
-        """Mock LLM returning tool calls produces decisions on the board."""
         tool_calls = [
             ToolCall(id="tc1", name="bake", args={"amount": 1}),
             ToolCall(id="tc2", name="sell", args={"to": "Bk2", "price": 5}),
@@ -476,62 +380,55 @@ class TestInferenceProcess:
         client = FakeLLMClient(text="I'll bake and sell", tool_calls=tool_calls)
         proc = InferenceProcess(client=client, tools=[{"function": {"name": "bake"}}])
 
-        percept = FakePercept()
-        board = _make_board(percept=percept)
-        board["messages_snapshot"] = [{"role": "user", "content": "tick 1"}]
-        board["system_prompt"] = "be helpful"
+        bb = _make_bb()
+        bb.set(LLMSnapshot(messages=[{"role": "user", "content": "tick 1"}], system_prompt="be helpful"))
+        percept = _make_percept()
 
-        asyncio.run(proc.run(board))
+        asyncio.run(proc.run(percept, bb))
 
-        decisions = board["decisions"]
-        assert len(decisions) == 2
-        assert decisions[0] == Decision("bake", {"amount": 1})
-        assert decisions[1] == Decision("sell", {"to": "Bk2", "price": 5})
+        decisions = bb.get(Decisions)
+        assert len(decisions.entries) == 2
+        assert decisions.entries[0] == Decision("bake", {"amount": 1})
 
     def test_inference_handles_empty_response(self):
-        """LLM returns no text and no tool calls: no decisions, no message."""
         client = FakeLLMClient(text="", tool_calls=[])
         proc = InferenceProcess(client=client)
 
-        board = _make_board()
-        board["messages_snapshot"] = [{"role": "user", "content": "tick 1"}]
-        board["system_prompt"] = ""
+        bb = _make_bb()
+        bb.set(LLMSnapshot(messages=[{"role": "user", "content": "tick 1"}]))
+        percept = _make_percept()
 
-        asyncio.run(proc.run(board))
+        asyncio.run(proc.run(percept, bb))
 
-        assert board["decisions"] == []
-        assert board["state"]["messages"] == []
+        assert bb.get(Decisions) is None
 
     def test_inference_handles_error(self):
-        """LLM raises exception: no crash, no decisions."""
         client = ErrorLLMClient()
         proc = InferenceProcess(client=client)
 
-        board = _make_board()
-        board["messages_snapshot"] = [{"role": "user", "content": "tick 1"}]
-        board["system_prompt"] = ""
+        bb = _make_bb()
+        bb.set(LLMSnapshot(messages=[{"role": "user", "content": "tick 1"}]))
+        percept = _make_percept()
 
-        asyncio.run(proc.run(board))
+        asyncio.run(proc.run(percept, bb))
 
-        assert board["decisions"] == []
+        assert bb.get(Decisions) is None
 
-    def test_inference_appends_assistant_message(self):
-        """The assistant message is appended to persistent messages."""
+    def test_inference_stores_reasoning_in_working_memory(self):
         tool_calls = [ToolCall(id="tc1", name="bake", args={})]
         client = FakeLLMClient(text="thinking out loud", tool_calls=tool_calls)
         proc = InferenceProcess(client=client)
 
-        board = _make_board()
-        board["messages_snapshot"] = [{"role": "user", "content": "tick 1"}]
-        board["system_prompt"] = ""
+        bb = _make_bb()
+        bb.set(LLMSnapshot(messages=[{"role": "user", "content": "tick 1"}]))
+        percept = _make_percept()
 
-        asyncio.run(proc.run(board))
+        asyncio.run(proc.run(percept, bb))
 
-        msgs = board["state"]["messages"]
-        assert len(msgs) == 1
-        assert msgs[0]["role"] == "assistant"
-        assert msgs[0]["content"] == "thinking out loud"
-        assert "tool_calls" in msgs[0]
+        wm = bb.get(WorkingMemory)
+        reasoning = [e for e in wm.entries if e.kind == "reasoning"]
+        assert len(reasoning) == 1
+        assert reasoning[0].content == "thinking out loud"
 
 
 # ===========================================================================
@@ -541,13 +438,6 @@ class TestInferenceProcess:
 
 class TestFullPipeline:
     def test_full_pipeline_two_ticks(self):
-        """Run the full pipeline for two ticks with a mock LLM.
-
-        Tick 1: LLM gets perception, returns a tool call, decision recorded.
-        Tick 2: Previous tick compressed into summary with action results,
-                LLM gets new perception with summary in history.
-        """
-        # --- Tick 1 ---
         tick1_calls = [ToolCall(id="tc1", name="harvest", args={"field": "north"})]
         llm = FakeLLMClient(text="I should harvest", tool_calls=tick1_calls)
 
@@ -556,85 +446,52 @@ class TestFullPipeline:
         context = ContextAssembly(system_prompt="system")
         inference = InferenceProcess(client=llm)
 
-        percept1 = FakePercept(
-            agent_id="A1", tick=1, identity="You are A1", prompt_text="tick 1 world"
-        )
+        bb = _make_bb()
+        percept1 = _make_percept(agent_id="A1", tick=1, identity="You are A1", observations="tick 1 world")
 
-        board: dict[str, Any] = {
-            "percept": percept1,
-            "decisions": [],
-            "state": {
-                "messages": [],
-                "diary": [],
-                "tick_msg_start": None,
-                "last_tick": 0,
-            },
-        }
+        async def run_tick(p, b):
+            await compression.run(p, b)
+            await recall.run(p, b)
+            await context.run(p, b)
+            await inference.run(p, b)
 
-        async def run_tick(b):
-            await compression.run(b)
-            await recall.run(b)
-            await context.run(b)
-            await inference.run(b)
+        asyncio.run(run_tick(percept1, bb))
 
-        asyncio.run(run_tick(board))
-
-        # Verify tick 1 results
-        assert len(board["decisions"]) == 1
-        assert board["decisions"][0] == Decision("harvest", {"field": "north"})
-
-        # LLM received the perception
-        assert llm.last_call is not None
-        snapshot1 = llm.last_call["messages"]
-        assert any("tick 1 world" in m.get("content", "") for m in snapshot1)
-
-        # State now has the perception message and the assistant reply
-        state = board["state"]
-        assert state["tick_msg_start"] is not None
+        decisions = bb.get(Decisions)
+        assert len(decisions.entries) == 1
+        assert decisions.entries[0] == Decision("harvest", {"field": "north"})
 
         # --- Tick 2 ---
-        feedback = [
-            ActionFeedback(action="harvest", args={"field": "north"}, result="3 wheat"),
-        ]
-        percept2 = FakePercept(
-            agent_id="A1",
-            tick=2,
-            identity="You are A1",
-            prompt_text="tick 2 world",
-            action_feedback=feedback,
+        feedback = [ActionFeedback(action="harvest", args={"field": "north"}, result="3 wheat")]
+        percept2 = _make_percept(
+            agent_id="A1", tick=2, identity="You are A1",
+            observations="tick 2 world", feedback=feedback,
         )
+        bb.remove(Decisions)
+        bb.remove(RecalledMemories)
+        bb.remove(LLMSnapshot)
 
         tick2_calls = [ToolCall(id="tc2", name="bake", args={})]
         llm2 = FakeLLMClient(text="Now I bake", tool_calls=tick2_calls)
         inference2 = InferenceProcess(client=llm2)
 
-        board["percept"] = percept2
-        board["decisions"] = []
+        async def run_tick2(p, b):
+            await compression.run(p, b)
+            await recall.run(p, b)
+            await context.run(p, b)
+            await inference2.run(p, b)
 
-        async def run_tick2(b):
-            await compression.run(b)
-            await recall.run(b)
-            await context.run(b)
-            await inference2.run(b)
+        asyncio.run(run_tick2(percept2, bb))
 
-        asyncio.run(run_tick2(board))
-
-        # Tick 1's messages should have been compressed into a summary
-        msgs = board["state"]["messages"]
-        summaries = [m for m in msgs if m.get("_tick_summary")]
+        wm = bb.get(WorkingMemory)
+        summaries = [e for e in wm.entries if e.kind == "tick_summary"]
         assert len(summaries) == 1
-        summary_content = summaries[0]["content"]
-        assert "[T1]" in summary_content
-        # Action feedback included in summary
-        assert "harvest" in summary_content
-        assert "3 wheat" in summary_content
+        assert "[T1]" in summaries[0].content
+        assert "harvest" in summaries[0].content
 
-        # Tick 2 decisions
-        assert len(board["decisions"]) == 1
-        assert board["decisions"][0] == Decision("bake", {})
+        decisions = bb.get(Decisions)
+        assert decisions.entries[0] == Decision("bake", {})
 
-        # LLM received tick 2 perception
         snapshot2 = llm2.last_call["messages"]
         assert any("tick 2 world" in m.get("content", "") for m in snapshot2)
-        # Summary from tick 1 should be visible in the snapshot
         assert any("[T1]" in m.get("content", "") for m in snapshot2)

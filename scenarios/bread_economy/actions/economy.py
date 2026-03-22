@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from scenarios.bread_economy.actions.helpers import _capped_add
+from scenarios.bread_economy.components import Economy, Inventory
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
@@ -52,9 +53,9 @@ def _pay(agent: Agent, ctx: TickContext, args: dict) -> str:
         return "invalid amount"
     if amount <= 0:
         return "amount must be positive"
-    eco = ctx.store.get(agent.handle, "economy")
-    if amount > eco["coins"]:
-        return f"not enough coins to pay {amount} (have {int(eco['coins'])})"
+    eco = ctx.store.get(agent.handle, Economy)
+    if amount > eco.coins:
+        return f"not enough coins to pay {amount} (have {int(eco.coins)})"
     if not ctx.pool:
         return "payment unavailable"
     other = ctx.pool.by_handle(to)
@@ -62,11 +63,11 @@ def _pay(agent: Agent, ctx: TickContext, args: dict) -> str:
         return f"unknown agent: {to}"
     if to == agent.handle:
         return "cannot pay yourself"
-    eco["coins"] -= amount
-    ctx.store.set(agent.handle, "economy", eco)
-    other_eco = ctx.store.get(to, "economy")
-    other_eco["coins"] += amount
-    ctx.store.set(to, "economy", other_eco)
+    eco.coins -= amount
+    ctx.store.set(agent.handle, eco)
+    other_eco = ctx.store.get(to, Economy)
+    other_eco.coins += amount
+    ctx.store.set(to, other_eco)
     if ctx.perception:
         ctx.perception.notify(agent.handle, f"-{amount} coins (paid to @{to})")
         ctx.perception.notify(to, f"+{amount} coins (payment from @{agent.handle})")
@@ -87,9 +88,9 @@ def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
         return "amount must be positive"
     if resource not in ("flour", "water", "bread"):
         return f"invalid resource: {resource}. Must be flour, water, or bread."
-    inv = ctx.store.get(agent.handle, "inventory")
-    if amount > inv[resource]:
-        return f"not enough {resource} to give {amount} (have {inv[resource]})"
+    inv = ctx.store.get(agent.handle, Inventory)
+    if amount > getattr(inv, resource):
+        return f"not enough {resource} to give {amount} (have {getattr(inv, resource)})"
     if not ctx.pool:
         return "giving unavailable"
     other = ctx.pool.by_handle(to)
@@ -97,11 +98,11 @@ def _give(agent: Agent, ctx: TickContext, args: dict) -> str:
         return f"unknown agent: {to}"
     if to == agent.handle:
         return "cannot give to yourself"
-    inv[resource] -= amount
-    ctx.store.set(agent.handle, "inventory", inv)
-    other_inv = ctx.store.get(to, "inventory")
+    setattr(inv, resource, getattr(inv, resource) - amount)
+    ctx.store.set(agent.handle, inv)
+    other_inv = ctx.store.get(to, Inventory)
     _capped_add(other_inv, resource, amount)
-    ctx.store.set(to, "inventory", other_inv)
+    ctx.store.set(to, other_inv)
     if ctx.perception:
         ctx.perception.notify(to, f"received {amount} {resource} from @{agent.handle}")
     ctx.events.log(
@@ -138,13 +139,13 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
 
         # Check the offerer actually has the resources
         if give_type == "coins":
-            eco = ctx.store.get(agent.handle, "economy")
-            if give_amount > eco["coins"]:
-                return f"not enough coins (have {int(eco['coins'])})"
+            eco = ctx.store.get(agent.handle, Economy)
+            if give_amount > eco.coins:
+                return f"not enough coins (have {int(eco.coins)})"
         else:
-            inv = ctx.store.get(agent.handle, "inventory")
-            if give_amount > inv.get(give_type, 0):
-                return f"not enough {give_type} (have {inv.get(give_type, 0)})"
+            inv = ctx.store.get(agent.handle, Inventory)
+            if give_amount > getattr(inv, give_type):
+                return f"not enough {give_type} (have {getattr(inv, give_type)})"
 
         # Max 3 pending offers per agent
         if offer_book.count_by_agent(agent.handle) >= 3:
@@ -191,58 +192,58 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
 
         # Verify offerer still has resources
         if give_type == "coins":
-            off_eco = ctx.store.get(offerer, "economy")
-            if give_amount > off_eco["coins"]:
+            off_eco = ctx.store.get(offerer, Economy)
+            if give_amount > off_eco.coins:
                 offer_book.remove(oid)
                 return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
         else:
-            off_inv = ctx.store.get(offerer, "inventory")
-            if give_amount > off_inv.get(give_type, 0):
+            off_inv = ctx.store.get(offerer, Inventory)
+            if give_amount > getattr(off_inv, give_type):
                 offer_book.remove(oid)
                 return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
 
         # Verify accepter has the wanted resources
         if want_type == "coins":
-            acc_eco = ctx.store.get(agent.handle, "economy")
-            if want_amount > acc_eco["coins"]:
-                return f"You don't have enough coins (have {int(acc_eco['coins'])}, need {want_amount})."
+            acc_eco = ctx.store.get(agent.handle, Economy)
+            if want_amount > acc_eco.coins:
+                return f"You don't have enough coins (have {int(acc_eco.coins)}, need {want_amount})."
         else:
-            acc_inv = ctx.store.get(agent.handle, "inventory")
-            if want_amount > acc_inv.get(want_type, 0):
-                return f"You don't have enough {want_type} (have {acc_inv.get(want_type, 0)}, need {want_amount})."
+            acc_inv = ctx.store.get(agent.handle, Inventory)
+            if want_amount > getattr(acc_inv, want_type):
+                return f"You don't have enough {want_type} (have {getattr(acc_inv, want_type)}, need {want_amount})."
 
         # Execute the swap atomically
         # Offerer gives give_type, accepter receives it
         if give_type == "coins":
-            off_eco = ctx.store.get(offerer, "economy")
-            off_eco["coins"] -= give_amount
-            ctx.store.set(offerer, "economy", off_eco)
-            acc_eco = ctx.store.get(agent.handle, "economy")
-            acc_eco["coins"] += give_amount
-            ctx.store.set(agent.handle, "economy", acc_eco)
+            off_eco = ctx.store.get(offerer, Economy)
+            off_eco.coins -= give_amount
+            ctx.store.set(offerer, off_eco)
+            acc_eco = ctx.store.get(agent.handle, Economy)
+            acc_eco.coins += give_amount
+            ctx.store.set(agent.handle, acc_eco)
         else:
-            off_inv = ctx.store.get(offerer, "inventory")
-            off_inv[give_type] -= give_amount
-            ctx.store.set(offerer, "inventory", off_inv)
-            acc_inv = ctx.store.get(agent.handle, "inventory")
+            off_inv = ctx.store.get(offerer, Inventory)
+            setattr(off_inv, give_type, getattr(off_inv, give_type) - give_amount)
+            ctx.store.set(offerer, off_inv)
+            acc_inv = ctx.store.get(agent.handle, Inventory)
             _capped_add(acc_inv, give_type, give_amount)
-            ctx.store.set(agent.handle, "inventory", acc_inv)
+            ctx.store.set(agent.handle, acc_inv)
 
         # Accepter gives want_type, offerer receives it
         if want_type == "coins":
-            acc_eco = ctx.store.get(agent.handle, "economy")
-            acc_eco["coins"] -= want_amount
-            ctx.store.set(agent.handle, "economy", acc_eco)
-            off_eco = ctx.store.get(offerer, "economy")
-            off_eco["coins"] += want_amount
-            ctx.store.set(offerer, "economy", off_eco)
+            acc_eco = ctx.store.get(agent.handle, Economy)
+            acc_eco.coins -= want_amount
+            ctx.store.set(agent.handle, acc_eco)
+            off_eco = ctx.store.get(offerer, Economy)
+            off_eco.coins += want_amount
+            ctx.store.set(offerer, off_eco)
         else:
-            acc_inv = ctx.store.get(agent.handle, "inventory")
-            acc_inv[want_type] -= want_amount
-            ctx.store.set(agent.handle, "inventory", acc_inv)
-            off_inv = ctx.store.get(offerer, "inventory")
+            acc_inv = ctx.store.get(agent.handle, Inventory)
+            setattr(acc_inv, want_type, getattr(acc_inv, want_type) - want_amount)
+            ctx.store.set(agent.handle, acc_inv)
+            off_inv = ctx.store.get(offerer, Inventory)
             _capped_add(off_inv, want_type, want_amount)
-            ctx.store.set(offerer, "inventory", off_inv)
+            ctx.store.set(offerer, off_inv)
 
         offer_book.remove(oid)
 

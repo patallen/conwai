@@ -5,6 +5,7 @@ import random
 import string
 from typing import TYPE_CHECKING
 
+from scenarios.bread_economy.components import AgentMemory, Economy
 from scenarios.bread_economy.config import get_config
 
 if TYPE_CHECKING:
@@ -102,10 +103,10 @@ class CipherSystem:
         guess = guess.strip().upper()
         if guess == self._plaintext:
             # Winner
-            if self._store.has(agent.handle, "economy"):
-                eco = self._store.get(agent.handle, "economy")
-                eco["coins"] += self._reward
-                self._store.set(agent.handle, "economy", eco)
+            if self._store.has(agent.handle, Economy):
+                eco = self._store.get(agent.handle, Economy)
+                eco.coins += self._reward
+                self._store.set(agent.handle, eco)
                 self._perception.notify(agent.handle, f"+{self._reward} coins (solved cipher)")
 
             self._board.post(
@@ -120,10 +121,10 @@ class CipherSystem:
             # Wrong — give feedback on how close they are
             correct_chars = sum(a == b for a, b in zip(guess, self._plaintext))
             correct_len = len(guess) == len(self._plaintext)
-            if self._store.has(agent.handle, "economy"):
-                eco = self._store.get(agent.handle, "economy")
-                eco["coins"] = max(0, eco["coins"] - self._penalty)
-                self._store.set(agent.handle, "economy", eco)
+            if self._store.has(agent.handle, Economy):
+                eco = self._store.get(agent.handle, Economy)
+                eco.coins = max(0, eco.coins - self._penalty)
+                self._store.set(agent.handle, eco)
             self._attempts.append({"handle": agent.handle, "guess": guess, "correct_chars": correct_chars})
             log.info(f"[WORLD] WRONG CIPHER by {agent.handle}: '{guess}' (wanted '{self._plaintext}')")
             hint = f"{correct_chars} characters in the right position"
@@ -184,10 +185,10 @@ class CipherSystem:
             self._clue_holders[handle] = clue
 
             # Store clue in agent's memory component
-            if self._store.has(handle, "memory"):
-                mem = self._store.get(handle, "memory")
-                mem["code_fragment"] = f"CIPHER CLUE: {clue}"
-                self._store.set(handle, "memory", mem)
+            if self._store.has(handle, AgentMemory):
+                mem = self._store.get(handle, AgentMemory)
+                mem.code_fragment = f"CIPHER CLUE: {clue}"
+                self._store.set(handle, mem)
 
             self._bus.send(
                 "WORLD",
@@ -204,10 +205,10 @@ class CipherSystem:
 
     def _clear(self) -> None:
         for handle in self._clue_holders:
-            if self._store.has(handle, "memory"):
-                mem = self._store.get(handle, "memory")
-                mem["code_fragment"] = None
-                self._store.set(handle, "memory", mem)
+            if self._store.has(handle, AgentMemory):
+                mem = self._store.get(handle, AgentMemory)
+                mem.code_fragment = None
+                self._store.set(handle, mem)
         self._clue_holders.clear()
         self._plaintext = None
         self._ciphertext = None

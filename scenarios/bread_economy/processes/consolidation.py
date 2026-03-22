@@ -1,11 +1,11 @@
-"""Consolidation process: reflection-based episodic→semantic memory.
+"""Consolidation process: reflection-based episodic -> semantic memory.
 
 Adapted from Generative Agents (Park et al., 2023). On each cycle:
-1. Gather recent diary entries
+1. Gather recent episodes
 2. Ask a small LLM for the 3 most salient questions
-3. For each question, retrieve relevant diary entries by embedding similarity
-4. Ask the LLM for insights grounded in those entries
-5. Store insights as new diary entries (with embeddings) — they participate
+3. For each question, retrieve relevant episodes by embedding similarity
+4. Ask the LLM for insights grounded in those episodes
+5. Store insights as new episodes (with embeddings) — they participate
    in future retrieval and future reflections.
 """
 
@@ -14,25 +14,21 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from conwai.processes.types import AgentHandle, Episodes, Episode, TickNumber
+from conwai.typemap import Blackboard, Percept
+
 log = logging.getLogger("conwai")
 
 if TYPE_CHECKING:
     from conwai.embeddings import Embedder
 
-# Minimum diary entries before reflection activates
 _MIN_ENTRIES = 15
-# Number of focal-point questions to generate
 _N_QUESTIONS = 3
-# Diary entries to retrieve per question
 _RETRIEVE_K = 5
 
 
 class ConsolidationProcess:
-    """Generate reflections from diary entries via focal-point questions.
-
-    Uses a small LLM (articulator) for reflection and the shared embedder
-    for retrieval and storing insights. Runs every *interval* ticks.
-    """
+    """Generate reflections from episodes via focal-point questions."""
 
     def __init__(
         self,
@@ -41,6 +37,7 @@ class ConsolidationProcess:
         embedder: Embedder | None = None,
         enabled: bool = True,
         first_person: bool = True,
+        timestamp_formatter: Any | None = None,
         **_: Any,
     ):
         self.interval = interval
@@ -48,11 +45,13 @@ class ConsolidationProcess:
         self._embedder = embedder
         self.enabled = enabled
         self.first_person = first_person
+        self._fmt = timestamp_formatter or str
 
-    async def run(self, board: dict[str, Any]) -> None:
-        percept = board.get("percept")
-        tick = getattr(percept, "tick", 0)
-        agent_id = getattr(percept, "agent_id", "?")
+    async def run(self, percept: Percept, bb: Blackboard) -> None:
+        tick_num = percept.get(TickNumber)
+        tick = tick_num.value if tick_num else 0
+        handle = percept.get(AgentHandle)
+        agent_id = handle.value if handle else "?"
 
         if not self.enabled or tick == 0 or tick % self.interval != 0:
             return
@@ -60,26 +59,20 @@ class ConsolidationProcess:
         if not self._articulator or not self._embedder:
             return
 
-        state = board.setdefault("state", {})
-        diary: list[dict] = state.get("diary", [])
-        if len(diary) < _MIN_ENTRIES:
-            log.debug(
-                f"[@{agent_id}] reflection skipped: "
-                f"{len(diary)} diary entries < {_MIN_ENTRIES}"
-            )
+        eps = bb.get(Episodes)
+        if not eps or len(eps.entries) < _MIN_ENTRIES:
+            log.debug(f"[@{agent_id}] reflection skipped: not enough episodes")
             return
 
-        entries_with_emb = [e for e in diary if "embedding" in e]
+        entries_with_emb = [e for e in eps.entries if e.embedding is not None]
         if len(entries_with_emb) < _MIN_ENTRIES:
             return
 
-        # Step 1: Build recent diary summary for the focal-point prompt
         recent = entries_with_emb[-50:]
         numbered = "\n".join(
-            f"{i+1}. {e['content'][:200]}" for i, e in enumerate(recent)
+            f"{i+1}. {e.content[:200]}" for i, e in enumerate(recent)
         )
 
-        # Step 2: Ask for focal-point questions
         questions = await self._generate_questions(numbered, agent_id)
         if not questions:
             return
@@ -87,52 +80,45 @@ class ConsolidationProcess:
         for q in questions:
             log.info(f"[@{agent_id}]   focal question: {q[:80]}")
 
-        # Step 3-4: For each question, retrieve + generate insight
         from conwai.embeddings import cosine_topk
 
-        vectors = [e["embedding"] for e in entries_with_emb]
+        vectors = [e.embedding for e in entries_with_emb]
         insights = []
 
         for question in questions:
-            # Embed the question, retrieve top-k relevant diary entries
             q_vec = self._embedder.embed([question])[0]
             top_indices = cosine_topk(q_vec, vectors, k=_RETRIEVE_K)
-            evidence = [entries_with_emb[i]["content"][:200] for i in top_indices]
+            evidence = [entries_with_emb[i].content[:200] for i in top_indices]
 
-            # Generate insight from evidence
             insight = await self._generate_insight(question, evidence, agent_id)
             if insight:
                 insights.append(insight)
 
-        # Step 5: Store insights as diary entries with embeddings
-        # Skip duplicates of existing reflections
-        existing_reflections = {
-            e["content"] for e in diary if e.get("content", "").startswith("[Reflection]")
-        }
-        new_insights = [
-            ins for ins in insights
-            if f"[Reflection] {ins}" not in existing_reflections
-        ]
+        existing_reflections = set()
+        for e in eps.entries:
+            if e.content.startswith("[Reflection"):
+                body = e.content.split("] ", 1)[1] if "] " in e.content else e.content
+                existing_reflections.add(body)
+
+        new_insights = [ins for ins in insights if ins not in existing_reflections]
         if new_insights:
             insight_vecs = self._embedder.embed(new_insights)
             for text, vec in zip(new_insights, insight_vecs):
-                diary.append({
-                    "content": f"[Reflection] {text}",
-                    "embedding": vec,
-                    "handles": [],
-                })
+                eps.entries.append(Episode(
+                    content=f"[Reflection, {self._fmt(tick)}] {text}",
+                    tick=tick,
+                    embedding=vec,
+                ))
+            bb.set(eps)
 
             log.info(
-                f"[@{agent_id}] reflection: {len(entries_with_emb)} entries → "
+                f"[@{agent_id}] reflection: {len(entries_with_emb)} entries -> "
                 f"{len(new_insights)} insights ({len(insights) - len(new_insights)} dupes skipped)"
             )
             for ins in new_insights:
                 log.info(f"[@{agent_id}]   insight: {ins[:80]}")
 
-    async def _generate_questions(
-        self, diary_summary: str, agent_id: str
-    ) -> list[str]:
-        """Ask the LLM for focal-point questions about recent experience."""
+    async def _generate_questions(self, diary_summary: str, agent_id: str) -> list[str]:
         if self.first_person:
             q_framing = "I can answer about my"
             q_system = "You generate questions about your experience. Short questions only. No preamble."
@@ -159,7 +145,6 @@ class ConsolidationProcess:
                 line = line.strip()
                 if not line:
                     continue
-                # Strip numbering: "1)", "1.", "- ", "* ", etc.
                 line = re.sub(r"^[\d]+[.)]\s*", "", line)
                 line = re.sub(r"^[-*]\s+", "", line)
                 line = line.strip()
@@ -170,10 +155,7 @@ class ConsolidationProcess:
             log.warning(f"[@{agent_id}] focal-point generation failed: {e}")
             return []
 
-    async def _generate_insight(
-        self, question: str, evidence: list[str], agent_id: str
-    ) -> str | None:
-        """Generate an insight from a question and retrieved evidence."""
+    async def _generate_insight(self, question: str, evidence: list[str], agent_id: str) -> str | None:
         numbered = "\n".join(f"{i+1}. {e}" for i, e in enumerate(evidence))
         if self.first_person:
             i_framing = "can I infer"
@@ -194,7 +176,6 @@ class ConsolidationProcess:
                 messages=[{"role": "user", "content": prompt}],
             )
             text = resp.text.strip()
-            # Strip any numbering or "Insight:" prefix
             for prefix in ["1.", "1)", "Insight:", "insight:"]:
                 if text.startswith(prefix):
                     text = text[len(prefix):].strip()

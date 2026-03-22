@@ -1,84 +1,70 @@
 import asyncio
 from dataclasses import dataclass
 
-from conwai.cognition import BlackboardBrain, Decision
+from conwai.cognition import BlackboardBrain, BrainState, Decision
+from conwai.processes.types import Decisions, WorkingMemory, WorkingMemoryEntry
 from conwai.store import ComponentStore
-
-
-@dataclass
-class FakePercept:
-    agent_id: str = "A1"
-    tick: int = 1
-
-    def to_prompt(self) -> str:
-        return f"tick {self.tick}"
+from conwai.typemap import Blackboard, Percept
 
 
 class AppendDecision:
-    """Process that writes a fixed decision to the board."""
-
     def __init__(self, action: str):
         self.action = action
 
-    async def run(self, board):
-        board.setdefault("decisions", []).append(Decision(self.action, {}))
+    async def run(self, percept: Percept, bb: Blackboard):
+        decisions = bb.get(Decisions) or Decisions()
+        decisions.entries.append(Decision(self.action, {}))
+        bb.set(decisions)
 
 
-class WriteToState:
-    """Process that writes a marker to persistent state."""
-
-    async def run(self, board):
-        state = board.setdefault("state", {})
-        state["visited"] = True
+class MarkLastTick:
+    async def run(self, percept: Percept, bb: Blackboard):
+        wm = bb.get(WorkingMemory) or WorkingMemory()
+        wm.last_tick = 99
+        bb.set(wm)
 
 
 def test_processes_run_in_order():
     brain = BlackboardBrain(processes=[AppendDecision("first"), AppendDecision("second")])
-    decisions = asyncio.run(brain.think(FakePercept()))
+    decisions = asyncio.run(brain.think(Percept()))
     assert [d.action for d in decisions] == ["first", "second"]
 
 
-def test_board_state_committed_to_store():
+def test_brain_state_committed_to_store():
     store = ComponentStore()
-    store.register_component("brain", {"messages": [], "diary": []})
+    store.register(BrainState)
     store.init_agent("A1")
 
-    brain = BlackboardBrain(processes=[WriteToState()], store=store)
-    asyncio.run(brain.think(FakePercept()))
+    brain = BlackboardBrain(processes=[MarkLastTick()])
+    asyncio.run(brain.think(Percept()))
+    store.set("A1", BrainState.save_from(brain.bb))
 
-    saved = store.get("A1", "brain")
-    assert saved.get("visited") is True
+    saved = store.get("A1", BrainState)
+    assert saved.last_tick == 99
 
 
-def test_board_state_loaded_from_store():
+def test_brain_state_loaded_from_store():
     store = ComponentStore()
-    store.register_component("brain", {"messages": [], "diary": []})
+    store.register(BrainState)
     store.init_agent("A1")
-    store.set("A1", "brain", {"messages": [{"role": "user", "content": "old"}], "diary": []})
+    store.set("A1", BrainState(
+        working_memory=[{"content": "old", "kind": "observation"}],
+    ))
 
-    class CheckMessages:
-        async def run(self, board):
-            state = board.get("state", {})
-            msgs = state.get("messages", [])
-            assert len(msgs) == 1
-            assert msgs[0]["content"] == "old"
+    class CheckMemory:
+        async def run(self, percept: Percept, bb: Blackboard):
+            wm = bb.get(WorkingMemory)
+            assert wm is not None
+            assert len(wm.entries) == 1
+            assert wm.entries[0].content == "old"
 
-    brain = BlackboardBrain(processes=[CheckMessages()], store=store)
-    asyncio.run(brain.think(FakePercept()))
+    brain = BlackboardBrain(processes=[CheckMemory()])
+    brain_state = store.get("A1", BrainState)
+    brain_state.load_into(brain.bb)
+    asyncio.run(brain.think(Percept()))
 
 
-def test_empty_pipeline_returns_no_decisions():
+def test_empty_pipeline():
     brain = BlackboardBrain(processes=[])
-    decisions = asyncio.run(brain.think(FakePercept()))
+    decisions = asyncio.run(brain.think(Percept()))
     assert decisions == []
-
-
-def test_percept_available_on_board():
-    class CheckPercept:
-        async def run(self, board):
-            p = board["percept"]
-            assert p.agent_id == "A1"
-            assert p.tick == 5
-
-    brain = BlackboardBrain(processes=[CheckPercept()])
-    asyncio.run(brain.think(FakePercept(tick=5)))

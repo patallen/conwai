@@ -11,13 +11,14 @@ from conwai.repository import AgentRepository
 from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
 from scenarios.workbench.actions import create_registry
+from scenarios.workbench.components import AgentInfo, BrainState
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
 
 def _setup():
     store = ComponentStore()
-    store.register_component("agent_info", {"role": "", "personality": ""})
-    store.register_component("brain", {"messages": [], "diary": []})
+    store.register(AgentInfo)
+    store.register(BrainState)
     board = BulletinBoard()
     bus = MessageBus()
     events = EventLog(path=Path(":memory:"))
@@ -32,7 +33,7 @@ def _setup():
 def _add(pool, store, handle):
     return pool.load_or_create(
         Agent(handle=handle),
-        component_overrides={"agent_info": {"role": "test", "personality": "test"}},
+        component_overrides=[AgentInfo(role="test", personality="test")],
     )
 
 

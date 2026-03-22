@@ -2,19 +2,21 @@ from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
 from conwai.cognition.percept import ActionFeedback
 from conwai.messages import MessageBus
+from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, TickNumber
 from conwai.store import ComponentStore
+from scenarios.workbench.components import AgentInfo, BrainState
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
 
 def _make_store():
     store = ComponentStore()
-    store.register_component("agent_info", {"role": "", "personality": ""})
-    store.register_component("brain", {"messages": [], "diary": []})
+    store.register(AgentInfo)
+    store.register(BrainState)
     return store
 
 
 def _init_agent(store, handle="A1", role="observer", personality="curious"):
-    store.init_agent(handle, overrides={"agent_info": {"role": role, "personality": personality}})
+    store.init_agent(handle, overrides=[AgentInfo(role=role, personality=personality)])
 
 
 def test_percept_includes_broadcast():
@@ -27,9 +29,9 @@ def test_percept_includes_broadcast():
 
     builder = WorkbenchPerceptionBuilder()
     percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
-    assert "hello everyone" in percept.to_prompt()
-    assert percept.agent_id == "A1"
-    assert percept.tick == 1
+    assert "hello everyone" in percept.get(Observations).text
+    assert percept.get(AgentHandle).value == "A1"
+    assert percept.get(TickNumber).value == 1
 
 
 def test_percept_includes_dms():
@@ -42,7 +44,7 @@ def test_percept_includes_dms():
 
     builder = WorkbenchPerceptionBuilder()
     percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
-    assert "private info" in percept.to_prompt()
+    assert "private info" in percept.get(Observations).text
 
 
 def test_percept_includes_identity():
@@ -54,8 +56,8 @@ def test_percept_includes_identity():
 
     builder = WorkbenchPerceptionBuilder()
     percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
-    assert "methodical" in percept.identity
-    assert "A1" in percept.identity
+    assert "methodical" in percept.get(Identity).text
+    assert "A1" in percept.get(Identity).text
 
 
 def test_percept_includes_action_feedback():
@@ -68,7 +70,7 @@ def test_percept_includes_action_feedback():
     builder = WorkbenchPerceptionBuilder()
     feedback = [ActionFeedback(action="broadcast", args={"content": "hi"}, result="sent")]
     percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1, action_feedback=feedback)
-    assert percept.action_feedback == feedback
+    assert percept.get(PerceptFeedback).entries == feedback
 
 
 def test_percept_includes_injected_stimulus():
@@ -81,7 +83,7 @@ def test_percept_includes_injected_stimulus():
     builder = WorkbenchPerceptionBuilder()
     builder.inject("A1", "A strange sound echoes from the north.")
     percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
-    assert "strange sound" in percept.to_prompt()
+    assert "strange sound" in percept.get(Observations).text
 
 
 def test_percept_no_activity():
@@ -93,6 +95,6 @@ def test_percept_no_activity():
 
     builder = WorkbenchPerceptionBuilder()
     percept = builder.build(Agent(handle="A1"), store, board, bus, tick=1)
-    text = percept.to_prompt()
+    text = percept.get(Observations).text
     assert isinstance(text, str)
     assert len(text) > 0

@@ -1,7 +1,15 @@
+from dataclasses import dataclass
+
 from conwai.bulletin_board import BulletinBoard
+from conwai.component import Component
 from conwai.messages import MessageBus
 from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
+
+
+@dataclass
+class Economy(Component):
+    coins: int = 0
 
 
 def test_sqlite_save_load(tmp_path):
@@ -40,9 +48,9 @@ def test_sqlite_list_components(tmp_path):
 def test_store_write_through(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     store = ComponentStore(storage=storage)
-    store.register_component("economy", {"coins": 0})
+    store.register(Economy)
     store.init_agent("A1")
-    store.set("A1", "economy", {"coins": 999})
+    store.set("A1", Economy(coins=999))
     # Verify it's in SQLite
     result = storage.load_component("A1", "economy")
     assert result == {"coins": 999}
@@ -52,9 +60,9 @@ def test_store_load_all(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     storage.save_component("A1", "economy", {"coins": 500})
     store = ComponentStore(storage=storage)
-    store.register_component("economy", {"coins": 0})
+    store.register(Economy)
     store.load_all()
-    assert store.get("A1", "economy")["coins"] == 500
+    assert store.get("A1", Economy).coins == 500
 
 
 def test_board_persistence(tmp_path):

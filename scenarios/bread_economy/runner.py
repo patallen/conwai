@@ -9,7 +9,7 @@ from faker import Faker
 import scenarios.bread_economy.config as config
 from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
-from conwai.cognition import BlackboardBrain, Brain
+from conwai.cognition import BlackboardBrain
 from conwai.engine import BrainPhase, Engine
 from conwai.events import EventLog
 from conwai.llm import LLMClient
@@ -19,10 +19,17 @@ from conwai.repository import AgentRepository
 from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
 from scenarios.bread_economy.actions import create_registry
+from scenarios.bread_economy.components import (
+    AgentInfo,
+    AgentMemory,
+    BrainState,
+    Economy,
+    Hunger,
+    Inventory,
+)
 from scenarios.bread_economy.config import (
     assign_traits,
     get_config,
-    register_components,
 )
 from scenarios.bread_economy.events import WorldEvents
 from scenarios.bread_economy.perception import (
@@ -55,21 +62,21 @@ async def process_commands(
             try:
                 if action == "drain_energy":
                     handle, amount = cmd["handle"], int(cmd["amount"])
-                    if pool.by_handle(handle) and store.has(handle, "economy"):
-                        eco = store.get(handle, "economy")
-                        eco["coins"] = max(0, eco["coins"] - amount)
-                        store.set(handle, "economy", eco)
-                        events.log("HANDLER", "drain", {"handle": handle, "amount": amount, "remaining": eco["coins"]})
-                        log.info(f"[HANDLER] drained {handle} by {amount}, now {eco['coins']}")
+                    if pool.by_handle(handle) and store.has(handle, Economy):
+                        eco = store.get(handle, Economy)
+                        eco.coins = max(0, eco.coins - amount)
+                        store.set(handle, eco)
+                        events.log("HANDLER", "drain", {"handle": handle, "amount": amount, "remaining": eco.coins})
+                        log.info(f"[HANDLER] drained {handle} by {amount}, now {eco.coins}")
 
                 elif action == "set_energy":
                     handle, value = cmd["handle"], int(cmd["value"])
-                    if pool.by_handle(handle) and store.has(handle, "economy"):
-                        eco = store.get(handle, "economy")
-                        eco["coins"] = min(get_config().energy_max, max(0, value))
-                        store.set(handle, "economy", eco)
-                        events.log("HANDLER", "set_energy", {"handle": handle, "energy": eco["coins"]})
-                        log.info(f"[HANDLER] set {handle} energy to {eco['coins']}")
+                    if pool.by_handle(handle) and store.has(handle, Economy):
+                        eco = store.get(handle, Economy)
+                        eco.coins = min(get_config().energy_max, max(0, value))
+                        store.set(handle, eco)
+                        events.log("HANDLER", "set_energy", {"handle": handle, "energy": eco.coins})
+                        log.info(f"[HANDLER] set {handle} energy to {eco.coins}")
 
                 elif action == "drop_secret":
                     handle, content = cmd["handle"], cmd["content"]
@@ -83,11 +90,11 @@ async def process_commands(
                     bus.send("HANDLER", handle, content)
                     events.log("HANDLER", "dm_sent", {"to": handle, "content": content})
                     log.info(f"[HANDLER] -> [{handle}]: {content}")
-                    if store.has(handle, "economy"):
+                    if store.has(handle, Economy):
                         cfg = get_config()
-                        eco = store.get(handle, "economy")
-                        eco["coins"] += cfg.energy_gain.get("dm_received", 0)
-                        store.set(handle, "economy", eco)
+                        eco = store.get(handle, Economy)
+                        eco.coins += cfg.energy_gain.get("dm_received", 0)
+                        store.set(handle, eco)
                         perception.notify(handle, f"coins +{cfg.energy_gain.get('dm_received', 0)} (HANDLER attention)")
 
                 elif action == "post_board":
@@ -102,7 +109,7 @@ async def process_commands(
                         log.warning(f"[HANDLER] spawn failed: {handle} already exists")
                     else:
                         agent = Agent(handle=handle)
-                        pool.add(agent, component_overrides={"agent_info": {"role": role, "personality": personality}})
+                        pool.add(agent, component_overrides=[AgentInfo(role=role, personality=personality)])
                         if brains is not None and brain_factory:
                             brains[handle] = brain_factory()
                         board.post("WORLD", f"New agent {handle} has joined the community.")
@@ -146,25 +153,15 @@ async def run():
 
     # --- State ---
     store = ComponentStore(storage=storage)
-    store.register_component(
-        "economy", {"coins": cfg.starting_coins}
+    store.register(Economy, Economy(coins=cfg.starting_coins))
+    store.register(
+        Inventory,
+        Inventory(flour=cfg.starting_flour, water=cfg.starting_water, bread=cfg.starting_bread),
     )
-    store.register_component(
-        "inventory",
-        {
-            "flour": cfg.starting_flour,
-            "water": cfg.starting_water,
-            "bread": cfg.starting_bread,
-        },
-    )
-    store.register_component(
-        "hunger", {"hunger": cfg.starting_hunger, "thirst": cfg.starting_thirst}
-    )
-    store.register_component(
-        "memory", {"memory": "", "code_fragment": None, "soul": "", "strategy": ""}
-    )
-    store.register_component("brain", {"messages": [], "diary": []})
-    register_components(store)
+    store.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
+    store.register(AgentMemory)
+    store.register(BrainState)
+    store.register(AgentInfo)
 
     # Load all persisted state from storage
     store.load_all()
@@ -185,14 +182,8 @@ async def run():
     # --- LLM clients ---
     clients = [
         LLMClient(
-            base_url="https://ua098y77o7o677-8000.proxy.runpod.net/v1",
-            model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
-            max_tokens=2048,
-            api_key="none",
-        ),
-        LLMClient(
-            base_url="https://soyrq1saijywg5-8000.proxy.runpod.net/v1",
-            model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
+            base_url="http://ai-lab.lan:8081/v1",
+            model="/mnt/models/Qwen3.5-27B-GPTQ-Int4",
             max_tokens=2048,
             api_key="none",
         ),
@@ -238,6 +229,7 @@ async def run():
                     recent_ticks=16,
                     timestamp_formatter=tick_to_timestamp,
                     embedder=embedder,
+                    noise_actions={"update_journal", "wait"},
                 ),
                 ConsolidationProcess(
                     interval=24,
@@ -255,18 +247,17 @@ async def run():
                     tools=registry.tool_definitions(),
                 ),
             ],
-            store=store,
         )
 
     # --- Agents + Brains ---
     # A/B test: first-person vs third-person reflections
-    brains: dict[str, Brain] = {}
+    brains: dict[str, BlackboardBrain] = {}
     first_person_group: set[str] = set()
     # 20 agents: indices 0-9 = first-person, 10-19 = third-person
     # Each group: 5 flour + 5 water, all same neutral personality
     ab_roles = (
-        ["flour_forager"] * 5 + ["water_forager"] * 5  # first-person
-        + ["flour_forager"] * 5 + ["water_forager"] * 5  # third-person
+        ["flour_forager"] * 2 + ["water_forager"] * 2  # first-person
+        + ["flour_forager"] * 1 + ["water_forager"] * 1  # third-person
     )
     ab_personality = "practical, observant"
 
@@ -291,7 +282,7 @@ async def run():
             if handle in saved_groups:
                 fp = saved_groups[handle] == "first_person"
             else:
-                fp = len(first_person_group) < 10
+                fp = len(first_person_group) < 4
             brains[agent.handle] = make_brain(first_person=fp)
             if fp:
                 first_person_group.add(agent.handle)
@@ -309,12 +300,10 @@ async def run():
         agent = Agent(handle=handle, born_tick=0)
         agent = pool.load_or_create(
             agent,
-            component_overrides={
-                "agent_info": {"role": role, "personality": ab_personality}
-            },
+            component_overrides=[AgentInfo(role=role, personality=ab_personality)],
         )
         if agent.alive:
-            fp = len(first_person_group) < 10
+            fp = len(first_person_group) < 4
             brains[agent.handle] = make_brain(first_person=fp)
             if fp:
                 first_person_group.add(agent.handle)
@@ -341,9 +330,7 @@ async def run():
         new_agent = Agent(handle=handle, born_tick=ctx.tick)
         pool.add(
             new_agent,
-            component_overrides={
-                "agent_info": {"role": role, "personality": personality}
-            },
+            component_overrides=[AgentInfo(role=role, personality=personality)],
         )
         board.post("WORLD", f"{dead_agent.handle} has died of starvation.")
         board.post(

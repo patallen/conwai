@@ -8,16 +8,19 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from conwai.cognition.percept import ActionFeedback
 from conwai.cognition.perception import PerceptionBuilder
+from conwai.cognition.types import BrainState
+from conwai.processes.types import WorkingMemory
 
 if TYPE_CHECKING:
     from conwai.actions import ActionRegistry
     from conwai.agent import Agent
     from conwai.bulletin_board import BulletinBoard
-    from conwai.cognition import Brain
+    from conwai.cognition.blackboard import BlackboardBrain
     from conwai.events import EventLog
     from conwai.messages import MessageBus
     from conwai.pool import AgentPool
     from conwai.store import ComponentStore
+    from conwai.typemap import Percept
 
 log = logging.getLogger("conwai")
 
@@ -47,7 +50,7 @@ class BrainPhase:
     def __init__(
         self,
         actions: ActionRegistry,
-        brains: dict[str, Brain],
+        brains: dict[str, BlackboardBrain],
         perception: PerceptionBuilder,
     ):
         self.actions = actions
@@ -65,20 +68,36 @@ class BrainPhase:
             for a in agents
             if a.handle in self.brains
         ]
-        await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for agent, result in zip(
+            [a for a in agents if a.handle in self.brains], results
+        ):
+            if isinstance(result, Exception):
+                log.error(f"[{agent.handle}] brain error: {result}")
 
     async def _tick_agent(self, agent: Agent, ctx: TickContext) -> None:
         start = time.monotonic()
         brain = self.brains[agent.handle]
         feedback = self._action_feedback.pop(agent.handle, [])
 
-        percept = self.perception.build(
+        # Build percept — the perception builder returns a Percept
+        percept: Percept = self.perception.build(
             agent, ctx.store, ctx.board, ctx.bus, ctx.tick,
             action_feedback=feedback,
         )
 
+        # Load persistent state on first tick
+        if not brain.bb.has(WorkingMemory):
+            if ctx.store.has(agent.handle, BrainState):
+                ctx.store.get(agent.handle, BrainState).load_into(brain.bb)
+
+        # Think — brain owns its blackboard, returns decisions
         decisions = await brain.think(percept)
 
+        # Persist brain state
+        ctx.store.set(agent.handle, BrainState.save_from(brain.bb))
+
+        # Execute decisions as actions
         tick_feedback: list[ActionFeedback] = []
         for decision in decisions:
             result = self.actions.execute(agent, decision.action, decision.args, ctx)

@@ -1,50 +1,45 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+import logging
+from typing import Protocol
 
 from conwai.cognition.brain import Decision
-from conwai.cognition.percept import Percept
+from conwai.processes.types import Decisions
+from conwai.typemap import Blackboard, Percept
 
-if TYPE_CHECKING:
-    from conwai.store import ComponentStore
+log = logging.getLogger("conwai")
 
 
 class Process(Protocol):
-    async def run(self, board: dict[str, Any]) -> None: ...
+    async def run(self, percept: Percept, bb: Blackboard) -> None: ...
 
 
 class BlackboardBrain:
-    """Composable brain that runs a pipeline of processes on a shared board.
+    """Run a pipeline of processes, producing decisions.
 
-    The board is a transactional workspace: initialized from the percept and
-    any persistent brain state in the component store, mutated by processes,
-    then committed back after think() completes.
+    The brain owns a persistent Blackboard that accumulates state across
+    cycles (working memory, episodes). Each think() call receives a fresh
+    Percept from the scenario, runs the process pipeline, and returns
+    the decisions produced.
     """
 
-    def __init__(
-        self,
-        processes: list[Process],
-        store: ComponentStore | None = None,
-        component: str = "brain",
-    ):
+    def __init__(self, processes: list[Process]):
         self.processes = processes
-        self.store = store
-        self.component = component
+        self.bb = Blackboard()
 
     async def think(self, percept: Percept) -> list[Decision]:
-        board: dict[str, Any] = {"percept": percept, "decisions": []}
-
-        if self.store and self.store.has(percept.agent_id, self.component):
-            state = self.store.get(percept.agent_id, self.component)
-            board["state"] = state
+        self.bb.set(Decisions())
 
         for process in self.processes:
-            await process.run(board)
+            await process.run(percept, self.bb)
 
-        decisions: list[Decision] = board.get("decisions", [])
+        decisions = self.bb.get(Decisions)
+        return decisions.entries if decisions else []
 
-        if self.store:
-            state = board.get("state", {})
-            self.store.set(percept.agent_id, self.component, state)
+    def get_state(self) -> Blackboard:
+        """Expose the blackboard for external persistence."""
+        return self.bb
 
-        return decisions
+    def load_state(self, bb: Blackboard) -> None:
+        """Restore a previously persisted blackboard."""
+        self.bb = bb

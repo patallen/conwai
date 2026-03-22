@@ -5,6 +5,7 @@ import random
 from typing import TYPE_CHECKING
 
 from scenarios.bread_economy.actions.helpers import _capped_add
+from scenarios.bread_economy.components import AgentInfo, Inventory
 from scenarios.bread_economy.config import get_config
 
 if TYPE_CHECKING:
@@ -16,15 +17,15 @@ log = logging.getLogger("conwai")
 
 def _forage(agent: Agent, ctx: TickContext, args: dict) -> str:
     cfg = get_config()
-    info = ctx.store.get(agent.handle, "agent_info")
-    skills = cfg.forage_skill_by_role.get(info["role"], {"flour": 1, "water": 1})
+    info = ctx.store.get(agent.handle, AgentInfo)
+    skills = cfg.forage_skill_by_role.get(info.role, {"flour": 1, "water": 1})
 
     flour = random.randint(0, skills["flour"])
     water = random.randint(0, skills["water"])
-    inv = ctx.store.get(agent.handle, "inventory")
+    inv = ctx.store.get(agent.handle, Inventory)
     flour = _capped_add(inv, "flour", flour)
     water = _capped_add(inv, "water", water)
-    ctx.store.set(agent.handle, "inventory", inv)
+    ctx.store.set(agent.handle, inv)
 
     ctx.tick_state.setdefault(agent.handle, {})["blocked"] = "You are foraging this tick and cannot take other actions."
     ctx.events.log(agent.handle, "forage", {"flour": flour, "water": water})
@@ -43,19 +44,19 @@ def _bake(agent: Agent, ctx: TickContext, args: dict) -> str:
     cfg = get_config()
     flour_needed = cfg.bake_cost["flour"]
     water_needed = cfg.bake_cost["water"]
-    inv = ctx.store.get(agent.handle, "inventory")
-    if inv["flour"] < flour_needed or inv["water"] < water_needed:
-        return f"need {flour_needed} flour and {water_needed} water to bake (have {inv['flour']} flour, {inv['water']} water)"
-    info = ctx.store.get(agent.handle, "agent_info")
-    bread_yield = cfg.bake_baker_yield if info["role"] == "baker" else cfg.bake_yield
-    inv["flour"] -= flour_needed
-    inv["water"] -= water_needed
+    inv = ctx.store.get(agent.handle, Inventory)
+    if inv.flour < flour_needed or inv.water < water_needed:
+        return f"need {flour_needed} flour and {water_needed} water to bake (have {inv.flour} flour, {inv.water} water)"
+    info = ctx.store.get(agent.handle, AgentInfo)
+    bread_yield = cfg.bake_baker_yield if info.role == "baker" else cfg.bake_yield
+    inv.flour -= flour_needed
+    inv.water -= water_needed
     bread_yield = _capped_add(inv, "bread", bread_yield)
-    ctx.store.set(agent.handle, "inventory", inv)
+    ctx.store.set(agent.handle, inv)
     ctx.events.log(
         agent.handle,
         "bake",
-        {"bread": bread_yield, "flour": inv["flour"], "water": inv["water"]},
+        {"bread": bread_yield, "flour": inv.flour, "water": inv.water},
     )
     log.info(f"[{agent.handle}] baked {bread_yield} bread")
-    return f"baked {bread_yield} bread (flour: {inv['flour']}, water: {inv['water']}, bread: {inv['bread']})"
+    return f"baked {bread_yield} bread (flour: {inv.flour}, water: {inv.water}, bread: {inv.bread})"

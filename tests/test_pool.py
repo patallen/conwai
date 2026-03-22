@@ -7,6 +7,7 @@ from conwai.pool import AgentPool
 from conwai.repository import AgentRepository
 from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
+from scenarios.bread_economy.components import Economy, Inventory
 
 
 def _make_pool(tmp_path=None):
@@ -16,8 +17,8 @@ def _make_pool(tmp_path=None):
     repo = AgentRepository(storage=storage)
     bus = MessageBus()
     store = ComponentStore(storage=storage)
-    store.register_component("economy", {"coins": 500})
-    store.register_component("inventory", {"flour": 0, "water": 0, "bread": 0})
+    store.register(Economy)
+    store.register(Inventory)
     pool = AgentPool(repo, store, bus=bus)
     return pool, store
 
@@ -26,14 +27,14 @@ def test_load_or_create_new():
     pool, store = _make_pool()
     agent = pool.load_or_create(Agent(handle="A1"))
     assert agent.handle == "A1"
-    assert store.has("A1", "economy")
+    assert store.has("A1", Economy)
 
 
 def test_add():
     pool, store = _make_pool()
     agent = pool.add(Agent(handle="A1", born_tick=5))
     assert agent.alive is True
-    assert store.has(agent.handle, "economy")
+    assert store.has(agent.handle, Economy)
 
 
 def test_kill():
@@ -58,7 +59,7 @@ def test_pool_without_bus():
     storage = SQLiteStorage(tmp_path / "test.db")
     repo = AgentRepository(storage=storage)
     store = ComponentStore(storage=storage)
-    store.register_component("economy", {"coins": 500})
+    store.register(Economy)
     pool = AgentPool(repo, store)
     agent = pool.load_or_create(Agent(handle="A1"))
     assert agent.handle == "A1"

@@ -1,27 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from conwai.cognition.percept import ActionFeedback
+from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, TickNumber
+from conwai.typemap import Percept
+from scenarios.workbench.components import AgentInfo
 
 if TYPE_CHECKING:
     from conwai.agent import Agent
     from conwai.bulletin_board import BulletinBoard
     from conwai.messages import MessageBus
     from conwai.store import ComponentStore
-
-
-@dataclass
-class WorkbenchPercept:
-    agent_id: str
-    tick: int
-    identity: str
-    prompt_text: str
-    action_feedback: list[ActionFeedback] = field(default_factory=list)
-
-    def to_prompt(self) -> str:
-        return self.prompt_text
 
 
 class WorkbenchPerceptionBuilder:
@@ -31,11 +21,9 @@ class WorkbenchPerceptionBuilder:
         self._stimuli: dict[str, list[str]] = {}
 
     def inject(self, handle: str, text: str) -> None:
-        """Inject a stimulus that will appear in the agent's next percept."""
         self._stimuli.setdefault(handle, []).append(text)
 
     def notify(self, handle: str, message: str) -> None:
-        """Alias for inject, satisfies PerceptionBuilder protocol."""
         self.inject(handle, message)
 
     def build_system_prompt(self) -> str:
@@ -53,15 +41,15 @@ class WorkbenchPerceptionBuilder:
         bus: MessageBus | None = None,
         tick: int = 0,
         action_feedback: list[ActionFeedback] | None = None,
-    ) -> WorkbenchPercept:
-        info = store.get(agent.handle, "agent_info")
+    ) -> Percept:
+        info = store.get(agent.handle, AgentInfo)
 
         identity = (
             f"You are @{agent.handle}. "
-            f"Your temperament is {info['personality']} — this is innate."
+            f"Your temperament is {info.personality} — this is innate."
         )
-        if info.get("role"):
-            identity += f" Your role: {info['role']}."
+        if info.role:
+            identity += f" Your role: {info.role}."
 
         parts = []
 
@@ -89,12 +77,12 @@ class WorkbenchPerceptionBuilder:
         if not parts:
             parts.append("Nothing new has happened.")
 
-        prompt_text = "\n\n".join(parts)
+        observations = "\n\n".join(parts)
 
-        return WorkbenchPercept(
-            agent_id=agent.handle,
-            tick=tick,
-            identity=identity,
-            prompt_text=prompt_text,
-            action_feedback=action_feedback or [],
-        )
+        percept = Percept()
+        percept.set(AgentHandle(value=agent.handle))
+        percept.set(TickNumber(value=tick))
+        percept.set(Identity(text=identity))
+        percept.set(Observations(text=observations))
+        percept.set(PerceptFeedback(entries=action_feedback or []))
+        return percept

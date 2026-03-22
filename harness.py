@@ -28,7 +28,7 @@ import sys
 
 from conwai.agent import Agent
 from conwai.bulletin_board import BulletinBoard
-from conwai.cognition import BlackboardBrain, Brain
+from conwai.cognition import BlackboardBrain
 from conwai.embeddings import FastEmbedder
 from conwai.engine import BrainPhase, Engine, TickContext
 from conwai.events import EventLog
@@ -39,7 +39,15 @@ from conwai.repository import AgentRepository
 from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
 from scenarios.bread_economy.actions import create_registry
-from scenarios.bread_economy.config import get_config, register_components
+from scenarios.bread_economy.components import (
+    AgentInfo,
+    AgentMemory,
+    BrainState,
+    Economy,
+    Hunger,
+    Inventory,
+)
+from scenarios.bread_economy.config import get_config
 from scenarios.bread_economy.perception import make_bread_perception, tick_to_timestamp
 from scenarios.bread_economy.processes import (
     ContextAssembly,
@@ -66,15 +74,15 @@ async def run(args):
     storage = SQLiteStorage(path=args.data_dir / "state.db")
 
     store = ComponentStore(storage=storage)
-    store.register_component("economy", {"coins": cfg.starting_coins})
-    store.register_component(
-        "inventory",
-        {"flour": cfg.starting_flour, "water": cfg.starting_water, "bread": cfg.starting_bread},
+    store.register(Economy, Economy(coins=cfg.starting_coins))
+    store.register(
+        Inventory,
+        Inventory(flour=cfg.starting_flour, water=cfg.starting_water, bread=cfg.starting_bread),
     )
-    store.register_component("hunger", {"hunger": cfg.starting_hunger, "thirst": cfg.starting_thirst})
-    store.register_component("memory", {"memory": "", "code_fragment": None, "soul": "", "strategy": ""})
-    store.register_component("brain", {"messages": [], "diary": []})
-    register_components(store)
+    store.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
+    store.register(AgentMemory)
+    store.register(BrainState)
+    store.register(AgentInfo)
     store.load_all()
 
     board = BulletinBoard(storage=storage)
@@ -102,9 +110,7 @@ async def run(args):
         agent = Agent(handle=handle, born_tick=0)
         pool.load_or_create(
             agent,
-            component_overrides={
-                "agent_info": {"role": "flour_forager", "personality": "skeptical, calculating"}
-            },
+            component_overrides=[AgentInfo(role="flour_forager", personality="skeptical, calculating")],
         )
 
     bus.register(handle)
@@ -116,7 +122,7 @@ async def run(args):
         fake_agent = Agent(handle=fake_name)
         pool.load_or_create(
             fake_agent,
-            component_overrides={"agent_info": {"role": "water_forager", "personality": "blunt, detached"}},
+            component_overrides=[AgentInfo(role="water_forager", personality="blunt, detached")],
         )
 
     brain = BlackboardBrain(
@@ -126,6 +132,7 @@ async def run(args):
                 recent_ticks=16,
                 timestamp_formatter=tick_to_timestamp,
                 embedder=embedder,
+                noise_actions={"update_journal", "wait"},
             ),
             MemoryRecall(recall_limit=5, embedder=embedder),
             ContextAssembly(
@@ -134,7 +141,6 @@ async def run(args):
             ),
             InferenceProcess(client=client, tools=registry.tool_definitions()),
         ],
-        store=store,
     )
 
     brains = {handle: brain}
@@ -174,68 +180,66 @@ async def run(args):
             print(__doc__)
             continue
         elif line.startswith("!set "):
-            # !set flour 80  or  !set coins 500  or  !set hunger 90
             parts = line.split()
             if len(parts) >= 3:
                 key, val = parts[1], int(parts[2])
                 if key in ("flour", "water", "bread"):
-                    inv = store.get(handle, "inventory")
-                    inv[key] = val
-                    store.set(handle, "inventory", inv)
+                    inv = store.get(handle, Inventory)
+                    setattr(inv, key, val)
+                    store.set(handle, inv)
                 elif key == "coins":
-                    eco = store.get(handle, "economy")
-                    eco["coins"] = val
-                    store.set(handle, "economy", eco)
+                    eco = store.get(handle, Economy)
+                    eco.coins = val
+                    store.set(handle, eco)
                 elif key in ("hunger", "thirst"):
-                    hun = store.get(handle, "hunger")
-                    hun[key] = val
-                    store.set(handle, "hunger", hun)
+                    hun = store.get(handle, Hunger)
+                    setattr(hun, key, val)
+                    store.set(handle, hun)
                 print(f"  {key} = {val}")
             continue
         elif line == "!rich":
-            # Quick shortcut: give the agent plenty of everything
-            store.set(handle, "inventory", {"flour": 80, "water": 80, "bread": 30})
-            store.set(handle, "economy", {"coins": 500})
-            store.set(handle, "hunger", {"hunger": 100, "thirst": 100})
+            store.set(handle, Inventory(flour=80, water=80, bread=30))
+            store.set(handle, Economy(coins=500))
+            store.set(handle, Hunger(hunger=100, thirst=100))
             print("  set: 80 flour, 80 water, 30 bread, 500 coins, full hunger/thirst")
             continue
         elif line == "!inspect":
-            eco = store.get(handle, "economy")
-            inv = store.get(handle, "inventory")
-            hun = store.get(handle, "hunger")
-            mem = store.get(handle, "memory")
+            eco = store.get(handle, Economy)
+            inv = store.get(handle, Inventory)
+            hun = store.get(handle, Hunger)
+            mem = store.get(handle, AgentMemory)
             print(f"\n  @{handle}")
-            print(f"  Coins: {int(eco['coins'])}  Hunger: {hun['hunger']}  Thirst: {hun['thirst']}")
-            print(f"  Flour: {inv['flour']}  Water: {inv['water']}  Bread: {inv['bread']}")
-            print(f"  Soul: {mem.get('soul', '(none)')}")
-            print(f"  Journal: {mem.get('memory', '(none)')}")
-            print(f"  Strategy: {mem.get('strategy', '(none)')}")
+            print(f"  Coins: {int(eco.coins)}  Hunger: {hun.hunger}  Thirst: {hun.thirst}")
+            print(f"  Flour: {inv.flour}  Water: {inv.water}  Bread: {inv.bread}")
+            print(f"  Soul: {mem.soul or '(none)'}")
+            print(f"  Journal: {mem.memory or '(none)'}")
+            print(f"  Strategy: {mem.strategy or '(none)'}")
             print()
             continue
         elif line == "!memory":
-            brain_state = store.get(handle, "brain")
-            diary = brain_state.get("diary", [])
-            messages = brain_state.get("messages", [])
-            summaries = [m for m in messages if m.get("_tick_summary")]
+            bs = store.get(handle, BrainState)
+            summaries = [e for e in bs.working_memory if e.get("kind") == "tick_summary"]
             print(f"\n  === RECENT SUMMARIES ({len(summaries)}) ===")
             for s in summaries[-5:]:
                 print(f"  {s['content'][:120]}")
-            print(f"\n  === DIARY ({len(diary)} entries) ===")
-            for d in diary[-10:]:
+            print(f"\n  === EPISODES ({len(bs.episodes)} entries) ===")
+            for d in bs.episodes[-10:]:
                 print(f"  {d['content'][:120]}")
                 if d.get("embedding"):
                     print(f"    [embedded, {len(d['embedding'])} dims]")
             print()
             continue
         elif line == "!strategy":
-            mem = store.get(handle, "memory")
-            print(f"\n  {mem.get('strategy', '(no strategy yet)')}\n")
+            mem = store.get(handle, AgentMemory)
+            print(f"\n  {mem.strategy or '(no strategy yet)'}\n")
             continue
         elif line == "!brain":
-            brain_state = store.get(handle, "brain")
+            bs = store.get(handle, BrainState)
             import json
-            print(json.dumps(brain_state, indent=2)[:3000])
-            print("..." if len(json.dumps(brain_state)) > 3000 else "")
+            dumped = json.dumps(bs.to_dict(), indent=2)
+            print(dumped[:3000])
+            if len(dumped) > 3000:
+                print("...")
             continue
         elif line.startswith("!tick"):
             parts = line.split()

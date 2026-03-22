@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from scenarios.bread_economy.actions.helpers import charge
+from scenarios.bread_economy.components import AgentMemory, Economy
 from scenarios.bread_economy.config import get_config
 
 if TYPE_CHECKING:
@@ -16,25 +17,24 @@ log = logging.getLogger("conwai")
 def _post_to_board(agent: Agent, ctx: TickContext, args: dict) -> str:
     cfg = get_config()
     # Cooldown: 6 ticks between board posts
-    mem = ctx.store.get(agent.handle, "memory")
-    last_post_tick = mem.get("last_board_post", 0)
-    if last_post_tick and ctx.tick - last_post_tick < 6:
-        return f"You posted recently. Wait {6 - (ctx.tick - last_post_tick)} more ticks."
+    mem = ctx.store.get(agent.handle, AgentMemory)
+    if mem.last_board_post and ctx.tick - mem.last_board_post < 6:
+        return f"You posted recently. Wait {6 - (ctx.tick - mem.last_board_post)} more ticks."
     err = charge(ctx.store, agent.handle, 25, "post_to_board")
     if err:
         return err
     content = args.get("message", "")
     ctx.board.post(agent.handle, content)
-    mem["last_board_post"] = ctx.tick
-    ctx.store.set(agent.handle, "memory", mem)
+    mem.last_board_post = ctx.tick
+    ctx.store.set(agent.handle, mem)
     ctx.events.log(agent.handle, "board_post", {"content": content})
     log.info(f"[{agent.handle}] posted: {content}")
     if ctx.pool:
         for a in ctx.pool.alive():
             if a.handle != agent.handle and f"@{a.handle}" in content:
-                other_eco = ctx.store.get(a.handle, "economy")
-                other_eco["coins"] += cfg.energy_gain["referenced"]
-                ctx.store.set(a.handle, "economy", other_eco)
+                other_eco = ctx.store.get(a.handle, Economy)
+                other_eco.coins += cfg.energy_gain["referenced"]
+                ctx.store.set(a.handle, other_eco)
                 if ctx.perception:
                     ctx.perception.notify(
                         a.handle,
@@ -64,9 +64,9 @@ def _send_message(agent: Agent, ctx: TickContext, args: dict) -> str:
     if ctx.pool:
         recipient = ctx.pool.by_handle(to)
         if recipient:
-            rec_eco = ctx.store.get(to, "economy")
-            rec_eco["coins"] += cfg.energy_gain["dm_received"]
-            ctx.store.set(to, "economy", rec_eco)
+            rec_eco = ctx.store.get(to, Economy)
+            rec_eco.coins += cfg.energy_gain["dm_received"]
+            ctx.store.set(to, rec_eco)
             if ctx.perception:
                 ctx.perception.notify(
                     to,

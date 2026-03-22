@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from conwai.agent import Agent
+from conwai.component import Component
 
 if TYPE_CHECKING:
     from conwai.messages import MessageBus
@@ -34,7 +35,7 @@ class AgentPool:
 
     def load_or_create(
         self, agent: Agent,
-        component_overrides: dict[str, dict] | None = None,
+        component_overrides: list[Component] | None = None,
     ) -> Agent:
         if self._repo.exists(agent.handle):
             agent = self._repo.load_agent(agent.handle)
@@ -49,7 +50,7 @@ class AgentPool:
 
     def add(
         self, agent: Agent,
-        component_overrides: dict[str, dict] | None = None,
+        component_overrides: list[Component] | None = None,
     ) -> Agent:
         self._store.init_agent(agent.handle, overrides=component_overrides)
         self._agents[agent.handle] = agent

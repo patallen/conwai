@@ -242,10 +242,10 @@ def api_agent_memory(handle: str):
     if not brain:
         return {"memory": ""}
     parts = []
-    for m in brain.get("messages", []):
-        if m.get("_tick_summary"):
+    for m in brain.get("working_memory", []):
+        if m.get("kind") == "tick_summary":
             parts.append(m["content"])
-    for entry in brain.get("diary", []):
+    for entry in brain.get("episodes", []):
         parts.append(entry.get("content", ""))
     return {"memory": "\n".join(parts) if parts else ""}
 

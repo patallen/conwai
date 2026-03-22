@@ -4,6 +4,7 @@ from conwai.agent import Agent
 from conwai.repository import AgentRepository
 from conwai.storage import SQLiteStorage
 from conwai.store import ComponentStore
+from scenarios.bread_economy.components import Economy
 
 
 @pytest.fixture
@@ -23,9 +24,9 @@ class TestRepository:
     def test_save_and_load_with_store(self, repo, tmp_path):
         storage = SQLiteStorage(tmp_path / "test2.db")
         store = ComponentStore(storage=storage)
-        store.register_component("economy", {"coins": 500})
+        store.register(Economy)
         store.init_agent("A1")
-        store.set("A1", "economy", {"coins": 123})
+        store.set("A1", Economy(coins=123))
 
         # Verify the write-through persisted it
         result = storage.load_component("A1", "economy")

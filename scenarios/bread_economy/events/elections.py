@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from conwai.pool import AgentPool
     from conwai.store import ComponentStore
 
+from scenarios.bread_economy.components import Economy
+
 log = logging.getLogger("conwai")
 
 
@@ -97,10 +99,10 @@ class ElectionSystem:
         vote_count = len(tally[winner])
 
         # Award coins
-        if self._store.has(winner, "economy"):
-            eco = self._store.get(winner, "economy")
-            eco["coins"] += self._reward
-            self._store.set(winner, "economy", eco)
+        if self._store.has(winner, Economy):
+            eco = self._store.get(winner, Economy)
+            eco.coins += self._reward
+            self._store.set(winner, eco)
             self._perception.notify(winner, f"+{self._reward} coins (won election)")
 
         # Announce results
