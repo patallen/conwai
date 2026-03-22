@@ -54,10 +54,8 @@ def _send_message(entity_id: str, world: World, args: dict) -> str:
     message = args.get("message", "")
     if not to:
         return "missing 'to' field"
-    # DM rate limit via ActionRegistry tick_state
     action_reg = world.get_resource(ActionRegistry)
-    ts = action_reg._tick_state.get(entity_id, {})
-    dm_sent = ts.get("dm_sent", 0)
+    dm_sent = action_reg.get_tick_state(entity_id, "dm_sent", 0)
     if dm_sent >= 2:
         return "you already sent 2 DMs this tick. Wait until next tick."
     bus = world.get_resource(MessageBus)
@@ -65,8 +63,7 @@ def _send_message(entity_id: str, world: World, args: dict) -> str:
     if err:
         log.info(f"[{entity_id}] SEND FAILED: {err}")
         return f"DM failed: {err}"
-    ts["dm_sent"] = dm_sent + 1
-    action_reg._tick_state[entity_id] = ts
+    action_reg.set_tick_state(entity_id, "dm_sent", dm_sent + 1)
     world.get_resource(EventLog).log(entity_id, "dm_sent", {"to": to, "content": message})
     log.info(f"[{entity_id}] -> [{to}]: {message}")
     alive = set(world.entities())

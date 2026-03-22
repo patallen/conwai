@@ -2,7 +2,7 @@ from conwai.bulletin_board import BulletinBoard
 from conwai.cognition.percept import ActionFeedback
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, TickNumber as PerceptTickNumber
+from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
 from conwai.world import World
 from scenarios.workbench.components import AgentInfo, BrainState
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
@@ -36,7 +36,7 @@ def test_percept_includes_broadcast():
     percept = builder.build("A1", world)
     assert "hello everyone" in percept.get(Observations).text
     assert percept.get(AgentHandle).value == "A1"
-    assert percept.get(PerceptTickNumber).value == 1
+    assert percept.get(PerceptTick).value == 1
 
 
 def test_percept_includes_dms():

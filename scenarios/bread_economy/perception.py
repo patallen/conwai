@@ -7,8 +7,7 @@ from conwai.bulletin_board import BulletinBoard
 from conwai.cognition.percept import ActionFeedback
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback
-from conwai.processes.types import TickNumber as PerceptTickNumber
+from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
 from conwai.typemap import Percept
 from scenarios.bread_economy.components import (
     AgentInfo,
@@ -144,7 +143,7 @@ class BreadPerceptionBuilder:
 
         percept = Percept()
         percept.set(AgentHandle(value=entity_id))
-        percept.set(PerceptTickNumber(value=tick))
+        percept.set(PerceptTick(value=tick))
         percept.set(Identity(text=self.build_identity(entity_id, world)))
         percept.set(Observations(text=prompt_text))
         percept.set(PerceptFeedback(entries=action_feedback or []))

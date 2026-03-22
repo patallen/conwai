@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from conwai.processes.types import AgentHandle, Episodes, Episode, TickNumber
+from conwai.processes.types import AgentHandle, Episodes, Episode, PerceptTick
 from conwai.typemap import Blackboard, Percept
 
 log = logging.getLogger("conwai")
@@ -48,7 +48,7 @@ class ConsolidationProcess:
         self._fmt = timestamp_formatter or str
 
     async def run(self, percept: Percept, bb: Blackboard) -> None:
-        tick_num = percept.get(TickNumber)
+        tick_num = percept.get(PerceptTick)
         tick = tick_num.value if tick_num else 0
         handle = percept.get(AgentHandle)
         agent_id = handle.value if handle else "?"

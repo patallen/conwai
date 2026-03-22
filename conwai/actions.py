@@ -50,6 +50,13 @@ class ActionRegistry:
         if entity_id in self._tick_state:
             self._tick_state[entity_id]["blocked"] = reason
 
+    def get_tick_state(self, entity_id: str, key: str, default=None):
+        return self._tick_state.get(entity_id, {}).get(key, default)
+
+    def set_tick_state(self, entity_id: str, key: str, value) -> None:
+        if entity_id in self._tick_state:
+            self._tick_state[entity_id][key] = value
+
     def execute(self, entity_id: str, name: str, args: dict, world: World) -> str:
         action = self._actions.get(name)
         if not action:
