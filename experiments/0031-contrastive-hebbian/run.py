@@ -97,12 +97,14 @@ def main() -> None:
         km = KMeans(n_clusters=8, random_state=42, n_init=10)
         labels = km.fit_predict(projected)
         sil = silhouette_score(projected, labels, metric="cosine")
-        print(f"Pass {pass_num+1}: mean={stats['mean']:.4f} std={stats['std']:.4f} sil(K=8)={sil:.4f}")
+        print(
+            f"Pass {pass_num + 1}: mean={stats['mean']:.4f} std={stats['std']:.4f} sil(K=8)={sil:.4f}"
+        )
 
     # Final analysis
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("FINAL CLUSTERING")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for k in [5, 8, 10]:
         km = KMeans(n_clusters=k, random_state=42, n_init=10)
         labels = km.fit_predict(projected)
@@ -113,13 +115,15 @@ def main() -> None:
     # Detailed K=8
     km = KMeans(n_clusters=8, random_state=42, n_init=10)
     labels = km.fit_predict(projected)
-    print(f"\nDetailed K=8:")
+    print("\nDetailed K=8:")
     for ki in range(8):
         mask = labels == ki
         indices = np.where(mask)[0]
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top)
         print(f"  Cluster {ki} ({int(mask.sum())}) [{action_str}]")
@@ -127,17 +131,25 @@ def main() -> None:
             print(f"    [{idx:3d}] {parsed[idx]['reasoning'][:100]}")
 
     # Comparison
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("COMPARISON: BEFORE vs AFTER CONTRASTIVE HEBBIAN")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     before_stats = pairwise_stats(original_projected)
     after_stats = pairwise_stats(projected)
     km_before = KMeans(n_clusters=8, random_state=42, n_init=10)
     km_after = KMeans(n_clusters=8, random_state=42, n_init=10)
-    sil_before = silhouette_score(original_projected, km_before.fit_predict(original_projected), metric="cosine")
-    sil_after = silhouette_score(projected, km_after.fit_predict(projected), metric="cosine")
-    print(f"  Before: mean={before_stats['mean']:.4f} std={before_stats['std']:.4f} sil={sil_before:.4f}")
-    print(f"  After:  mean={after_stats['mean']:.4f} std={after_stats['std']:.4f} sil={sil_after:.4f}")
+    sil_before = silhouette_score(
+        original_projected, km_before.fit_predict(original_projected), metric="cosine"
+    )
+    sil_after = silhouette_score(
+        projected, km_after.fit_predict(projected), metric="cosine"
+    )
+    print(
+        f"  Before: mean={before_stats['mean']:.4f} std={before_stats['std']:.4f} sil={sil_before:.4f}"
+    )
+    print(
+        f"  After:  mean={after_stats['mean']:.4f} std={after_stats['std']:.4f} sil={sil_after:.4f}"
+    )
 
 
 if __name__ == "__main__":

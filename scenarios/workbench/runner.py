@@ -24,14 +24,16 @@ from pathlib import Path
 
 from faker import Faker
 
-from conwai.actions import PendingActions, ActionFeedback
-from conwai.bulletin_board import BulletinBoard
+from conwai.actions import ActionFeedback, PendingActions
 from conwai.brain import Brain
+from conwai.bulletin_board import BulletinBoard
+from conwai.contrib.systems import ActionSystem, BrainSystem
 from conwai.embeddings import FastEmbedder
-from conwai.engine import ActionSystem, BrainSystem, Engine, TickNumber
+from conwai.engine import Engine, TickNumber
 from conwai.events import EventLog
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
+from conwai.processes.types import Episodes, WorkingMemory
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.bread_economy.processes import (
@@ -40,8 +42,7 @@ from scenarios.bread_economy.processes import (
     MemoryCompression,
     MemoryRecall,
 )
-from conwai.processes.types import Episodes, WorkingMemory
-from scenarios.workbench.actions import create_registry
+from scenarios.workbench.actions import create_registry, tool_definitions
 from scenarios.workbench.components import AgentInfo
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
@@ -105,7 +106,7 @@ async def run(args):
                     context_window=10_000,
                     system_prompt=system_prompt,
                 ),
-                InferenceProcess(client=client, tools=registry.tool_definitions()),
+                InferenceProcess(client=client, tools=tool_definitions()),
             ],
             state_types=[WorkingMemory, Episodes],
         )
@@ -125,7 +126,9 @@ async def run(args):
         while handle in existing_handles:
             handle = fake.first_name()
         existing_handles.add(handle)
-        world.spawn(handle, overrides=[AgentInfo(role="", personality="observant, adaptive")])
+        world.spawn(
+            handle, overrides=[AgentInfo(role="", personality="observant, adaptive")]
+        )
         brains[handle] = make_brain()
 
     bus.register("WORLD")
@@ -150,6 +153,7 @@ async def run(args):
     while True:
         try:
             import readline  # noqa: F401 — enables line editing
+
             line = await asyncio.get_event_loop().run_in_executor(
                 None, lambda: input(f"[tick {tick_number.value}] > ")
             )
@@ -219,7 +223,9 @@ async def run(args):
             parts = line.split()
             n = int(parts[1]) if len(parts) > 1 else 1
             for _ in range(n):
-                storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
+                storage.save_component(
+                    "_meta", "tick", {"value": tick_number.value + 1}
+                )
                 await engine.tick()
             print(f"  advanced to tick {tick_number.value}")
             continue

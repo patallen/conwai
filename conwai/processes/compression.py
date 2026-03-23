@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 from conwai.brain import BrainContext
 from conwai.processes.types import (
-    Episodes,
     Episode,
+    Episodes,
     PerceptFeedback,
     WorkingMemory,
     WorkingMemoryEntry,

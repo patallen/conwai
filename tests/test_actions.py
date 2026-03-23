@@ -80,7 +80,9 @@ def test_give_updates_both_stores():
     _add(world, "A2", "baker")
     world.set("A1", Inventory(flour=10, water=0, bread=0))
     registry.begin_tick(world, ["A1", "A2"])
-    registry.execute("A1", "give", {"to": "A2", "resource": "flour", "amount": 5}, world)
+    registry.execute(
+        "A1", "give", {"to": "A2", "resource": "flour", "amount": 5}, world
+    )
     assert world.get("A1", Inventory).flour == 5
     assert world.get("A2", Inventory).flour == 5
 

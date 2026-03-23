@@ -44,10 +44,17 @@ class BulletinBoard:
     def _save(self):
         if not self._storage:
             return
-        self._storage.save_component(self._entity, self._component, {
-            "posts": [{"handle": p.handle, "content": p.content, "timestamp": p.timestamp} for p in self._posts],
-            "cursors": self._cursors,
-        })
+        self._storage.save_component(
+            self._entity,
+            self._component,
+            {
+                "posts": [
+                    {"handle": p.handle, "content": p.content, "timestamp": p.timestamp}
+                    for p in self._posts
+                ],
+                "cursors": self._cursors,
+            },
+        )
 
     def post(self, handle: str, content: str):
         content = content[: self.max_post_length]

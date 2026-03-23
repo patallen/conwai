@@ -44,13 +44,25 @@ class MessageBus:
     def _save(self):
         if not self._storage:
             return
-        self._storage.save_component(self._entity, self._component, {
-            "queues": {
-                k: [{"from_handle": dm.from_handle, "to_handle": dm.to_handle, "content": dm.content, "timestamp": dm.timestamp} for dm in v]
-                for k, v in self._queues.items()
+        self._storage.save_component(
+            self._entity,
+            self._component,
+            {
+                "queues": {
+                    k: [
+                        {
+                            "from_handle": dm.from_handle,
+                            "to_handle": dm.to_handle,
+                            "content": dm.content,
+                            "timestamp": dm.timestamp,
+                        }
+                        for dm in v
+                    ]
+                    for k, v in self._queues.items()
+                },
+                "known_handles": sorted(self._known_handles),
             },
-            "known_handles": sorted(self._known_handles),
-        })
+        )
 
     def register(self, handle: str):
         self._known_handles.add(handle)

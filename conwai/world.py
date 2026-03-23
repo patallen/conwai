@@ -26,7 +26,9 @@ class World:
 
     # -- Registration --------------------------------------------------------
 
-    def register[T: Component](self, comp_type: type[T], default: T | None = None) -> None:
+    def register[T: Component](
+        self, comp_type: type[T], default: T | None = None
+    ) -> None:
         self._defaults[comp_type] = default if default is not None else comp_type()
         self._types[comp_type.component_name()] = comp_type
 

@@ -15,7 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from conwai.brain import BrainContext
-from conwai.processes.types import AgentHandle, Episodes, Episode, PerceptTick
+from conwai.processes.types import AgentHandle, Episode, Episodes, PerceptTick
 
 log = logging.getLogger("conwai")
 
@@ -70,7 +70,7 @@ class ConsolidationProcess:
 
         recent = entries_with_emb[-50:]
         numbered = "\n".join(
-            f"{i+1}. {e.content[:200]}" for i, e in enumerate(recent)
+            f"{i + 1}. {e.content[:200]}" for i, e in enumerate(recent)
         )
 
         questions = await self._generate_questions(numbered, agent_id)
@@ -104,11 +104,13 @@ class ConsolidationProcess:
         if new_insights:
             insight_vecs = self._embedder.embed(new_insights)
             for text, vec in zip(new_insights, insight_vecs):
-                eps.entries.append(Episode(
-                    content=f"[Reflection, {self._fmt(tick)}] {text}",
-                    tick=tick,
-                    embedding=vec,
-                ))
+                eps.entries.append(
+                    Episode(
+                        content=f"[Reflection, {self._fmt(tick)}] {text}",
+                        tick=tick,
+                        embedding=vec,
+                    )
+                )
             ctx.state.set(eps)
 
             log.info(
@@ -141,6 +143,7 @@ class ConsolidationProcess:
             text = "1)" + resp.text
             questions = []
             import re
+
             for line in text.strip().split("\n"):
                 line = line.strip()
                 if not line:
@@ -155,8 +158,10 @@ class ConsolidationProcess:
             log.warning(f"[@{agent_id}] focal-point generation failed: {e}")
             return []
 
-    async def _generate_insight(self, question: str, evidence: list[str], agent_id: str) -> str | None:
-        numbered = "\n".join(f"{i+1}. {e}" for i, e in enumerate(evidence))
+    async def _generate_insight(
+        self, question: str, evidence: list[str], agent_id: str
+    ) -> str | None:
+        numbered = "\n".join(f"{i + 1}. {e}" for i, e in enumerate(evidence))
         if self.first_person:
             i_framing = "can I infer"
             i_system = "You generate insights about your behavior. One sentence only. No preamble."
@@ -178,7 +183,7 @@ class ConsolidationProcess:
             text = resp.text.strip()
             for prefix in ["1.", "1)", "Insight:", "insight:"]:
                 if text.startswith(prefix):
-                    text = text[len(prefix):].strip()
+                    text = text[len(prefix) :].strip()
             return text if text else None
         except Exception as e:
             log.warning(f"[@{agent_id}] insight generation failed: {e}")

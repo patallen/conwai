@@ -2,7 +2,13 @@ from conwai.actions import ActionFeedback, ActionResult
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
+from conwai.processes.types import (
+    AgentHandle,
+    Identity,
+    Observations,
+    PerceptFeedback,
+    PerceptTick,
+)
 from conwai.world import World
 from scenarios.workbench.components import AgentInfo
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder

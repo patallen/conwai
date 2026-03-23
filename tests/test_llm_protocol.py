@@ -1,9 +1,10 @@
-from conwai.llm import LLMClient, AnthropicLLMClient
-from conwai.llm import LLMProvider
+from conwai.llm import AnthropicLLMClient, LLMClient, LLMProvider
 
 
 def test_openai_client_satisfies_protocol():
-    assert issubclass(LLMClient, LLMProvider) or isinstance(LLMClient.__new__(LLMClient), LLMProvider)
+    assert issubclass(LLMClient, LLMProvider) or isinstance(
+        LLMClient.__new__(LLMClient), LLMProvider
+    )
 
 
 def test_anthropic_client_satisfies_protocol():
@@ -14,4 +15,5 @@ def test_anthropic_client_satisfies_protocol():
 
 def test_protocol_exists():
     from conwai.llm import LLMProvider
+
     assert hasattr(LLMProvider, "call")

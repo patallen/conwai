@@ -62,10 +62,14 @@ class SQLiteStorage:
         conn.commit()
 
     def load_component(self, entity: str, component: str) -> dict | None:
-        row = self._conn().execute(
-            "SELECT data FROM components WHERE entity = ? AND component = ?",
-            (entity, component),
-        ).fetchone()
+        row = (
+            self._conn()
+            .execute(
+                "SELECT data FROM components WHERE entity = ? AND component = ?",
+                (entity, component),
+            )
+            .fetchone()
+        )
         if row is None:
             return None
         try:
@@ -74,16 +78,22 @@ class SQLiteStorage:
             return None
 
     def list_entities(self) -> list[str]:
-        rows = self._conn().execute(
-            "SELECT DISTINCT entity FROM components ORDER BY entity"
-        ).fetchall()
+        rows = (
+            self._conn()
+            .execute("SELECT DISTINCT entity FROM components ORDER BY entity")
+            .fetchall()
+        )
         return [r[0] for r in rows]
 
     def list_components(self, entity: str) -> list[str]:
-        rows = self._conn().execute(
-            "SELECT component FROM components WHERE entity = ? ORDER BY component",
-            (entity,),
-        ).fetchall()
+        rows = (
+            self._conn()
+            .execute(
+                "SELECT component FROM components WHERE entity = ? ORDER BY component",
+                (entity,),
+            )
+            .fetchall()
+        )
         return [r[0] for r in rows]
 
     def delete_entity(self, entity: str) -> None:

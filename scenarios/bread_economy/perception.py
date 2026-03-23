@@ -7,7 +7,13 @@ from conwai.actions import ActionFeedback
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
+from conwai.processes.types import (
+    AgentHandle,
+    Identity,
+    Observations,
+    PerceptFeedback,
+    PerceptTick,
+)
 from conwai.typemap import Percept
 from scenarios.bread_economy.components import (
     AgentInfo,
@@ -65,7 +71,9 @@ class BreadPerceptionBuilder:
         soul_block = self.soul_tpl.format(soul=soul)
         journal = mem.memory or "(empty)"
         journal_block = self.memory_tpl.format(memory=journal)
-        strategy = mem.strategy or "(no strategy yet -- set one at your next morning review)"
+        strategy = (
+            mem.strategy or "(no strategy yet -- set one at your next morning review)"
+        )
         strategy_block = self.strategy_tpl.format(strategy=strategy)
         return (
             self.identity_tpl.format(

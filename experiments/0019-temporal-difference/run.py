@@ -27,7 +27,9 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     return {"mean": float(np.mean(upper)), "std": float(np.std(upper))}
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -82,9 +84,9 @@ def main() -> None:
     print(f"Windowed(5): mean={win_stats['mean']:.4f} std={win_stats['std']:.4f}")
 
     # K-means on each representation
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS COMPARISON (K=10)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     for name, vecs, entries in [
         ("original", vectors, parsed),

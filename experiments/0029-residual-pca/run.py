@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.metrics import silhouette_score
 
 CACHE_VECS = Path("experiments/helen_embeddings.npz")
@@ -43,9 +43,9 @@ def main() -> None:
     for n_pcs in [2, 3, 5, 10, 20]:
         projected = pca_project(residuals, n_pcs)
 
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"RESIDUAL + PCA({n_pcs} components)")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         # Try different K values
         best_k, best_sil = 0, -1.0
@@ -66,7 +66,9 @@ def main() -> None:
                     agg = AgglomerativeClustering(n_clusters=k, linkage=linkage)
                     labels = agg.fit_predict(projected)
                     sil = silhouette_score(projected, labels, metric="cosine")
-                    sizes = sorted([int((labels == ki).sum()) for ki in range(k)], reverse=True)
+                    sizes = sorted(
+                        [int((labels == ki).sum()) for ki in range(k)], reverse=True
+                    )
                     print(f"  Agglom({linkage},K={k}): sil={sil:.4f} sizes={sizes}")
                 except Exception as e:
                     print(f"  Agglom({linkage},K={k}): failed ({e})")
@@ -81,7 +83,9 @@ def main() -> None:
             indices = np.where(mask)[0]
             action_counts: dict[str, int] = {}
             for idx in indices:
-                action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+                action_counts[parsed[idx]["action"]] = (
+                    action_counts.get(parsed[idx]["action"], 0) + 1
+                )
             top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
             action_str = ", ".join(f"{a}:{c}" for a, c in top)
             print(f"    Cluster {ki} ({int(mask.sum())}) [{action_str}]")
@@ -89,9 +93,9 @@ def main() -> None:
                 print(f"      [{idx:3d}] {parsed[idx]['reasoning'][:100]}")
 
     # Summary: find the absolute best combo
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("SILHOUETTE SUMMARY (best K per PCA dimension)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"{'PCs':>5s} {'Best K':>7s} {'Silhouette':>12s}")
     for n_pcs in [2, 3, 5, 10, 20, 50]:
         projected = pca_project(residuals, n_pcs)

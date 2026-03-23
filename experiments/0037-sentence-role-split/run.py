@@ -25,7 +25,7 @@ from sklearn.metrics import silhouette_score
 CACHE_PARSED = Path("experiments/helen_parsed.json")
 CACHE_VECS = Path("experiments/helen_embeddings.npz")
 
-_SENT_SPLIT = re.compile(r'(?<=[.!?])\s+')
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def split_first_last(text: str) -> tuple[str, str]:
@@ -67,6 +67,7 @@ def main() -> None:
 
     # Embed conditions and decisions separately
     from conwai.embeddings import FastEmbedder
+
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 
     print("Embedding conditions...")
@@ -85,9 +86,9 @@ def main() -> None:
     print(f"\nCombined (condition+decision) shape: {combined.shape}")
 
     # Cluster the combined representation
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CLUSTERING CONDITION+DECISION PAIRS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for k in [5, 8, 10, 15, 20]:
         labels = KMeans(n_clusters=k, random_state=42, n_init=10).fit_predict(combined)
         sil = silhouette_score(combined, labels)
@@ -98,9 +99,9 @@ def main() -> None:
     best_k = 10
     labels = KMeans(n_clusters=best_k, random_state=42, n_init=10).fit_predict(combined)
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"CONSOLIDATED PATTERNS (K={best_k})")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for ki in range(best_k):
         mask = labels == ki
         indices = np.where(mask)[0]
@@ -108,35 +109,43 @@ def main() -> None:
 
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top_actions = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top_actions)
 
         # Find the most common condition and decision in this cluster
-        cluster_conds = [conditions[idx] for idx in indices]
-        cluster_decs = [decisions[idx] for idx in indices]
+        [conditions[idx] for idx in indices]
+        [decisions[idx] for idx in indices]
 
         # Cluster centroid in condition and decision space
-        cond_center = cond_pca[indices].mean(axis=0)
-        dec_center = dec_pca[indices].mean(axis=0)
+        cond_pca[indices].mean(axis=0)
+        dec_pca[indices].mean(axis=0)
 
         # Find the entry closest to the centroid (most representative)
-        dists = np.linalg.norm(combined[indices] - combined[indices].mean(axis=0), axis=1)
+        dists = np.linalg.norm(
+            combined[indices] - combined[indices].mean(axis=0), axis=1
+        )
         representative_idx = indices[np.argmin(dists)]
 
-        print(f"\n  PATTERN {ki+1} ({size} episodes) [{action_str}]")
+        print(f"\n  PATTERN {ki + 1} ({size} episodes) [{action_str}]")
         print(f"    Representative condition: {conditions[representative_idx][:120]}")
         print(f"    Representative decision:  {decisions[representative_idx][:120]}")
-        print(f"    Examples:")
+        print("    Examples:")
         for idx in indices[:3]:
             print(f"      [{idx:3d}] C: {conditions[idx][:80]}")
             print(f"           D: {decisions[idx][:80]}")
 
     # Compare: cluster conditions only vs decisions only vs both
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("COMPARISON: WHAT TO CLUSTER ON")
-    print(f"{'='*70}")
-    for name, vecs in [("conditions_only", cond_pca), ("decisions_only", dec_pca), ("combined", combined)]:
+    print(f"{'=' * 70}")
+    for name, vecs in [
+        ("conditions_only", cond_pca),
+        ("decisions_only", dec_pca),
+        ("combined", combined),
+    ]:
         labels = KMeans(n_clusters=10, random_state=42, n_init=10).fit_predict(vecs)
         sil = silhouette_score(vecs, labels)
         sizes = sorted([int((labels == ki).sum()) for ki in range(10)], reverse=True)

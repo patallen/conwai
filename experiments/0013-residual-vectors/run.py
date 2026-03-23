@@ -40,8 +40,10 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     sim = (vectors / norms) @ (vectors / norms).T
     upper = sim[np.triu_indices(len(vectors), k=1)]
     return {
-        "mean": float(np.mean(upper)), "std": float(np.std(upper)),
-        "min": float(np.min(upper)), "max": float(np.max(upper)),
+        "mean": float(np.mean(upper)),
+        "std": float(np.std(upper)),
+        "min": float(np.min(upper)),
+        "max": float(np.max(upper)),
         "p25": float(np.percentile(upper, 25)),
         "p75": float(np.percentile(upper, 75)),
     }
@@ -93,16 +95,20 @@ def main() -> None:
 
     # Original stats
     orig_stats = pairwise_stats(original)
-    print(f"Original: mean={orig_stats['mean']:.4f} std={orig_stats['std']:.4f} "
-          f"range=[{orig_stats['min']:.4f}, {orig_stats['max']:.4f}]")
+    print(
+        f"Original: mean={orig_stats['mean']:.4f} std={orig_stats['std']:.4f} "
+        f"range=[{orig_stats['min']:.4f}, {orig_stats['max']:.4f}]"
+    )
 
     # Compute centroid and subtract
     centroid = np.mean(original, axis=0)
     residuals = original - centroid
 
     res_stats = pairwise_stats(residuals)
-    print(f"Residual: mean={res_stats['mean']:.4f} std={res_stats['std']:.4f} "
-          f"range=[{res_stats['min']:.4f}, {res_stats['max']:.4f}]")
+    print(
+        f"Residual: mean={res_stats['mean']:.4f} std={res_stats['std']:.4f} "
+        f"range=[{res_stats['min']:.4f}, {res_stats['max']:.4f}]"
+    )
     print(f"  Spread improvement: std {orig_stats['std']:.4f} → {res_stats['std']:.4f}")
     print()
 
@@ -119,22 +125,26 @@ def main() -> None:
                 action_residuals[idx] = original[idx] - action_centroid
 
     act_stats = pairwise_stats(action_residuals)
-    print(f"Action-residual: mean={act_stats['mean']:.4f} std={act_stats['std']:.4f} "
-          f"range=[{act_stats['min']:.4f}, {act_stats['max']:.4f}]")
+    print(
+        f"Action-residual: mean={act_stats['mean']:.4f} std={act_stats['std']:.4f} "
+        f"range=[{act_stats['min']:.4f}, {act_stats['max']:.4f}]"
+    )
     print()
 
     # Cluster residuals at various thresholds
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("CLUSTERING GLOBAL RESIDUALS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for threshold in THRESHOLDS:
         vec_list = [residuals[i] for i in range(len(residuals))]
         clusters = cluster_centroid(vec_list, threshold)
         clusters_sorted = sorted(clusters, key=lambda c: -len(c))
         sizes = [len(c) for c in clusters_sorted]
         non_sing = sum(1 for s in sizes if s > 1)
-        print(f"  threshold={threshold:.2f}: {len(clusters)} clusters "
-              f"({non_sing} non-singleton) top={sizes[:10]}")
+        print(
+            f"  threshold={threshold:.2f}: {len(clusters)} clusters "
+            f"({non_sing} non-singleton) top={sizes[:10]}"
+        )
 
     # Find best threshold and show clusters
     best_threshold = None
@@ -147,9 +157,9 @@ def main() -> None:
     if best_threshold is None:
         best_threshold = 0.30
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"DETAILED VIEW AT THRESHOLD {best_threshold:.2f}")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     vec_list = [residuals[i] for i in range(len(residuals))]
     clusters = cluster_centroid(vec_list, best_threshold)
     clusters_sorted = sorted(clusters, key=lambda c: -len(c))
@@ -157,25 +167,31 @@ def main() -> None:
     for ci, cluster in enumerate(clusters_sorted[:15]):
         action_counts: dict[str, int] = {}
         for idx in cluster:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
-        action_str = ", ".join(f"{k}:{v}" for k, v in sorted(action_counts.items(), key=lambda x: -x[1]))
-        print(f"\n  Cluster {ci+1} (size={len(cluster)}) [{action_str}]")
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
+        action_str = ", ".join(
+            f"{k}:{v}" for k, v in sorted(action_counts.items(), key=lambda x: -x[1])
+        )
+        print(f"\n  Cluster {ci + 1} (size={len(cluster)}) [{action_str}]")
         for idx in cluster[:3]:
             print(f"    [{idx:3d}] {parsed[idx]['reasoning'][:130]}")
         if len(cluster) > 3:
-            print(f"    ... and {len(cluster)-3} more")
+            print(f"    ... and {len(cluster) - 3} more")
 
     # Also cluster action-residuals
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CLUSTERING ACTION-TYPE RESIDUALS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for threshold in THRESHOLDS:
         vec_list = [action_residuals[i] for i in range(len(action_residuals))]
         clusters = cluster_centroid(vec_list, threshold)
         sizes = sorted([len(c) for c in clusters], reverse=True)
         non_sing = sum(1 for s in sizes if s > 1)
-        print(f"  threshold={threshold:.2f}: {len(clusters)} clusters "
-              f"({non_sing} non-singleton) top={sizes[:10]}")
+        print(
+            f"  threshold={threshold:.2f}: {len(clusters)} clusters "
+            f"({non_sing} non-singleton) top={sizes[:10]}"
+        )
 
 
 if __name__ == "__main__":

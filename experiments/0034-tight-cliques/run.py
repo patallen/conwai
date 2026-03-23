@@ -78,9 +78,39 @@ def extract_shared_words(entries: list[str]) -> list[str]:
     for ws in word_sets[1:]:
         shared = shared & ws
     # Remove ultra-common words
-    stopwords = {"i", "my", "the", "a", "an", "to", "and", "of", "in", "is", "am",
-                 "will", "for", "with", "as", "at", "by", "on", "it", "that", "this",
-                 "be", "have", "has", "not", "but", "or", "so", "if", "me", "do"}
+    stopwords = {
+        "i",
+        "my",
+        "the",
+        "a",
+        "an",
+        "to",
+        "and",
+        "of",
+        "in",
+        "is",
+        "am",
+        "will",
+        "for",
+        "with",
+        "as",
+        "at",
+        "by",
+        "on",
+        "it",
+        "that",
+        "this",
+        "be",
+        "have",
+        "has",
+        "not",
+        "but",
+        "or",
+        "so",
+        "if",
+        "me",
+        "do",
+    }
     return sorted(shared - stopwords)
 
 
@@ -98,9 +128,11 @@ def main() -> None:
     for threshold in [0.90, 0.85, 0.80, 0.75, 0.70]:
         cliques = find_cliques(projected, threshold)
         sizes = [len(c) for c in cliques]
-        print(f"Threshold {threshold:.2f}: {len(cliques)} cliques, "
-              f"sizes range {min(sizes) if sizes else 0}-{max(sizes) if sizes else 0}, "
-              f"total entries covered: {len(set().union(*[set(c) for c in cliques])) if cliques else 0}")
+        print(
+            f"Threshold {threshold:.2f}: {len(cliques)} cliques, "
+            f"sizes range {min(sizes) if sizes else 0}-{max(sizes) if sizes else 0}, "
+            f"total entries covered: {len(set().union(*[set(c) for c in cliques])) if cliques else 0}"
+        )
 
     # Detailed analysis at the most interesting threshold
     # Pick threshold that gives 15-40 cliques
@@ -108,9 +140,9 @@ def main() -> None:
     cliques = find_cliques(projected, best_threshold)
     cliques.sort(key=lambda c: -len(c))
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"CLIQUES AT THRESHOLD {best_threshold} ({len(cliques)} cliques)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     for ci, clique in enumerate(cliques[:25]):
         entries_text = [parsed[idx]["reasoning"] for idx in clique]
@@ -118,22 +150,24 @@ def main() -> None:
         action_counts: dict[str, int] = {}
         for a in actions:
             action_counts[a] = action_counts.get(a, 0) + 1
-        action_str = ", ".join(f"{a}:{c}" for a, c in sorted(action_counts.items(), key=lambda x: -x[1]))
+        action_str = ", ".join(
+            f"{a}:{c}" for a, c in sorted(action_counts.items(), key=lambda x: -x[1])
+        )
 
         shared = extract_shared_words(entries_text)
 
-        print(f"\n  Clique {ci+1} (size={len(clique)}) [{action_str}]")
+        print(f"\n  Clique {ci + 1} (size={len(clique)}) [{action_str}]")
         print(f"    Shared words: {', '.join(shared[:15])}")
         # Show first 3 entries (truncated)
         for idx in clique[:3]:
             print(f"    [{idx:3d}] {parsed[idx]['reasoning'][:120]}")
         if len(clique) > 3:
-            print(f"    ... and {len(clique)-3} more")
+            print(f"    ... and {len(clique) - 3} more")
 
     # Try to extract condition→behavior patterns
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CONDITION→BEHAVIOR EXTRACTION")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("For each clique, what condition and behavior do ALL entries share?\n")
 
     for ci, clique in enumerate(cliques[:15]):
@@ -141,10 +175,32 @@ def main() -> None:
         shared = extract_shared_words(entries_text)
 
         # Look for condition indicators
-        condition_words = {"zero", "critically", "starving", "surplus", "low",
-                          "stable", "ample", "risk", "desperate", "vulnerable"}
-        behavior_words = {"forage", "bake", "trade", "accept", "reject", "decline",
-                         "ignore", "offer", "inspect", "vote", "post", "send"}
+        condition_words = {
+            "zero",
+            "critically",
+            "starving",
+            "surplus",
+            "low",
+            "stable",
+            "ample",
+            "risk",
+            "desperate",
+            "vulnerable",
+        }
+        behavior_words = {
+            "forage",
+            "bake",
+            "trade",
+            "accept",
+            "reject",
+            "decline",
+            "ignore",
+            "offer",
+            "inspect",
+            "vote",
+            "post",
+            "send",
+        }
         resource_words = {"bread", "flour", "water", "coins"}
 
         conditions = [w for w in shared if w in condition_words]
@@ -159,10 +215,12 @@ def main() -> None:
                 pattern += f"WHEN {'+'.join(conditions)}"
             if behaviors:
                 pattern += f" → {'+'.join(behaviors)}"
-            print(f"  Clique {ci+1} ({len(clique)} entries): {pattern}")
+            print(f"  Clique {ci + 1} ({len(clique)} entries): {pattern}")
             print(f"    All shared: {', '.join(shared[:20])}")
         else:
-            print(f"  Clique {ci+1} ({len(clique)} entries): no clear pattern detected")
+            print(
+                f"  Clique {ci + 1} ({len(clique)} entries): no clear pattern detected"
+            )
             print(f"    Shared: {', '.join(shared[:20])}")
 
 

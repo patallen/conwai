@@ -35,8 +35,10 @@ def cosine_matrix(vectors: np.ndarray) -> np.ndarray:
 def pairwise_stats(sim_matrix: np.ndarray) -> dict:
     upper = sim_matrix[np.triu_indices(len(sim_matrix), k=1)]
     return {
-        "mean": float(np.mean(upper)), "std": float(np.std(upper)),
-        "min": float(np.min(upper)), "max": float(np.max(upper)),
+        "mean": float(np.mean(upper)),
+        "std": float(np.std(upper)),
+        "min": float(np.min(upper)),
+        "max": float(np.max(upper)),
     }
 
 
@@ -107,68 +109,82 @@ def main() -> None:
 
         sim = cosine_matrix(vectors)
         stats = pairwise_stats(sim)
-        print(f"After pass {pass_num + 1}: mean={stats['mean']:.4f} std={stats['std']:.4f}")
+        print(
+            f"After pass {pass_num + 1}: mean={stats['mean']:.4f} std={stats['std']:.4f}"
+        )
 
     # Final analysis
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CO-RECALL FREQUENCY ANALYSIS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     upper_corecall = corecall_count[np.triu_indices(len(vectors), k=1)]
-    print(f"Co-recall counts: min={upper_corecall.min()} max={upper_corecall.max()} "
-          f"mean={upper_corecall.mean():.1f} std={upper_corecall.std():.1f}")
+    print(
+        f"Co-recall counts: min={upper_corecall.min()} max={upper_corecall.max()} "
+        f"mean={upper_corecall.mean():.1f} std={upper_corecall.std():.1f}"
+    )
 
     # Pairs with highest co-recall
-    print(f"\nTop 10 most co-recalled pairs:")
+    print("\nTop 10 most co-recalled pairs:")
     flat_indices = np.argsort(upper_corecall)[-10:]
     triu = np.triu_indices(len(vectors), k=1)
     for fi in reversed(flat_indices):
         i, j = triu[0][fi], triu[1][fi]
         orig_sim = float(cosine_matrix(original_vectors)[i, j])
         new_sim = float(cosine_matrix(vectors)[i, j])
-        print(f"  [{i:3d}]-[{j:3d}] corecall={corecall_count[i,j]:3d} "
-              f"sim: {orig_sim:.4f} → {new_sim:.4f}")
+        print(
+            f"  [{i:3d}]-[{j:3d}] corecall={corecall_count[i, j]:3d} "
+            f"sim: {orig_sim:.4f} → {new_sim:.4f}"
+        )
         print(f"    [{i:3d}] [{parsed[i]['action']}] {parsed[i]['reasoning'][:80]}")
         print(f"    [{j:3d}] [{parsed[j]['action']}] {parsed[j]['reasoning'][:80]}")
 
     # Cluster the Hebbian-modified vectors
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CLUSTERING AFTER HEBBIAN MODIFICATION")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for threshold in [0.70, 0.75, 0.80, 0.85, 0.90]:
         clusters = cluster_centroid(vectors, threshold)
         sizes = sorted([len(c) for c in clusters], reverse=True)
         non_sing = sum(1 for s in sizes if s > 1)
-        print(f"  threshold={threshold:.2f}: {len(clusters)} clusters "
-              f"({non_sing} non-singleton) top={sizes[:10]}")
+        print(
+            f"  threshold={threshold:.2f}: {len(clusters)} clusters "
+            f"({non_sing} non-singleton) top={sizes[:10]}"
+        )
 
     # Compare: how did the embedding space change?
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("EMBEDDING SPACE CHANGE")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     orig_sim = cosine_matrix(original_vectors)
     new_sim = cosine_matrix(vectors)
     diff = new_sim - orig_sim
     upper_diff = diff[np.triu_indices(len(vectors), k=1)]
-    print(f"Similarity changes: mean={upper_diff.mean():.6f} "
-          f"std={upper_diff.std():.6f} "
-          f"min={upper_diff.min():.6f} max={upper_diff.max():.6f}")
+    print(
+        f"Similarity changes: mean={upper_diff.mean():.6f} "
+        f"std={upper_diff.std():.6f} "
+        f"min={upper_diff.min():.6f} max={upper_diff.max():.6f}"
+    )
 
     # Which pairs changed the most?
-    print(f"\nPairs that moved TOGETHER the most:")
+    print("\nPairs that moved TOGETHER the most:")
     top_increases = np.argsort(upper_diff)[-5:]
     for fi in reversed(top_increases):
         i, j = triu[0][fi], triu[1][fi]
-        print(f"  [{i:3d}]-[{j:3d}] Δ={upper_diff[fi]:+.4f} "
-              f"({float(orig_sim[i,j]):.4f} → {float(new_sim[i,j]):.4f})")
+        print(
+            f"  [{i:3d}]-[{j:3d}] Δ={upper_diff[fi]:+.4f} "
+            f"({float(orig_sim[i, j]):.4f} → {float(new_sim[i, j]):.4f})"
+        )
         print(f"    [{i:3d}] [{parsed[i]['action']}] {parsed[i]['reasoning'][:80]}")
         print(f"    [{j:3d}] [{parsed[j]['action']}] {parsed[j]['reasoning'][:80]}")
 
-    print(f"\nPairs that moved APART the most:")
+    print("\nPairs that moved APART the most:")
     top_decreases = np.argsort(upper_diff)[:5]
     for fi in top_decreases:
         i, j = triu[0][fi], triu[1][fi]
-        print(f"  [{i:3d}]-[{j:3d}] Δ={upper_diff[fi]:+.4f} "
-              f"({float(orig_sim[i,j]):.4f} → {float(new_sim[i,j]):.4f})")
+        print(
+            f"  [{i:3d}]-[{j:3d}] Δ={upper_diff[fi]:+.4f} "
+            f"({float(orig_sim[i, j]):.4f} → {float(new_sim[i, j]):.4f})"
+        )
         print(f"    [{i:3d}] [{parsed[i]['action']}] {parsed[i]['reasoning'][:80]}")
         print(f"    [{j:3d}] [{parsed[j]['action']}] {parsed[j]['reasoning'][:80]}")
 

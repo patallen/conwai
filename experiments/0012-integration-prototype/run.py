@@ -13,7 +13,6 @@ Usage:
     PYTHONPATH=. uv run python experiments/0012-integration-prototype/run.py
 """
 
-import json
 import re
 from pathlib import Path
 
@@ -123,7 +122,9 @@ def main() -> None:
     parsed = []
     for e in diary:
         action, reasoning = parse_entry(e["content"])
-        parsed.append({"action": action, "reasoning": reasoning[:200], "raw": e["content"][:300]})
+        parsed.append(
+            {"action": action, "reasoning": reasoning[:200], "raw": e["content"][:300]}
+        )
 
     client = httpx.Client()
     state = ConsolidationState()
@@ -133,13 +134,15 @@ def main() -> None:
         window_end = min(tick + CONSOLIDATION_INTERVAL, len(parsed))
         window = parsed[tick:window_end]
 
-        print(f"\n{'='*70}")
-        print(f"TICK {tick}-{window_end-1} ({len(window)} new entries)")
-        print(f"{'='*70}")
+        print(f"\n{'=' * 70}")
+        print(f"TICK {tick}-{window_end - 1} ({len(window)} new entries)")
+        print(f"{'=' * 70}")
 
         # Not enough entries yet?
         if window_end < MIN_ENTRIES_FOR_DISCOVERY and not state.patterns_text:
-            print(f"  Accumulating entries... ({window_end}/{MIN_ENTRIES_FOR_DISCOVERY})")
+            print(
+                f"  Accumulating entries... ({window_end}/{MIN_ENTRIES_FOR_DISCOVERY})"
+            )
             continue
 
         # Time to (re)discover patterns?
@@ -149,9 +152,9 @@ def main() -> None:
         )
 
         if should_discover:
-            print(f"  Discovering patterns from entries 0-{window_end-1}...")
+            print(f"  Discovering patterns from entries 0-{window_end - 1}...")
             all_entries = "\n".join(
-                f"[{i+1}] {p['reasoning'][:150]}"
+                f"[{i + 1}] {p['reasoning'][:150]}"
                 for i, p in enumerate(parsed[:window_end])
             )
             state.patterns_text = llm_call(
@@ -168,7 +171,7 @@ def main() -> None:
 
         # Classify this window's entries
         batch_text = "\n".join(
-            f"{i+1}. [{e['action']}] {e['reasoning'][:150]}"
+            f"{i + 1}. [{e['action']}] {e['reasoning'][:150]}"
             for i, e in enumerate(window)
         )
         result = llm_call(
@@ -193,10 +196,16 @@ def main() -> None:
         print(f"  Cumulative: {state.pattern_counts}")
 
         # Generate lessons periodically (every 2 consolidation cycles after first discovery)
-        if state.patterns_text and tick > 0 and tick % (CONSOLIDATION_INTERVAL * 2) == 0:
+        if (
+            state.patterns_text
+            and tick > 0
+            and tick % (CONSOLIDATION_INTERVAL * 2) == 0
+        ):
             pattern_summary = "\n".join(
                 f"Pattern {pn}: {count} occurrences"
-                for pn, count in sorted(state.pattern_counts.items(), key=lambda x: -x[1])
+                for pn, count in sorted(
+                    state.pattern_counts.items(), key=lambda x: -x[1]
+                )
             )
             state.lessons = llm_call(
                 client,
@@ -211,9 +220,9 @@ def main() -> None:
     client.close()
 
     # Final summary
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("FINAL STATE")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"Total entries processed: {len(parsed)}")
     print(f"Total classified: {state.total_classified}")
     print(f"Pattern discoveries: {len(parsed) // REDISCOVERY_INTERVAL + 1}")

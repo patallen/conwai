@@ -4,8 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from conwai.actions import Action, ActionRegistry
-
-from scenarios.sugarscape.components import Sugar, Position
+from scenarios.sugarscape.components import Position, Sugar
 from scenarios.sugarscape.grid import Grid
 
 if TYPE_CHECKING:
@@ -43,13 +42,5 @@ def _move(entity_id: str, world: World, args: dict) -> str:
 
 def create_registry() -> ActionRegistry:
     registry = ActionRegistry()
-    registry.register(Action(
-        name="move",
-        description="Move to an adjacent cell",
-        parameters={
-            "dx": {"type": "integer", "description": "horizontal movement (-1, 0, or 1)"},
-            "dy": {"type": "integer", "description": "vertical movement (-1, 0, or 1)"},
-        },
-        handler=_move,
-    ))
+    registry.register(Action(name="move", handler=_move))
     return registry

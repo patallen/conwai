@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
-
 from scenarios.bread_economy.components import Economy
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
 
@@ -71,7 +70,9 @@ class ElectionSystem:
             f"Use the vote action. You can change your vote. "
             f"Voting ends in {self.duration} ticks. Most votes wins.",
         )
-        log.info(f"[WORLD] election started (reward: {self._reward}, ends tick {tick + self.duration})")
+        log.info(
+            f"[WORLD] election started (reward: {self._reward}, ends tick {tick + self.duration})"
+        )
 
     def _check_end(self, tick: int) -> None:
         if tick - self._started_tick < self.duration:
@@ -100,17 +101,24 @@ class ElectionSystem:
         if self._world.has(winner, Economy):
             eco = self._world.get(winner, Economy)
             eco.coins += self._reward
-            self._world.get_resource(BreadPerceptionBuilder).notify(winner, f"+{self._reward} coins (won election)")
+            self._world.get_resource(BreadPerceptionBuilder).notify(
+                winner, f"+{self._reward} coins (won election)"
+            )
 
         # Announce results
         board = self._world.get_resource(BulletinBoard)
-        results = ", ".join(f"{c}: {len(v)} votes" for c, v in sorted(tally.items(), key=lambda x: -len(x[1])))
+        results = ", ".join(
+            f"{c}: {len(v)} votes"
+            for c, v in sorted(tally.items(), key=lambda x: -len(x[1]))
+        )
         board.post(
             "WORLD",
             f"ELECTION WON by {winner} with {vote_count} votes! "
             f"They receive {self._reward} coins. Results: {results}",
         )
-        log.info(f"[WORLD] election won by {winner} ({vote_count} votes). Tally: {results}")
+        log.info(
+            f"[WORLD] election won by {winner} ({vote_count} votes). Tally: {results}"
+        )
 
         self._votes.clear()
 

@@ -55,12 +55,14 @@ def parse_entry(content: str) -> tuple[str, str]:
 
 
 def llm_batch(client: httpx.Client, entries: list[str]) -> list[str]:
-    formatted = "\n".join(f"{i+1}. {e[:200]}" for i, e in enumerate(entries))
+    formatted = "\n".join(f"{i + 1}. {e[:200]}" for i, e in enumerate(entries))
     resp = client.post(
         f"{LLM_BASE}/chat/completions",
         json={
             "model": LLM_MODEL,
-            "messages": [{"role": "user", "content": BATCH_PROMPT.format(entries=formatted)}],
+            "messages": [
+                {"role": "user", "content": BATCH_PROMPT.format(entries=formatted)}
+            ],
             "max_tokens": 1000,
             "temperature": 0.3,
             "chat_template_kwargs": {"enable_thinking": False},
@@ -92,7 +94,9 @@ def cluster_centroid(vectors: list[np.ndarray], threshold: float) -> list[list[i
     for idx, vec in enumerate(vectors):
         best_ci, best_sim = -1, -1.0
         for ci, c in enumerate(centroids):
-            sim = float(np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10))
+            sim = float(
+                np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10)
+            )
             if sim > best_sim:
                 best_sim = sim
                 best_ci = ci
@@ -136,23 +140,29 @@ def main() -> None:
         client = httpx.Client()
         n_calls = 0
         for batch_start in range(0, len(parsed), BATCH_SIZE):
-            batch = [p["raw"][:300] for p in parsed[batch_start:batch_start + BATCH_SIZE]]
+            batch = [
+                p["raw"][:300] for p in parsed[batch_start : batch_start + BATCH_SIZE]
+            ]
             batch_abstracts = llm_batch(client, batch)
             abstracts.extend(batch_abstracts)
             n_calls += 1
-            print(f"  Call {n_calls}: entries {batch_start}-{batch_start+len(batch)-1}")
+            print(
+                f"  Call {n_calls}: entries {batch_start}-{batch_start + len(batch) - 1}"
+            )
             for i, a in enumerate(batch_abstracts[:3]):
-                print(f"    [{batch_start+i}] {a}")
+                print(f"    [{batch_start + i}] {a}")
 
         client.close()
         cache_path.write_text(json.dumps(abstracts))
         print(f"\n  Total LLM calls: {n_calls} (vs 251 for individual)")
 
     # Compare with 0004's individual abstracts
-    individual_cache = Path("experiments/0004-llm-behavioral-abstract/abstracts_cache.json")
+    individual_cache = Path(
+        "experiments/0004-llm-behavioral-abstract/abstracts_cache.json"
+    )
     if individual_cache.exists():
         individual = json.loads(individual_cache.read_text())
-        print(f"\nComparison (batch vs individual, first 10):")
+        print("\nComparison (batch vs individual, first 10):")
         for i in range(min(10, len(abstracts))):
             print(f"  [{i}] batch:      {abstracts[i][:80]}")
             print(f"       individual: {individual[i][:80]}")
@@ -166,7 +176,7 @@ def main() -> None:
 
     stats = pairwise_stats(vectors)
     print(f"Pairwise similarity: mean={stats['mean']:.4f} std={stats['std']:.4f}")
-    print(f"(Compare: 0004 individual mean=0.6856 std=0.0913)")
+    print("(Compare: 0004 individual mean=0.6856 std=0.0913)")
     print()
 
     # Cluster at multiple thresholds
@@ -177,9 +187,11 @@ def main() -> None:
         sizes = [len(c) for c in clusters_sorted]
         non_singleton = sum(1 for s in sizes if s > 1)
 
-        print(f"{'='*70}")
-        print(f"THRESHOLD {threshold:.2f}: {len(clusters)} clusters ({non_singleton} non-singleton)")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
+        print(
+            f"THRESHOLD {threshold:.2f}: {len(clusters)} clusters ({non_singleton} non-singleton)"
+        )
+        print(f"{'=' * 70}")
         print(f"  Sizes: {sizes[:15]}{'...' if len(sizes) > 15 else ''}")
 
         if 5 <= len(clusters) <= 20:
@@ -190,7 +202,7 @@ def main() -> None:
                     abs_counts[a] = abs_counts.get(a, 0) + 1
                 top = sorted(abs_counts.items(), key=lambda x: -x[1])[:3]
                 top_str = "; ".join(f"{a}({n})" for a, n in top)
-                print(f"  Cluster {ci+1} (size={len(cluster)}): {top_str}")
+                print(f"  Cluster {ci + 1} (size={len(cluster)}): {top_str}")
         print()
 
 

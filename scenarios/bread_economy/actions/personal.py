@@ -4,9 +4,14 @@ import logging
 from typing import TYPE_CHECKING
 
 from conwai.events import EventLog
-
 from scenarios.bread_economy.actions.helpers import charge
-from scenarios.bread_economy.components import AgentInfo, AgentMemory, Economy, Hunger, Inventory
+from scenarios.bread_economy.components import (
+    AgentInfo,
+    AgentMemory,
+    Economy,
+    Hunger,
+    Inventory,
+)
 from scenarios.bread_economy.config import get_config
 
 if TYPE_CHECKING:
@@ -40,7 +45,9 @@ def _update_journal(entity_id: str, world: World, args: dict) -> str:
         lost = len(content) - max_len
         content = content[:max_len]
     mem.memory = content
-    world.get_resource(EventLog).log(entity_id, "journal_updated", {"chars": len(content)})
+    world.get_resource(EventLog).log(
+        entity_id, "journal_updated", {"chars": len(content)}
+    )
     log.info(f"[{entity_id}] journal updated")
     if lost > 0:
         return f"journal updated ({lost} chars truncated)"

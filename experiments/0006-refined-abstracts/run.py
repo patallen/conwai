@@ -72,7 +72,9 @@ def llm_abstract(client: httpx.Client, entry_text: str) -> tuple[str, str]:
         f"{LLM_BASE}/chat/completions",
         json={
             "model": LLM_MODEL,
-            "messages": [{"role": "user", "content": ABSTRACT_PROMPT.format(entry=entry_text)}],
+            "messages": [
+                {"role": "user", "content": ABSTRACT_PROMPT.format(entry=entry_text)}
+            ],
             "max_tokens": 200,
             "temperature": 0.3,
             "chat_template_kwargs": {"enable_thinking": False},
@@ -100,7 +102,9 @@ def cluster_centroid(vectors: list[np.ndarray], threshold: float) -> list[list[i
     for idx, vec in enumerate(vectors):
         best_ci, best_sim = -1, -1.0
         for ci, c in enumerate(centroids):
-            sim = float(np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10))
+            sim = float(
+                np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10)
+            )
             if sim > best_sim:
                 best_sim = sim
                 best_ci = ci
@@ -154,7 +158,9 @@ def main() -> None:
             if i % 25 == 0:
                 print(f"  [{i}/{len(parsed)}] {cat} → {pat}")
         client.close()
-        cache_path.write_text(json.dumps({"categories": categories, "patterns": patterns}))
+        cache_path.write_text(
+            json.dumps({"categories": categories, "patterns": patterns})
+        )
         print(f"  Saved {len(categories)} abstracts to cache")
 
     # Show category distribution
@@ -170,44 +176,54 @@ def main() -> None:
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
     cat_vecs = np.array(embedder.embed(categories))
     stats = pairwise_stats(cat_vecs)
-    print(f"Category embeddings: mean={stats.get('mean',0):.4f} std={stats.get('std',0):.4f}")
+    print(
+        f"Category embeddings: mean={stats.get('mean', 0):.4f} std={stats.get('std', 0):.4f}"
+    )
 
     # Also embed patterns for comparison
     pat_vecs = np.array(embedder.embed(patterns))
     stats2 = pairwise_stats(pat_vecs)
-    print(f"Pattern embeddings:  mean={stats2.get('mean',0):.4f} std={stats2.get('std',0):.4f}")
-    print(f"(Compare: raw reasoning mean=0.7972, 0004 abstracts mean=0.6856)")
+    print(
+        f"Pattern embeddings:  mean={stats2.get('mean', 0):.4f} std={stats2.get('std', 0):.4f}"
+    )
+    print("(Compare: raw reasoning mean=0.7972, 0004 abstracts mean=0.6856)")
 
     # Cluster categories at various thresholds
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CLUSTERING ON CATEGORY EMBEDDINGS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for threshold in THRESHOLDS:
         vec_list = [cat_vecs[i] for i in range(len(cat_vecs))]
         clusters = cluster_centroid(vec_list, threshold)
         clusters_sorted = sorted(clusters, key=lambda c: -len(c))
         sizes = [len(c) for c in clusters_sorted]
-        print(f"\n  threshold={threshold:.2f}: {len(clusters)} clusters, sizes={sizes[:15]}{'...' if len(sizes) > 15 else ''}")
+        print(
+            f"\n  threshold={threshold:.2f}: {len(clusters)} clusters, sizes={sizes[:15]}{'...' if len(sizes) > 15 else ''}"
+        )
 
         if 5 <= len(clusters) <= 20:
             for ci, cluster in enumerate(clusters_sorted[:10]):
                 cluster_cats: dict[str, int] = {}
                 for idx in cluster:
-                    cluster_cats[categories[idx]] = cluster_cats.get(categories[idx], 0) + 1
+                    cluster_cats[categories[idx]] = (
+                        cluster_cats.get(categories[idx], 0) + 1
+                    )
                 top_cats = sorted(cluster_cats.items(), key=lambda x: -x[1])[:3]
                 cats_str = ", ".join(f"{c}({n})" for c, n in top_cats)
-                print(f"    Cluster {ci+1} (size={len(cluster)}): {cats_str}")
+                print(f"    Cluster {ci + 1} (size={len(cluster)}): {cats_str}")
 
     # Also cluster on pattern embeddings
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CLUSTERING ON PATTERN EMBEDDINGS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for threshold in THRESHOLDS:
         vec_list = [pat_vecs[i] for i in range(len(pat_vecs))]
         clusters = cluster_centroid(vec_list, threshold)
         sizes = sorted([len(c) for c in clusters], reverse=True)
         non_singleton = sum(1 for s in sizes if s > 1)
-        print(f"  threshold={threshold:.2f}: {len(clusters)} clusters ({non_singleton} non-singleton)")
+        print(
+            f"  threshold={threshold:.2f}: {len(clusters)} clusters ({non_singleton} non-singleton)"
+        )
 
 
 if __name__ == "__main__":

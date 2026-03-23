@@ -23,17 +23,94 @@ CACHE_PARSED = Path("experiments/helen_parsed.json")
 
 _WORD_RE = re.compile(r"[a-z]+")
 STOPWORDS = {
-    "i", "me", "my", "myself", "we", "our", "you", "your",
-    "he", "him", "his", "she", "her", "it", "its", "they", "them",
-    "their", "am", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "having", "do", "does", "did",
-    "a", "an", "the", "and", "but", "if", "or", "because", "as",
-    "while", "of", "at", "by", "for", "with", "about", "to", "from",
-    "in", "out", "on", "off", "over", "under", "then",
-    "here", "there", "when", "where", "how", "all", "both", "each",
-    "more", "most", "other", "some", "no", "not", "only", "so",
-    "than", "too", "very", "can", "will", "just", "should", "now",
-    "immediately", "surplus", "current", "strategy", "nature", "skeptical",
+    "i",
+    "me",
+    "my",
+    "myself",
+    "we",
+    "our",
+    "you",
+    "your",
+    "he",
+    "him",
+    "his",
+    "she",
+    "her",
+    "it",
+    "its",
+    "they",
+    "them",
+    "their",
+    "am",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "having",
+    "do",
+    "does",
+    "did",
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "if",
+    "or",
+    "because",
+    "as",
+    "while",
+    "of",
+    "at",
+    "by",
+    "for",
+    "with",
+    "about",
+    "to",
+    "from",
+    "in",
+    "out",
+    "on",
+    "off",
+    "over",
+    "under",
+    "then",
+    "here",
+    "there",
+    "when",
+    "where",
+    "how",
+    "all",
+    "both",
+    "each",
+    "more",
+    "most",
+    "other",
+    "some",
+    "no",
+    "not",
+    "only",
+    "so",
+    "than",
+    "too",
+    "very",
+    "can",
+    "will",
+    "just",
+    "should",
+    "now",
+    "immediately",
+    "surplus",
+    "current",
+    "strategy",
+    "nature",
+    "skeptical",
 }
 
 
@@ -101,9 +178,9 @@ def main() -> None:
     print(f"Combined shape: {combined.shape}")
 
     # PCA on combined
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("COMPARISON: INDIVIDUAL vs COMBINED")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     representations = {
         "tfidf_only": tfidf,
@@ -130,15 +207,17 @@ def main() -> None:
     labels = km.fit_predict(best_vecs)
     sil = silhouette_score(best_vecs, labels, metric="cosine")
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"DETAILED: {best_name} K=8 (sil={sil:.4f})")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for ki in range(8):
         mask = labels == ki
         indices = np.where(mask)[0]
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top)
         print(f"  Cluster {ki} ({int(mask.sum())}) [{action_str}]")

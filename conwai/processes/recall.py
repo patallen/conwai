@@ -7,7 +7,7 @@ import re
 from typing import TYPE_CHECKING
 
 from conwai.brain import BrainContext
-from conwai.processes.types import Episodes, Episode, Observations, RecalledMemories
+from conwai.processes.types import Episode, Episodes, Observations, RecalledMemories
 
 if TYPE_CHECKING:
     from conwai.embeddings import Embedder
@@ -56,7 +56,9 @@ class MemoryRecall:
         if matches:
             ctx.bb.set(RecalledMemories(entries=matches))
 
-    def _split_recall(self, embedded: list[Episode], query_vec: list[float]) -> list[str]:
+    def _split_recall(
+        self, embedded: list[Episode], query_vec: list[float]
+    ) -> list[str]:
         episodes = [e for e in embedded if not e.content.startswith("[Reflection]")]
         reflections = [e for e in embedded if e.content.startswith("[Reflection]")]
         recalled = []
@@ -66,7 +68,9 @@ class MemoryRecall:
             recalled.extend(self._topk(reflections, query_vec, self.reflection_limit))
         return recalled
 
-    def _boosted_recall(self, embedded: list[Episode], query_vec: list[float], min_sim: float = 0.3) -> list[str]:
+    def _boosted_recall(
+        self, embedded: list[Episode], query_vec: list[float], min_sim: float = 0.3
+    ) -> list[str]:
         import numpy as np
 
         qv = np.array(query_vec)
@@ -78,7 +82,9 @@ class MemoryRecall:
         top = list(np.argsort(sims)[-self.recall_limit :][::-1])
         return [embedded[i].content for i in top if sims[i] >= min_sim]
 
-    def _handle_recall(self, episodes: list[Episode], perception_text: str) -> list[str]:
+    def _handle_recall(
+        self, episodes: list[Episode], perception_text: str
+    ) -> list[str]:
         triggers = set(_HANDLE_RE.findall(perception_text))
         if not triggers:
             return []
@@ -94,7 +100,9 @@ class MemoryRecall:
         return matches
 
     @staticmethod
-    def _topk(entries: list[Episode], query_vec: list[float], k: int, min_sim: float = 0.3) -> list[str]:
+    def _topk(
+        entries: list[Episode], query_vec: list[float], k: int, min_sim: float = 0.3
+    ) -> list[str]:
         if not entries:
             return []
         import numpy as np

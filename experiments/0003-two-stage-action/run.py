@@ -54,7 +54,9 @@ def cluster_centroid(vectors: list[np.ndarray], threshold: float) -> list[list[i
     for idx, vec in enumerate(vectors):
         best_ci, best_sim = -1, -1.0
         for ci, c in enumerate(centroids):
-            sim = float(np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10))
+            sim = float(
+                np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10)
+            )
             if sim > best_sim:
                 best_sim = sim
                 best_ci = ci
@@ -103,14 +105,16 @@ def main() -> None:
         indices = [idx for idx, _ in items]
         bucket_vecs = vectors[indices]
 
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"ACTION: {action} ({len(items)} entries)")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         stats = pairwise_stats(bucket_vecs)
         if stats["n"] >= 2:
-            print(f"  Pairwise sim: mean={stats['mean']:.4f} std={stats['std']:.4f} "
-                  f"min={stats['min']:.4f} max={stats['max']:.4f}")
+            print(
+                f"  Pairwise sim: mean={stats['mean']:.4f} std={stats['std']:.4f} "
+                f"min={stats['min']:.4f} max={stats['max']:.4f}"
+            )
 
         # Try clustering at multiple thresholds
         for threshold in [0.80, 0.85, 0.90]:
@@ -119,8 +123,10 @@ def main() -> None:
             sizes = sorted([len(c) for c in clusters], reverse=True)
             n_clusters = len(clusters)
             n_singleton = sum(1 for s in sizes if s == 1)
-            print(f"  threshold={threshold:.2f}: {n_clusters} clusters "
-                  f"(singletons={n_singleton}) sizes={sizes[:10]}{'...' if len(sizes) > 10 else ''}")
+            print(
+                f"  threshold={threshold:.2f}: {n_clusters} clusters "
+                f"(singletons={n_singleton}) sizes={sizes[:10]}{'...' if len(sizes) > 10 else ''}"
+            )
 
         # Show samples from sub-clusters at best threshold
         best_threshold = 0.85
@@ -131,10 +137,12 @@ def main() -> None:
         if len(clusters_sorted) > 1:
             print(f"\n  Sub-clusters at {best_threshold} (top 5):")
             for ci, cluster in enumerate(clusters_sorted[:5]):
-                print(f"    Cluster {ci+1} (size={len(cluster)}):")
+                print(f"    Cluster {ci + 1} (size={len(cluster)}):")
                 for local_idx in cluster[:2]:
                     global_idx = indices[local_idx]
-                    print(f"      [{global_idx:3d}] {parsed[global_idx]['reasoning'][:130]}")
+                    print(
+                        f"      [{global_idx:3d}] {parsed[global_idx]['reasoning'][:130]}"
+                    )
         print()
 
 

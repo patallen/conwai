@@ -6,7 +6,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from conwai.brain import BrainContext, Decision, Decisions
-from conwai.processes.types import AgentHandle, LLMSnapshot, WorkingMemory, WorkingMemoryEntry
+from conwai.processes.types import (
+    AgentHandle,
+    LLMSnapshot,
+    WorkingMemory,
+    WorkingMemoryEntry,
+)
 
 if TYPE_CHECKING:
     from conwai.llm import LLMProvider
@@ -34,7 +39,9 @@ class InferenceProcess:
         agent_id = handle.value if handle else "?"
 
         try:
-            resp = await self.client.call(snap.system_prompt, snap.messages, tools=self.tools)
+            resp = await self.client.call(
+                snap.system_prompt, snap.messages, tools=self.tools
+            )
         except Exception as e:
             log.error(f"[{agent_id}] LLM call failed: {e}")
             return

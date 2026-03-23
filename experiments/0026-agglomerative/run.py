@@ -26,16 +26,88 @@ _ACTION_RE = re.compile(r"\] (\w+)→")
 _WORD_RE = re.compile(r"[a-z]+")
 
 STOPWORDS = {
-    "i", "me", "my", "myself", "we", "our", "you", "your",
-    "he", "him", "his", "she", "her", "it", "its", "they", "them",
-    "their", "am", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "having", "do", "does", "did",
-    "a", "an", "the", "and", "but", "if", "or", "because", "as",
-    "while", "of", "at", "by", "for", "with", "about", "to", "from",
-    "in", "out", "on", "off", "over", "under", "then",
-    "here", "there", "when", "where", "how", "all", "both", "each",
-    "more", "most", "other", "some", "no", "not", "only", "so",
-    "than", "too", "very", "can", "will", "just", "should", "now",
+    "i",
+    "me",
+    "my",
+    "myself",
+    "we",
+    "our",
+    "you",
+    "your",
+    "he",
+    "him",
+    "his",
+    "she",
+    "her",
+    "it",
+    "its",
+    "they",
+    "them",
+    "their",
+    "am",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "having",
+    "do",
+    "does",
+    "did",
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "if",
+    "or",
+    "because",
+    "as",
+    "while",
+    "of",
+    "at",
+    "by",
+    "for",
+    "with",
+    "about",
+    "to",
+    "from",
+    "in",
+    "out",
+    "on",
+    "off",
+    "over",
+    "under",
+    "then",
+    "here",
+    "there",
+    "when",
+    "where",
+    "how",
+    "all",
+    "both",
+    "each",
+    "more",
+    "most",
+    "other",
+    "some",
+    "no",
+    "not",
+    "only",
+    "so",
+    "than",
+    "too",
+    "very",
+    "can",
+    "will",
+    "just",
+    "should",
+    "now",
 }
 
 
@@ -78,14 +150,16 @@ def build_tfidf(documents: list[str]) -> np.ndarray:
     return matrix / norms
 
 
-def agglomerative_clustering(dist_matrix: np.ndarray) -> list[tuple[int, int, float, int]]:
+def agglomerative_clustering(
+    dist_matrix: np.ndarray,
+) -> list[tuple[int, int, float, int]]:
     """
     Single-linkage agglomerative clustering.
     Returns merge history: [(cluster_a, cluster_b, distance, new_size), ...]
     """
     n = len(dist_matrix)
     # Track which cluster each point belongs to
-    cluster_ids = list(range(n))
+    list(range(n))
     cluster_sizes = {i: 1 for i in range(n)}
     active = set(range(n))
 
@@ -94,7 +168,6 @@ def agglomerative_clustering(dist_matrix: np.ndarray) -> list[tuple[int, int, fl
     np.fill_diagonal(dists, np.inf)
 
     merges = []
-    next_id = n
 
     while len(active) > 1:
         # Find closest pair among active clusters
@@ -102,7 +175,7 @@ def agglomerative_clustering(dist_matrix: np.ndarray) -> list[tuple[int, int, fl
         min_i, min_j = -1, -1
         active_list = sorted(active)
         for ai, i in enumerate(active_list):
-            for j in active_list[ai + 1:]:
+            for j in active_list[ai + 1 :]:
                 if dists[i, j] < min_dist:
                     min_dist = dists[i, j]
                     min_i, min_j = i, j
@@ -131,15 +204,16 @@ def agglomerative_clustering(dist_matrix: np.ndarray) -> list[tuple[int, int, fl
     return merges
 
 
-def cut_dendrogram(merges: list[tuple[int, int, float, int]], n: int, n_clusters: int) -> np.ndarray:
+def cut_dendrogram(
+    merges: list[tuple[int, int, float, int]], n: int, n_clusters: int
+) -> np.ndarray:
     """Cut dendrogram to get n_clusters clusters."""
     labels = np.arange(n)
     for i, (a, b, dist, size) in enumerate(merges):
         if n - i <= n_clusters:
             break
         # Merge b into a
-        label_b = labels[labels == b] if b < n else b
-        mask = labels == b
+        labels[labels == b] if b < n else b
         # Find all points in cluster b and reassign to a
         labels[labels == b] = a
     # Renumber
@@ -168,7 +242,7 @@ def main() -> None:
     sim = tfidf @ tfidf.T
     dist = 1 - sim
     np.fill_diagonal(dist, 0)
-    print(f"Distance matrix computed\n")
+    print("Distance matrix computed\n")
 
     # Run agglomerative clustering (only on first 100 entries for speed)
     subset_n = min(100, len(parsed))
@@ -176,29 +250,33 @@ def main() -> None:
     merges = agglomerative_clustering(dist[:subset_n, :subset_n])
 
     # Show merge distances
-    print(f"\nMerge distance progression (every 10th merge):")
+    print("\nMerge distance progression (every 10th merge):")
     for i in range(0, len(merges), 10):
         _, _, d, s = merges[i]
         remaining = subset_n - i
-        print(f"  Step {i:3d}: distance={d:.4f} merged_size={s} clusters_remaining={remaining}")
+        print(
+            f"  Step {i:3d}: distance={d:.4f} merged_size={s} clusters_remaining={remaining}"
+        )
 
     # Find natural number of clusters (biggest gap in merge distances)
     distances = [m[2] for m in merges]
-    gaps = [distances[i+1] - distances[i] for i in range(len(distances)-1)]
+    gaps = [distances[i + 1] - distances[i] for i in range(len(distances) - 1)]
 
     # Top 5 biggest gaps
     if gaps:
         top_gaps = sorted(enumerate(gaps), key=lambda x: -x[1])[:5]
-        print(f"\nLargest gaps in merge distances (potential natural cluster counts):")
+        print("\nLargest gaps in merge distances (potential natural cluster counts):")
         for gap_idx, gap_size in top_gaps:
             n_clusters = subset_n - gap_idx - 1
-            print(f"  After step {gap_idx}: gap={gap_size:.4f} → suggests {n_clusters} clusters")
+            print(
+                f"  After step {gap_idx}: gap={gap_size:.4f} → suggests {n_clusters} clusters"
+            )
 
     # Show clusters at a few cut points on FULL data using K-means
     # (agglomerative is too slow for 251 entries)
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS ON TF-IDF (FULL DATA, FOR COMPARISON)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     def kmeans(vecs, k, seed=42):
         rng = np.random.RandomState(seed)

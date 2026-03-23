@@ -25,7 +25,7 @@ CACHE_PARSED = Path("experiments/helen_parsed.json")
 # NOTE: We need to re-embed sentences, so FastEmbedder is still needed here
 # but we only load it once for sentences, not for entries (which are cached)
 
-_SENT_SPLIT = re.compile(r'(?<=[.!?])\s+')
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def split_sentences(text: str) -> list[str]:
@@ -41,7 +41,9 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     return {"mean": float(np.mean(upper)), "std": float(np.std(upper))}
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -83,7 +85,7 @@ def main() -> None:
     print(f"Average sentences per entry: {avg_sents:.1f}")
 
     # Show sample sentences
-    print(f"\nSample sentences (first 10):")
+    print("\nSample sentences (first 10):")
     for i in range(min(10, len(all_sentences))):
         print(f"  [entry {sentence_to_entry[i]:3d}] {all_sentences[i][:100]}")
 
@@ -100,9 +102,9 @@ def main() -> None:
     print(f"Sentence-level: mean={sent_stats['mean']:.4f} std={sent_stats['std']:.4f}")
 
     # K-means on sentences
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS ON SENTENCES (K=15)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     labels = kmeans_cosine(sent_vecs, 15)
 
     for ki in range(15):
@@ -115,18 +117,20 @@ def main() -> None:
             a = parsed[ei]["action"]
             action_counts[a] = action_counts.get(a, 0) + 1
 
-        print(f"\n  Cluster {ki} ({int(mask.sum())} sentences, {len(entry_indices)} entries)")
+        print(
+            f"\n  Cluster {ki} ({int(mask.sum())} sentences, {len(entry_indices)} entries)"
+        )
         # Show sample sentences
         for idx in indices[:4]:
             print(f"    [{sentence_to_entry[idx]:3d}] {all_sentences[idx][:100]}")
         if mask.sum() > 4:
-            print(f"    ... and {int(mask.sum())-4} more sentences")
+            print(f"    ... and {int(mask.sum()) - 4} more sentences")
 
     # Also try: embed sentences, then for each ENTRY compute its representation
     # as the mean of its sentence embeddings
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("ENTRY-LEVEL: MEAN OF SENTENCE EMBEDDINGS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     entry_from_sents = np.zeros((len(parsed), sent_vecs.shape[1]))
     for i in range(len(parsed)):
         sent_indices = [j for j, ei in enumerate(sentence_to_entry) if ei == i]
@@ -134,7 +138,9 @@ def main() -> None:
             entry_from_sents[i] = sent_vecs[sent_indices].mean(axis=0)
 
     mean_sent_stats = pairwise_stats(entry_from_sents)
-    print(f"Mean-of-sentences: mean={mean_sent_stats['mean']:.4f} std={mean_sent_stats['std']:.4f}")
+    print(
+        f"Mean-of-sentences: mean={mean_sent_stats['mean']:.4f} std={mean_sent_stats['std']:.4f}"
+    )
     print(f"(vs direct entry embedding: mean={entry_stats['mean']:.4f})")
 
     labels = kmeans_cosine(entry_from_sents, 10)

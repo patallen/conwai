@@ -17,7 +17,6 @@ import numpy as np
 from conwai.embeddings import FastEmbedder
 from conwai.storage import SQLiteStorage
 
-
 THRESHOLDS = [0.70, 0.75, 0.80]
 MAX_CLUSTER_SIZE = 5
 SAMPLES_PER_CLUSTER = 3
@@ -55,7 +54,9 @@ def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
 
 
-def cluster_at_threshold(vectors: list[np.ndarray], threshold: float) -> list[list[int]]:
+def cluster_at_threshold(
+    vectors: list[np.ndarray], threshold: float
+) -> list[list[int]]:
     """Incremental clustering: for each entry, find neighbors above threshold,
     form tightest clique of size up to MAX_CLUSTER_SIZE.
 
@@ -112,9 +113,9 @@ def report_clusters(
     last_sentences: list[str],
     threshold: float,
 ) -> None:
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"THRESHOLD {threshold:.2f}: {len(clusters)} clusters")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     if not clusters:
         print("  (no clusters formed)")
@@ -125,10 +126,10 @@ def report_clusters(
 
     for ci, cluster in enumerate(sorted_clusters):
         print(f"\n  Cluster {ci + 1} (size={len(cluster)}):")
-        print(f"  Last sentences in cluster:")
+        print("  Last sentences in cluster:")
         for idx in cluster:
             print(f"    [{idx:3d}] {last_sentences[idx][:100]}")
-        print(f"  Sample full entries:")
+        print("  Sample full entries:")
         for idx in cluster[:SAMPLES_PER_CLUSTER]:
             full = entries[idx].strip()
             # Indent for readability
@@ -169,9 +170,9 @@ def main() -> None:
         print(f"        Last sentence: {last_sentences[i]}")
 
     # Embed last sentences
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("EMBEDDING last sentences with BAAI/bge-large-en-v1.5 ...")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
     raw_vecs = embedder.embed(last_sentences)
     vectors = [np.array(v) for v in raw_vecs]
@@ -189,9 +190,9 @@ def main() -> None:
         report_clusters(results[threshold], raw_entries, last_sentences, threshold)
 
     # Summary table
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("SUMMARY")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"{'Threshold':>12}  {'Clusters':>10}  {'Avg size':>10}  {'Max size':>10}")
     for threshold in THRESHOLDS:
         clusters = results[threshold]

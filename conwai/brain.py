@@ -20,12 +20,14 @@ class Decision:
 @dataclass
 class Decisions:
     """Actions the agent wants to take this cycle."""
+
     entries: list[Decision] = field(default_factory=list)
 
 
 @dataclass
 class BrainContext:
     """Everything a process needs for one cognitive cycle."""
+
     percept: Percept
     state: State
     bb: Blackboard

@@ -24,7 +24,7 @@ import numpy as np
 CACHE_VECS = Path("experiments/helen_embeddings.npz")
 CACHE_PARSED = Path("experiments/helen_parsed.json")
 
-_SENT_SPLIT = re.compile(r'(?<=[.!?])\s+')
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def split_first_last(text: str) -> tuple[str, str]:
@@ -67,9 +67,13 @@ class IncrementalConsolidator:
         mean = X.mean(axis=0)
         centered = X - mean
         if len(centered) < self.n_pcs + 1:
-            return centered[:, :self.n_pcs] if centered.shape[1] >= self.n_pcs else centered
+            return (
+                centered[:, : self.n_pcs]
+                if centered.shape[1] >= self.n_pcs
+                else centered
+            )
         _, _, Vt = np.linalg.svd(centered, full_matrices=False)
-        return centered @ Vt[:self.n_pcs].T
+        return centered @ Vt[: self.n_pcs].T
 
     def add_entry(self, cond_vec: np.ndarray, dec_vec: np.ndarray, entry: dict) -> dict:
         """Process a new entry. Returns assignment info."""
@@ -103,7 +107,7 @@ class IncrementalConsolidator:
             sit = self.situations[best_sit]
             sit["indices"].append(idx)
             n = len(sit["indices"])
-            sit["centroid"] = sit["centroid"] * ((n-1)/n) + current_cond / n
+            sit["centroid"] = sit["centroid"] * ((n - 1) / n) + current_cond / n
 
             # Find nearest branch within situation
             best_branch = -1
@@ -118,19 +122,33 @@ class IncrementalConsolidator:
                 branch = sit["branches"][best_branch]
                 branch["indices"].append(idx)
                 n = len(branch["indices"])
-                branch["centroid"] = branch["centroid"] * ((n-1)/n) + current_dec / n
-                return {"status": "assigned", "situation": best_sit, "branch": best_branch}
+                branch["centroid"] = (
+                    branch["centroid"] * ((n - 1) / n) + current_dec / n
+                )
+                return {
+                    "status": "assigned",
+                    "situation": best_sit,
+                    "branch": best_branch,
+                }
             else:
-                sit["branches"].append({"centroid": current_dec.copy(), "indices": [idx]})
-                return {"status": "new_branch", "situation": best_sit, "branch": len(sit["branches"])-1}
+                sit["branches"].append(
+                    {"centroid": current_dec.copy(), "indices": [idx]}
+                )
+                return {
+                    "status": "new_branch",
+                    "situation": best_sit,
+                    "branch": len(sit["branches"]) - 1,
+                }
         else:
             # Create new situation
-            self.situations.append({
-                "centroid": current_cond.copy(),
-                "indices": [idx],
-                "branches": [{"centroid": current_dec.copy(), "indices": [idx]}],
-            })
-            return {"status": "new_situation", "situation": len(self.situations)-1}
+            self.situations.append(
+                {
+                    "centroid": current_cond.copy(),
+                    "indices": [idx],
+                    "branches": [{"centroid": current_dec.copy(), "indices": [idx]}],
+                }
+            )
+            return {"status": "new_situation", "situation": len(self.situations) - 1}
 
     def summary(self) -> str:
         lines = []
@@ -140,24 +158,27 @@ class IncrementalConsolidator:
             # Find representative condition
             rep_idx = sit["indices"][0]
             cond, _ = split_first_last(self.entries[rep_idx]["reasoning"])
-            lines.append(f"\n  Situation {si+1} ({len(sit['indices'])} episodes):")
+            lines.append(f"\n  Situation {si + 1} ({len(sit['indices'])} episodes):")
             lines.append(f"    Condition: {cond[:100]}")
             for bi, branch in enumerate(sit["branches"]):
                 if len(branch["indices"]) < 1:
                     continue
                 rep_idx = branch["indices"][0]
                 _, dec = split_first_last(self.entries[rep_idx]["reasoning"])
-                lines.append(f"    Branch {bi+1} ({len(branch['indices'])} eps): {dec[:100]}")
+                lines.append(
+                    f"    Branch {bi + 1} ({len(branch['indices'])} eps): {dec[:100]}"
+                )
         return "\n".join(lines)
 
 
 def main() -> None:
     parsed = json.loads(CACHE_PARSED.read_text())
-    vectors = np.load(CACHE_VECS)["vectors"]
+    np.load(CACHE_VECS)["vectors"]
     print(f"Loaded {len(parsed)} entries\n")
 
     # Pre-compute condition and decision embeddings
     from conwai.embeddings import FastEmbedder
+
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 
     conditions = []
@@ -175,29 +196,35 @@ def main() -> None:
 
     checkpoints = [25, 50, 100, 150, 200, 251]
     for i in range(len(parsed)):
-        result = consolidator.add_entry(cond_vecs[i], dec_vecs[i], parsed[i])
+        consolidator.add_entry(cond_vecs[i], dec_vecs[i], parsed[i])
 
         if (i + 1) in checkpoints:
-            n_situations = len([s for s in consolidator.situations if len(s["indices"]) >= 2])
+            n_situations = len(
+                [s for s in consolidator.situations if len(s["indices"]) >= 2]
+            )
             n_branches = sum(
                 len([b for b in s["branches"] if len(b["indices"]) >= 1])
-                for s in consolidator.situations if len(s["indices"]) >= 2
+                for s in consolidator.situations
+                if len(s["indices"]) >= 2
             )
-            print(f"\n{'='*70}")
-            print(f"CHECKPOINT: {i+1} entries processed")
+            print(f"\n{'=' * 70}")
+            print(f"CHECKPOINT: {i + 1} entries processed")
             print(f"  Situations (2+ entries): {n_situations}")
             print(f"  Total branches: {n_branches}")
-            print(f"{'='*70}")
+            print(f"{'=' * 70}")
             print(consolidator.summary())
 
     # Final comparison with batch approach
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("INCREMENTAL vs BATCH COMPARISON")
-    print(f"{'='*70}")
-    print(f"\nIncremental: {len([s for s in consolidator.situations if len(s['indices']) >= 2])} situations")
+    print(f"{'=' * 70}")
+    print(
+        f"\nIncremental: {len([s for s in consolidator.situations if len(s['indices']) >= 2])} situations"
+    )
 
     # Batch (from 0037/0038)
     from sklearn.cluster import KMeans
+
     cond_res = cond_vecs - np.mean(cond_vecs, axis=0)
     dec_res = dec_vecs - np.mean(dec_vecs, axis=0)
 
@@ -210,8 +237,12 @@ def main() -> None:
     cond_pca = pca_p(cond_res, 3)
     dec_pca = pca_p(dec_res, 3)
     combined = np.concatenate([cond_pca, dec_pca], axis=1)
-    batch_labels = KMeans(n_clusters=8, random_state=42, n_init=10).fit_predict(combined)
-    batch_sizes = sorted([int((batch_labels == k).sum()) for k in range(8)], reverse=True)
+    batch_labels = KMeans(n_clusters=8, random_state=42, n_init=10).fit_predict(
+        combined
+    )
+    batch_sizes = sorted(
+        [int((batch_labels == k).sum()) for k in range(8)], reverse=True
+    )
     print(f"Batch K=8: sizes={batch_sizes}")
 
 

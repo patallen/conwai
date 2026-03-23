@@ -26,21 +26,128 @@ _WORD_RE = re.compile(r"[a-z]+")
 
 STOPWORDS = {
     # English stopwords
-    "i", "me", "my", "myself", "we", "our", "ours", "you", "your", "yours",
-    "he", "him", "his", "she", "her", "hers", "it", "its", "they", "them",
-    "their", "what", "which", "who", "whom", "this", "that", "these", "those",
-    "am", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "having", "do", "does", "did", "doing",
-    "a", "an", "the", "and", "but", "if", "or", "because", "as", "until",
-    "while", "of", "at", "by", "for", "with", "about", "against", "between",
-    "through", "during", "before", "after", "above", "below", "to", "from",
-    "up", "down", "in", "out", "on", "off", "over", "under", "again",
-    "further", "then", "once", "here", "there", "when", "where", "why",
-    "how", "all", "both", "each", "few", "more", "most", "other", "some",
-    "such", "no", "nor", "not", "only", "own", "same", "so", "than",
-    "too", "very", "can", "will", "just", "don", "should", "now",
+    "i",
+    "me",
+    "my",
+    "myself",
+    "we",
+    "our",
+    "ours",
+    "you",
+    "your",
+    "yours",
+    "he",
+    "him",
+    "his",
+    "she",
+    "her",
+    "hers",
+    "it",
+    "its",
+    "they",
+    "them",
+    "their",
+    "what",
+    "which",
+    "who",
+    "whom",
+    "this",
+    "that",
+    "these",
+    "those",
+    "am",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "having",
+    "do",
+    "does",
+    "did",
+    "doing",
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "if",
+    "or",
+    "because",
+    "as",
+    "until",
+    "while",
+    "of",
+    "at",
+    "by",
+    "for",
+    "with",
+    "about",
+    "against",
+    "between",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "to",
+    "from",
+    "up",
+    "down",
+    "in",
+    "out",
+    "on",
+    "off",
+    "over",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "can",
+    "will",
+    "just",
+    "don",
+    "should",
+    "now",
     # Domain-near-universal (appear in >80% of docs but IDF doesn't fully suppress)
-    "immediately", "surplus", "current", "strategy", "nature", "skeptical",
+    "immediately",
+    "surplus",
+    "current",
+    "strategy",
+    "nature",
+    "skeptical",
 }
 
 
@@ -89,7 +196,9 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     return {"mean": float(np.mean(upper)), "std": float(np.std(upper))}
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -129,7 +238,7 @@ def main() -> None:
     stats = pairwise_stats(matrix)
     print(f"Shape: {matrix.shape}")
     print(f"Mean sim: {stats['mean']:.4f} std: {stats['std']:.4f}")
-    print(f"(Compare: raw TF-IDF 0.186, bge-large 0.797)\n")
+    print("(Compare: raw TF-IDF 0.186, bge-large 0.797)\n")
 
     # Show what words remain after filtering
     print(f"Vocab after stopword removal: {len(vocab)} words")
@@ -140,21 +249,23 @@ def main() -> None:
         for w in tokens:
             word_df[w] = word_df.get(w, 0) + 1
     top_words = sorted(word_df.items(), key=lambda x: -x[1])[:20]
-    print(f"Most common remaining words:")
+    print("Most common remaining words:")
     for w, c in top_words:
         print(f"  {w:20s} in {c:3d} docs")
 
     # K-means
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS (K=10)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     labels = kmeans_cosine(matrix, 10)
     for ki in range(10):
         mask = labels == ki
         indices = np.where(mask)[0]
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top)
         # Top words in cluster

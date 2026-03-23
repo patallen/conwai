@@ -36,7 +36,7 @@ def pca(X: np.ndarray, n_components: int) -> tuple[np.ndarray, np.ndarray, np.nd
     mean = X.mean(axis=0)
     centered = X - mean
     U, S, Vt = np.linalg.svd(centered, full_matrices=False)
-    explained_var = (S ** 2) / (len(X) - 1)
+    explained_var = (S**2) / (len(X) - 1)
     total_var = explained_var.sum()
     ratio = explained_var / total_var
 
@@ -44,7 +44,9 @@ def pca(X: np.ndarray, n_components: int) -> tuple[np.ndarray, np.ndarray, np.nd
     return projected, Vt[:n_components], ratio[:n_components]
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     """K-means with cosine distance. Returns labels."""
     rng = np.random.RandomState(seed)
     n = len(vectors)
@@ -100,50 +102,58 @@ def main() -> None:
     # PCA
     n_components = 50
     projected, components, var_ratio = pca(vectors, n_components)
-    print(f"\nPCA variance explained:")
+    print("\nPCA variance explained:")
     cumulative = 0.0
     for i in range(min(20, n_components)):
         cumulative += var_ratio[i]
         bar = "#" * int(var_ratio[i] * 200)
-        print(f"  PC{i+1:2d}: {var_ratio[i]*100:5.2f}% (cum: {cumulative*100:5.1f}%) {bar}")
+        print(
+            f"  PC{i + 1:2d}: {var_ratio[i] * 100:5.2f}% (cum: {cumulative * 100:5.1f}%) {bar}"
+        )
 
-    print(f"\n  Top 5 PCs explain: {sum(var_ratio[:5])*100:.1f}%")
-    print(f"  Top 10 PCs explain: {sum(var_ratio[:10])*100:.1f}%")
-    print(f"  Top 20 PCs explain: {sum(var_ratio[:20])*100:.1f}%")
-    print(f"  Top 50 PCs explain: {sum(var_ratio[:50])*100:.1f}%")
+    print(f"\n  Top 5 PCs explain: {sum(var_ratio[:5]) * 100:.1f}%")
+    print(f"  Top 10 PCs explain: {sum(var_ratio[:10]) * 100:.1f}%")
+    print(f"  Top 20 PCs explain: {sum(var_ratio[:20]) * 100:.1f}%")
+    print(f"  Top 50 PCs explain: {sum(var_ratio[:50]) * 100:.1f}%")
 
     # Cluster on different numbers of PCs
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CLUSTERING ON TOP-N PRINCIPAL COMPONENTS (K=10)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for n_pcs in [2, 3, 5, 10, 20, 50]:
         pc_vecs = projected[:, :n_pcs]
         stats = pairwise_stats(pc_vecs)
         labels = kmeans_cosine(pc_vecs, 10)
         sizes = sorted([int((labels == k).sum()) for k in range(10)], reverse=True)
-        print(f"  {n_pcs:2d} PCs: mean_sim={stats.get('mean',0):.4f} "
-              f"std={stats.get('std',0):.4f} sizes={sizes}")
+        print(
+            f"  {n_pcs:2d} PCs: mean_sim={stats.get('mean', 0):.4f} "
+            f"std={stats.get('std', 0):.4f} sizes={sizes}"
+        )
 
     # What do the top PCs correlate with?
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("TOP PC ANALYSIS: What does each PC separate?")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for pc_idx in range(5):
         pc_values = projected[:, pc_idx]
         # Sort entries by this PC
         sorted_indices = np.argsort(pc_values)
 
-        print(f"\nPC{pc_idx+1} (explains {var_ratio[pc_idx]*100:.2f}% variance):")
+        print(f"\nPC{pc_idx + 1} (explains {var_ratio[pc_idx] * 100:.2f}% variance):")
 
         # Bottom 5 (most negative)
-        print(f"  BOTTOM (most negative):")
+        print("  BOTTOM (most negative):")
         for idx in sorted_indices[:3]:
-            print(f"    [{idx:3d}] [{parsed[idx]['action']:15s}] {parsed[idx]['reasoning'][:100]}")
+            print(
+                f"    [{idx:3d}] [{parsed[idx]['action']:15s}] {parsed[idx]['reasoning'][:100]}"
+            )
 
         # Top 5 (most positive)
-        print(f"  TOP (most positive):")
+        print("  TOP (most positive):")
         for idx in sorted_indices[-3:]:
-            print(f"    [{idx:3d}] [{parsed[idx]['action']:15s}] {parsed[idx]['reasoning'][:100]}")
+            print(
+                f"    [{idx:3d}] [{parsed[idx]['action']:15s}] {parsed[idx]['reasoning'][:100]}"
+            )
 
         # Action type correlation
         action_means: dict[str, float] = {}
@@ -152,7 +162,9 @@ def main() -> None:
             if indices:
                 action_means[action] = float(pc_values[indices].mean())
         sorted_actions = sorted(action_means.items(), key=lambda x: x[1])
-        print(f"  Action means: {', '.join(f'{a}:{v:+.2f}' for a, v in sorted_actions)}")
+        print(
+            f"  Action means: {', '.join(f'{a}:{v:+.2f}' for a, v in sorted_actions)}"
+        )
 
 
 if __name__ == "__main__":

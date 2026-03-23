@@ -4,11 +4,10 @@ import random
 from dataclasses import dataclass, field
 
 from conwai.brain import BrainContext, Decision, Decisions
-
 from scenarios.sugarscape.perception import LocalView
 
-
 # -- State types (persist across ticks) --
+
 
 @dataclass
 class CellMemory:
@@ -21,6 +20,7 @@ class CellMemory:
 @dataclass
 class SugarMemory:
     """Remembered sugar locations."""
+
     cells: list[CellMemory] = field(default_factory=list)
     max_entries: int = 50
 
@@ -34,6 +34,7 @@ class SugarMemory:
 
 # -- Blackboard types (per-cycle scratch) --
 
+
 @dataclass
 class MovePlan:
     target_x: int
@@ -42,6 +43,7 @@ class MovePlan:
 
 
 # -- Processes --
+
 
 class RememberSugar:
     """Record visible sugar locations into persistent memory."""
@@ -66,7 +68,9 @@ class RememberSugar:
                     found = True
                     break
             if not found:
-                memory.cells.append(CellMemory(x=cell.x, y=cell.y, sugar=cell.sugar, tick=0))
+                memory.cells.append(
+                    CellMemory(x=cell.x, y=cell.y, sugar=cell.sugar, tick=0)
+                )
 
         # Age unseen memories
         for mem in memory.cells:
@@ -75,7 +79,7 @@ class RememberSugar:
 
         # Trim old memories
         memory.cells.sort(key=lambda m: (-m.sugar, m.tick))
-        memory.cells = memory.cells[:memory.max_entries]
+        memory.cells = memory.cells[: memory.max_entries]
 
         ctx.state.set(memory)
 
@@ -103,19 +107,24 @@ class PlanMove:
             # Exploit: target richest remembered cell
             best = max(memory.cells, key=lambda m: m.sugar)
             if best.sugar > 0:
-                ctx.bb.set(MovePlan(
-                    target_x=best.x, target_y=best.y,
-                    reason="exploit",
-                ))
+                ctx.bb.set(
+                    MovePlan(
+                        target_x=best.x,
+                        target_y=best.y,
+                        reason="exploit",
+                    )
+                )
                 return
 
         # Explore: pick a random direction
         dx, dy = random.choice([(0, -1), (0, 1), (-1, 0), (1, 0)])
-        ctx.bb.set(MovePlan(
-            target_x=view.my_x + dx * 3,
-            target_y=view.my_y + dy * 3,
-            reason="explore",
-        ))
+        ctx.bb.set(
+            MovePlan(
+                target_x=view.my_x + dx * 3,
+                target_y=view.my_y + dy * 3,
+                reason="explore",
+            )
+        )
 
 
 class ExecuteMove:

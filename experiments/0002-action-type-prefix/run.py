@@ -42,7 +42,9 @@ def cluster_centroid(vectors: list[np.ndarray], threshold: float) -> list[list[i
     for idx, vec in enumerate(vectors):
         best_ci, best_sim = -1, -1.0
         for ci, c in enumerate(centroids):
-            sim = float(np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10))
+            sim = float(
+                np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10)
+            )
             if sim > best_sim:
                 best_sim = sim
                 best_ci = ci
@@ -90,9 +92,9 @@ def main() -> None:
         clusters_sorted = sorted(clusters, key=lambda c: -len(c))
         sizes = [len(c) for c in clusters_sorted]
 
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"THRESHOLD {threshold:.2f}: {len(clusters)} clusters")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"  Size distribution: {sizes[:20]}{'...' if len(sizes) > 20 else ''}")
 
         # For each cluster, show action type breakdown and samples
@@ -101,12 +103,15 @@ def main() -> None:
             for idx in cluster:
                 a = entries[idx]["action"]
                 action_counts[a] = action_counts.get(a, 0) + 1
-            action_str = ", ".join(f"{k}:{v}" for k, v in sorted(action_counts.items(), key=lambda x: -x[1]))
-            print(f"\n  Cluster {ci+1} (size={len(cluster)}): [{action_str}]")
+            action_str = ", ".join(
+                f"{k}:{v}"
+                for k, v in sorted(action_counts.items(), key=lambda x: -x[1])
+            )
+            print(f"\n  Cluster {ci + 1} (size={len(cluster)}): [{action_str}]")
             for idx in cluster[:3]:
                 print(f"    [{idx:3d}] {entries[idx]['prefixed'][:150]}")
             if len(cluster) > 3:
-                print(f"    ... and {len(cluster)-3} more")
+                print(f"    ... and {len(cluster) - 3} more")
         print()
 
 

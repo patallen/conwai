@@ -23,11 +23,10 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 
 CACHE_PARSED = Path("experiments/helen_parsed.json")
 
-_SENT_SPLIT = re.compile(r'(?<=[.!?])\s+')
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def split_first_last(text: str) -> tuple[str, str]:
@@ -63,6 +62,7 @@ def main() -> None:
 
     # Embed
     from conwai.embeddings import FastEmbedder
+
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
     cond_vecs = np.array(embedder.embed(conditions))
     dec_vecs = np.array(embedder.embed(decisions))
@@ -75,11 +75,13 @@ def main() -> None:
 
     # Step 1: Cluster CONDITIONS into situation types
     n_conditions = 8
-    cond_labels = KMeans(n_clusters=n_conditions, random_state=42, n_init=10).fit_predict(cond_pca)
+    cond_labels = KMeans(
+        n_clusters=n_conditions, random_state=42, n_init=10
+    ).fit_predict(cond_pca)
 
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"STEP 1: {n_conditions} SITUATION TYPES")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     for ci in range(n_conditions):
         mask = cond_labels == ci
@@ -93,17 +95,19 @@ def main() -> None:
 
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top_actions = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top_actions)
 
-        print(f"\n  Situation {ci+1} ({size} episodes) [{action_str}]")
+        print(f"\n  Situation {ci + 1} ({size} episodes) [{action_str}]")
         print(f"    Representative: {conditions[rep_idx][:120]}")
 
     # Step 2: Within each situation, cluster DECISIONS
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("STEP 2: BEHAVIORAL BRANCHING WITHIN SITUATIONS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     for ci in range(n_conditions):
         mask = cond_labels == ci
@@ -119,7 +123,9 @@ def main() -> None:
         if n_sub < 2:
             continue
 
-        sub_labels = KMeans(n_clusters=n_sub, random_state=42, n_init=10).fit_predict(dec_within)
+        sub_labels = KMeans(n_clusters=n_sub, random_state=42, n_init=10).fit_predict(
+            dec_within
+        )
 
         # Check if decisions actually differ
         sub_sizes = [int((sub_labels == ki).sum()) for ki in range(n_sub)]
@@ -130,7 +136,7 @@ def main() -> None:
         centers = [dec_within[sub_labels == ki].mean(axis=0) for ki in range(n_sub)]
         inter_sims = []
         for a in range(len(centers)):
-            for b in range(a+1, len(centers)):
+            for b in range(a + 1, len(centers)):
                 inter_sims.append(cosine_sim(centers[a], centers[b]))
         avg_inter_sim = np.mean(inter_sims) if inter_sims else 1.0
 
@@ -139,8 +145,10 @@ def main() -> None:
         dists = np.linalg.norm(cond_pca[indices] - center, axis=1)
         rep_idx = indices[np.argmin(dists)]
 
-        print(f"\n  Situation {ci+1} ({size} episodes): {conditions[rep_idx][:100]}")
-        print(f"    Decision divergence: {1-avg_inter_sim:.3f} (higher=more divergent)")
+        print(f"\n  Situation {ci + 1} ({size} episodes): {conditions[rep_idx][:100]}")
+        print(
+            f"    Decision divergence: {1 - avg_inter_sim:.3f} (higher=more divergent)"
+        )
 
         for ki in range(n_sub):
             sub_mask = sub_labels == ki
@@ -154,18 +162,25 @@ def main() -> None:
 
             sub_actions: dict[str, int] = {}
             for idx in sub_indices:
-                sub_actions[parsed[idx]["action"]] = sub_actions.get(parsed[idx]["action"], 0) + 1
-            sub_action_str = ", ".join(f"{a}:{c}" for a, c in sorted(sub_actions.items(), key=lambda x: -x[1])[:3])
+                sub_actions[parsed[idx]["action"]] = (
+                    sub_actions.get(parsed[idx]["action"], 0) + 1
+                )
+            sub_action_str = ", ".join(
+                f"{a}:{c}"
+                for a, c in sorted(sub_actions.items(), key=lambda x: -x[1])[:3]
+            )
 
-            print(f"    Branch {ki+1} ({sub_size} eps) [{sub_action_str}]:")
+            print(f"    Branch {ki + 1} ({sub_size} eps) [{sub_action_str}]:")
             print(f"      Decision: {decisions[sub_rep][:120]}")
 
     # Summary: which situations have the most behavioral variation?
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("BRANCH POINT SUMMARY")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("(Situations where the agent consistently faces the same condition")
-    print(" but makes different decisions — these are the richest consolidation targets)\n")
+    print(
+        " but makes different decisions — these are the richest consolidation targets)\n"
+    )
 
     branch_points = []
     for ci in range(n_conditions):
@@ -187,7 +202,7 @@ def main() -> None:
 
     branch_points.sort(key=lambda x: -x[2])
     for ci, size, dec_var, rep_idx in branch_points:
-        print(f"  Situation {ci+1} ({size} eps, decision variance={dec_var:.4f}):")
+        print(f"  Situation {ci + 1} ({size} eps, decision variance={dec_var:.4f}):")
         print(f"    {conditions[rep_idx][:120]}")
 
 

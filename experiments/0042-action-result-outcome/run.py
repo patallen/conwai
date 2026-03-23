@@ -21,9 +21,7 @@ Usage:
     PYTHONPATH=. uv run python experiments/0042-action-result-outcome/run.py
 """
 
-import json
 import re
-import sqlite3
 from collections import Counter
 from pathlib import Path
 
@@ -36,7 +34,7 @@ DB_PATH = "data.pre-abliterated.bak/state.db"
 AGENT = "Helen"
 
 _ACTION_RESULT_RE = re.compile(r"\] (\w+)→(.+)")
-_SENT_SPLIT = re.compile(r'(?<=[.!?])\s+')
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 _FORAGE_RESULT = re.compile(r"foraged (\d+) (\w+)")
 _BAKE_RESULT = re.compile(r"baked (\d+)")
 
@@ -123,14 +121,17 @@ def main() -> None:
         print(f"  {r:10s}: {c}")
 
     # Show some result classifications
-    print(f"\nSample action→result→classification:")
+    print("\nSample action→result→classification:")
     for i in [0, 18, 30, 50, 77, 94]:
         if i < len(entries):
-            print(f"  [{i:3d}] {entries[i]['action']}→{entries[i]['result'][:60]} → {results[i]}")
+            print(
+                f"  [{i:3d}] {entries[i]['action']}→{entries[i]['result'][:60]} → {results[i]}"
+            )
 
     # Now: for each condition+decision cluster, what's the result distribution?
-    vectors = np.load(Path("experiments/helen_embeddings.npz"))["vectors"]
+    np.load(Path("experiments/helen_embeddings.npz"))["vectors"]
     from conwai.embeddings import FastEmbedder
+
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 
     conditions = []
@@ -148,9 +149,9 @@ def main() -> None:
 
     cond_labels = KMeans(n_clusters=6, random_state=42, n_init=10).fit_predict(cond_pca)
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("RESULT QUALITY BY SITUATION AND BRANCH")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     for si in range(6):
         sit_mask = cond_labels == si
@@ -167,7 +168,9 @@ def main() -> None:
             continue
 
         dec_within = dec_pca[sit_indices]
-        branch_labels = KMeans(n_clusters=n_branches, random_state=42, n_init=10).fit_predict(dec_within)
+        branch_labels = KMeans(
+            n_clusters=n_branches, random_state=42, n_init=10
+        ).fit_predict(dec_within)
 
         print(f"\n  Situation ({len(sit_indices)} eps): {conditions[rep_idx][:100]}")
 
@@ -176,16 +179,20 @@ def main() -> None:
             n = len(branch_indices)
 
             dec_center = dec_within[branch_labels == bi].mean(axis=0)
-            dec_dists = np.linalg.norm(dec_within[branch_labels == bi] - dec_center, axis=1)
+            dec_dists = np.linalg.norm(
+                dec_within[branch_labels == bi] - dec_center, axis=1
+            )
             dec_rep = branch_indices[np.argmin(dec_dists)]
 
             # Result distribution for this branch
             branch_results = Counter(results[idx] for idx in branch_indices)
             positive = branch_results.get("positive", 0)
-            pending = branch_results.get("pending", 0)
+            branch_results.get("pending", 0)
             result_str = ", ".join(f"{r}:{c}" for r, c in branch_results.most_common())
 
-            print(f"    Branch {bi+1} ({n} eps): positive={positive}/{n} ({positive/n*100:.0f}%) [{result_str}]")
+            print(
+                f"    Branch {bi + 1} ({n} eps): positive={positive}/{n} ({positive / n * 100:.0f}%) [{result_str}]"
+            )
             print(f"      → {decisions[dec_rep][:100]}")
 
 

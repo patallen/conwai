@@ -125,6 +125,7 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
 
 def kmeans_cosine(vectors: np.ndarray, k: int, seed: int = 42) -> np.ndarray:
     from sklearn.cluster import KMeans
+
     km = KMeans(n_clusters=k, random_state=seed, n_init=10)
     return km.fit_predict(vectors)
 
@@ -148,7 +149,7 @@ def main() -> None:
     # Count unique tuple strings
     tuple_counts = Counter(tuple_strings)
     print(f"Unique tuple strings: {len(tuple_counts)}")
-    print(f"\nMost common tuples:")
+    print("\nMost common tuples:")
     for ts, count in tuple_counts.most_common(20):
         print(f"  {count:3d}x  {ts}")
 
@@ -158,9 +159,9 @@ def main() -> None:
 
     # THESE TUPLES ARE THE CONSOLIDATED KNOWLEDGE
     # If a tuple appears N times, it's a pattern reinforced by N episodes
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CONSOLIDATED PATTERNS (tuples appearing 3+ times)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for ts, count in tuple_counts.most_common():
         if count >= 3:
             # Find example entries
@@ -170,20 +171,23 @@ def main() -> None:
                 print(f"    [{idx:3d}] {parsed[idx]['reasoning'][:100]}")
 
     # Embed tuples and see if they cluster
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("EMBEDDING TUPLE STRINGS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
     # Only embed non-empty tuples
-    valid_indices = [i for i, ts in enumerate(tuple_strings) if ts != "no_pattern_detected"]
+    valid_indices = [
+        i for i, ts in enumerate(tuple_strings) if ts != "no_pattern_detected"
+    ]
     valid_strings = [tuple_strings[i] for i in valid_indices]
     if valid_strings:
         vecs = np.array(embedder.embed(valid_strings))
         stats = pairwise_stats(vecs)
         print(f"Tuple embeddings: mean={stats['mean']:.4f} std={stats['std']:.4f}")
-        print(f"(Compare: raw reasoning mean=0.7972)")
+        print("(Compare: raw reasoning mean=0.7972)")
 
         from sklearn.metrics import silhouette_score
+
         for k in [5, 8, 10, 15]:
             labels = kmeans_cosine(vecs, k)
             sil = silhouette_score(vecs, labels, metric="cosine")

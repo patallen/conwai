@@ -17,7 +17,6 @@ Usage:
 """
 
 import re
-from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -34,31 +33,86 @@ RESOURCES = {"flour", "water", "bread", "coins", "coin", "loaves", "loaf"}
 
 # Quantity descriptors (grouped by sentiment)
 CRISIS_WORDS = {
-    "zero", "critically", "starving", "desperate", "crisis",
-    "depleted", "empty", "nothing", "perish", "dying", "starvation",
-    "low", "dangerously", "vulnerable", "risk", "critical",
+    "zero",
+    "critically",
+    "starving",
+    "desperate",
+    "crisis",
+    "depleted",
+    "empty",
+    "nothing",
+    "perish",
+    "dying",
+    "starvation",
+    "low",
+    "dangerously",
+    "vulnerable",
+    "risk",
+    "critical",
 }
 STABILITY_WORDS = {
-    "surplus", "sufficient", "ample", "stable", "secured",
-    "reserves", "stockpile", "buffer", "safety", "comfortable",
-    "plenty", "excess", "abundant",
+    "surplus",
+    "sufficient",
+    "ample",
+    "stable",
+    "secured",
+    "reserves",
+    "stockpile",
+    "buffer",
+    "safety",
+    "comfortable",
+    "plenty",
+    "excess",
+    "abundant",
 }
 NEGATIVE_TRADE_WORDS = {
-    "unfavorable", "predatory", "reject", "refuse", "decline",
-    "overpriced", "exploitative", "bad", "poor", "terrible",
-    "greedy", "aggressive", "inflated",
+    "unfavorable",
+    "predatory",
+    "reject",
+    "refuse",
+    "decline",
+    "overpriced",
+    "exploitative",
+    "bad",
+    "poor",
+    "terrible",
+    "greedy",
+    "aggressive",
+    "inflated",
 }
 POSITIVE_TRADE_WORDS = {
-    "fair", "reliable", "accept", "beneficial", "favorable",
-    "reasonable", "confirmed", "successful", "trust", "verified",
+    "fair",
+    "reliable",
+    "accept",
+    "beneficial",
+    "favorable",
+    "reasonable",
+    "confirmed",
+    "successful",
+    "trust",
+    "verified",
 }
 ACTION_URGENCY = {
-    "immediately", "must", "urgent", "now", "rush", "emergency",
-    "forced", "abandon", "desperate",
+    "immediately",
+    "must",
+    "urgent",
+    "now",
+    "rush",
+    "emergency",
+    "forced",
+    "abandon",
+    "desperate",
 }
 DELIBERATE_WORDS = {
-    "cautious", "careful", "verify", "assess", "evaluate",
-    "deliberate", "strategic", "prioritize", "maintain",
+    "cautious",
+    "careful",
+    "verify",
+    "assess",
+    "evaluate",
+    "deliberate",
+    "strategic",
+    "prioritize",
+    "maintain",
 }
 
 
@@ -76,7 +130,7 @@ def extract_features(text: str) -> dict[str, float]:
     features: dict[str, float] = {}
 
     # Resource-context features
-    has_resource = words & RESOURCES
+    words & RESOURCES
     has_crisis = words & CRISIS_WORDS
     has_stability = words & STABILITY_WORDS
 
@@ -114,11 +168,15 @@ def extract_features(text: str) -> dict[str, float]:
     return features
 
 
-def features_to_vector(features: dict[str, float], feature_names: list[str]) -> np.ndarray:
+def features_to_vector(
+    features: dict[str, float], feature_names: list[str]
+) -> np.ndarray:
     return np.array([features.get(name, 0.0) for name in feature_names])
 
 
-def kmeans(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     indices = rng.choice(n, k, replace=False)
@@ -161,7 +219,7 @@ def main() -> None:
     print(f"Feature matrix shape: {matrix.shape}")
 
     # Show feature distributions
-    print(f"\nFeature means across all entries:")
+    print("\nFeature means across all entries:")
     for i, name in enumerate(feature_names):
         mean = matrix[:, i].mean()
         std = matrix[:, i].std()
@@ -169,7 +227,7 @@ def main() -> None:
             print(f"  {name:25s} mean={mean:.3f} std={std:.3f}")
 
     # Show some sample feature vectors
-    print(f"\nSample feature vectors:")
+    print("\nSample feature vectors:")
     for i in [0, 18, 50, 94, 193]:
         if i < len(parsed):
             feats = all_features[i]
@@ -178,9 +236,9 @@ def main() -> None:
             print(f"         {parsed[i]['reasoning'][:80]}")
 
     # K-means on features
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS ON BEHAVIORAL FEATURES")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for k in [5, 8, 10]:
         labels = kmeans(matrix, k)
         sizes = sorted([int((labels == ki).sum()) for ki in range(k)], reverse=True)
@@ -191,14 +249,18 @@ def main() -> None:
             indices = np.where(mask)[0]
             # Mean features in cluster
             cluster_means = matrix[mask].mean(axis=0)
-            top_features = [(feature_names[fi], cluster_means[fi])
-                           for fi in np.argsort(cluster_means)[::-1]
-                           if cluster_means[fi] > 0.01][:5]
+            top_features = [
+                (feature_names[fi], cluster_means[fi])
+                for fi in np.argsort(cluster_means)[::-1]
+                if cluster_means[fi] > 0.01
+            ][:5]
             feat_str = ", ".join(f"{n}={v:.2f}" for n, v in top_features)
 
             action_counts: dict[str, int] = {}
             for idx in indices:
-                action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+                action_counts[parsed[idx]["action"]] = (
+                    action_counts.get(parsed[idx]["action"], 0) + 1
+                )
             top_actions = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
             action_str = ", ".join(f"{a}:{c}" for a, c in top_actions)
 

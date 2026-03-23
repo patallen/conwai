@@ -11,8 +11,12 @@ client = TestClient(app)
 def test_status_returns_tick_alive_total(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     storage.save_component("_meta", "tick", {"value": 42})
-    storage.save_component("agent1", "agent_info", {"role": "forager", "personality": "bold"})
-    storage.save_component("agent2", "agent_info", {"role": "baker", "personality": "shy"})
+    storage.save_component(
+        "agent1", "agent_info", {"role": "forager", "personality": "bold"}
+    )
+    storage.save_component(
+        "agent2", "agent_info", {"role": "baker", "personality": "shy"}
+    )
 
     mock_events = MagicMock()
     mock_events.count.return_value = 3
@@ -32,7 +36,9 @@ def test_status_returns_tick_alive_total(tmp_path):
 def test_handler_structured_post_board(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     with patch("scenarios.bread_economy.dashboard._storage", storage):
-        resp = client.post("/api/handler", json={"action": "post_board", "content": "hello world"})
+        resp = client.post(
+            "/api/handler", json={"action": "post_board", "content": "hello world"}
+        )
         assert resp.status_code == 200
         assert resp.json()["ok"] is True
         cmds = storage.pop_commands()
@@ -43,7 +49,9 @@ def test_handler_structured_post_board(tmp_path):
 def test_handler_structured_send_dm(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     with patch("scenarios.bread_economy.dashboard._storage", storage):
-        resp = client.post("/api/handler", json={"action": "send_dm", "to": "abc123", "content": "hey"})
+        resp = client.post(
+            "/api/handler", json={"action": "send_dm", "to": "abc123", "content": "hey"}
+        )
         assert resp.status_code == 200
         assert resp.json()["ok"] is True
         cmds = storage.pop_commands()
@@ -54,7 +62,10 @@ def test_handler_structured_send_dm(tmp_path):
 def test_handler_structured_set_energy(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     with patch("scenarios.bread_economy.dashboard._storage", storage):
-        resp = client.post("/api/handler", json={"action": "set_energy", "handle": "abc123", "value": 500})
+        resp = client.post(
+            "/api/handler",
+            json={"action": "set_energy", "handle": "abc123", "value": 500},
+        )
         assert resp.status_code == 200
         cmds = storage.pop_commands()
         assert cmds[0]["action"] == "set_energy"
@@ -65,7 +76,10 @@ def test_handler_structured_set_energy(tmp_path):
 def test_handler_structured_drain_energy(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     with patch("scenarios.bread_economy.dashboard._storage", storage):
-        resp = client.post("/api/handler", json={"action": "drain_energy", "handle": "abc123", "amount": 100})
+        resp = client.post(
+            "/api/handler",
+            json={"action": "drain_energy", "handle": "abc123", "amount": 100},
+        )
         assert resp.status_code == 200
         cmds = storage.pop_commands()
         assert cmds[0]["action"] == "drain_energy"
@@ -75,7 +89,10 @@ def test_handler_structured_drain_energy(tmp_path):
 def test_handler_structured_drop_secret(tmp_path):
     storage = SQLiteStorage(tmp_path / "test.db")
     with patch("scenarios.bread_economy.dashboard._storage", storage):
-        resp = client.post("/api/handler", json={"action": "drop_secret", "handle": "abc123", "content": "a secret"})
+        resp = client.post(
+            "/api/handler",
+            json={"action": "drop_secret", "handle": "abc123", "content": "a secret"},
+        )
         assert resp.status_code == 200
         cmds = storage.pop_commands()
         assert cmds[0]["action"] == "drop_secret"

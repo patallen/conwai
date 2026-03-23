@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 from conwai.bulletin_board import BulletinBoard
 from conwai.messages import MessageBus
-
 from scenarios.bread_economy.components import AgentMemory, Economy
 from scenarios.bread_economy.config import get_config
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
@@ -97,7 +96,9 @@ class CipherSystem:
             if self._world.has(entity_id, Economy):
                 eco = self._world.get(entity_id, Economy)
                 eco.coins += self._reward
-                self._world.get_resource(BreadPerceptionBuilder).notify(entity_id, f"+{self._reward} coins (solved cipher)")
+                self._world.get_resource(BreadPerceptionBuilder).notify(
+                    entity_id, f"+{self._reward} coins (solved cipher)"
+                )
 
             board = self._world.get_resource(BulletinBoard)
             board.post(
@@ -107,7 +108,9 @@ class CipherSystem:
             )
             log.info(f"[WORLD] CIPHER SOLVED by {entity_id}: {self._plaintext}")
             self._clear()
-            return f"CORRECT! The answer was '{guess}'. You earned {self._reward} coins."
+            return (
+                f"CORRECT! The answer was '{guess}'. You earned {self._reward} coins."
+            )
         else:
             # Wrong -- give feedback on how close they are
             correct_chars = sum(a == b for a, b in zip(guess, self._plaintext))
@@ -115,8 +118,12 @@ class CipherSystem:
             if self._world.has(entity_id, Economy):
                 eco = self._world.get(entity_id, Economy)
                 eco.coins = max(0, eco.coins - self._penalty)
-            self._attempts.append({"handle": entity_id, "guess": guess, "correct_chars": correct_chars})
-            log.info(f"[WORLD] WRONG CIPHER by {entity_id}: '{guess}' (wanted '{self._plaintext}')")
+            self._attempts.append(
+                {"handle": entity_id, "guess": guess, "correct_chars": correct_chars}
+            )
+            log.info(
+                f"[WORLD] WRONG CIPHER by {entity_id}: '{guess}' (wanted '{self._plaintext}')"
+            )
             hint = f"{correct_chars} characters in the right position"
             if not correct_len:
                 hint += f", expected {len(self._plaintext)} characters (you guessed {len(guess)})"
@@ -144,7 +151,9 @@ class CipherSystem:
             return
 
         # Pick a phrase
-        available = [i for i in range(len(CIPHER_PHRASES)) if i not in self._used_phrases]
+        available = [
+            i for i in range(len(CIPHER_PHRASES)) if i not in self._used_phrases
+        ]
         if not available:
             self._used_phrases.clear()
             available = list(range(len(CIPHER_PHRASES)))
@@ -161,7 +170,9 @@ class CipherSystem:
         # Distribute clues to ~half the population
         num_clues = min(len(handles), max(3, len(handles) // 2))
         chosen = random.sample(handles, num_clues)
-        log.info(f"[WORLD] cipher: {len(handles)} alive, distributing {num_clues} clues to {chosen}")
+        log.info(
+            f"[WORLD] cipher: {len(handles)} alive, distributing {num_clues} clues to {chosen}"
+        )
 
         # Build the set of unique letters in the plaintext
         unique_letters = list(set(c for c in self._plaintext if c.isalpha()))

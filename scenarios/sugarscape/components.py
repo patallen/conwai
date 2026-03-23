@@ -12,6 +12,7 @@ class Position(Component):
 @dataclass
 class Sugar(Component):
     """Agent's sugar stockpile. Gathered from the grid, burned by metabolism."""
+
     wealth: int = 10
     metabolism: int = 1
 

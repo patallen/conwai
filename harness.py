@@ -27,18 +27,20 @@ import json
 import logging
 import sys
 
-from conwai.actions import PendingActions, ActionFeedback
-from conwai.bulletin_board import BulletinBoard
+from conwai.actions import ActionFeedback, PendingActions
 from conwai.brain import Brain
+from conwai.bulletin_board import BulletinBoard
+from conwai.contrib.systems import ActionSystem, BrainSystem
 from conwai.embeddings import FastEmbedder
-from conwai.engine import ActionSystem, BrainSystem, Engine, TickNumber
+from conwai.engine import Engine, TickNumber
 from conwai.events import EventLog
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
+from conwai.processes.types import Episodes, WorkingMemory
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
-from conwai.processes.types import Episodes, WorkingMemory
+from scenarios.bread_economy.actions.registry import tool_definitions
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
@@ -77,9 +79,13 @@ async def run(args):
     world.register(Economy, Economy(coins=cfg.starting_coins))
     world.register(
         Inventory,
-        Inventory(flour=cfg.starting_flour, water=cfg.starting_water, bread=cfg.starting_bread),
+        Inventory(
+            flour=cfg.starting_flour, water=cfg.starting_water, bread=cfg.starting_bread
+        ),
     )
-    world.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
+    world.register(
+        Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst)
+    )
     world.register(AgentMemory)
     world.register(AgentInfo)
     world.register(PendingActions)
@@ -117,7 +123,9 @@ async def run(args):
     if handle not in set(world.entities()):
         world.spawn(
             handle,
-            overrides=[AgentInfo(role="flour_forager", personality="skeptical, calculating")],
+            overrides=[
+                AgentInfo(role="flour_forager", personality="skeptical, calculating")
+            ],
         )
 
     bus.register(handle)
@@ -129,7 +137,9 @@ async def run(args):
         if fake_name not in set(world.entities()):
             world.spawn(
                 fake_name,
-                overrides=[AgentInfo(role="water_forager", personality="blunt, detached")],
+                overrides=[
+                    AgentInfo(role="water_forager", personality="blunt, detached")
+                ],
             )
 
     brain = Brain(
@@ -146,7 +156,7 @@ async def run(args):
                 context_window=cfg.context_window,
                 system_prompt=perception.build_system_prompt(),
             ),
-            InferenceProcess(client=client, tools=registry.tool_definitions()),
+            InferenceProcess(client=client, tools=tool_definitions()),
         ],
         state_types=[WorkingMemory, Episodes],
     )
@@ -156,12 +166,15 @@ async def run(args):
     brain_system.load_brain_states(world)
     action_system = ActionSystem(actions=registry)
 
-    engine = Engine(world, systems=[
-        DecaySystem(),
-        brain_system,
-        action_system,
-        ConsumptionSystem(),
-    ])
+    engine = Engine(
+        world,
+        systems=[
+            DecaySystem(),
+            brain_system,
+            action_system,
+            ConsumptionSystem(),
+        ],
+    )
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")
@@ -171,13 +184,14 @@ async def run(args):
     print(f"\n  Agent: @{handle}")
     print(f"  Model: {args.model}")
     print(f"  Tick:  {tick_number.value}")
-    print(f"  Fake agents: Christopher, Bridget, Matthew, Angel, Debra")
-    print(f"  Type anything to post to board, or !help for commands\n")
+    print("  Fake agents: Christopher, Bridget, Matthew, Angel, Debra")
+    print("  Type anything to post to board, or !help for commands\n")
 
     while True:
         try:
-            import readline  # noqa: F811 — enables line editing in input()
-            line = await asyncio.get_event_loop().run_in_executor(None, lambda: input(f"[tick {tick_number.value}] > "))
+            line = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: input(f"[tick {tick_number.value}] > ")
+            )
         except (EOFError, KeyboardInterrupt):
             break
 
@@ -217,7 +231,9 @@ async def run(args):
             hun = world.get(handle, Hunger)
             mem = world.get(handle, AgentMemory)
             print(f"\n  @{handle}")
-            print(f"  Coins: {int(eco.coins)}  Hunger: {hun.hunger}  Thirst: {hun.thirst}")
+            print(
+                f"  Coins: {int(eco.coins)}  Hunger: {hun.hunger}  Thirst: {hun.thirst}"
+            )
             print(f"  Flour: {inv.flour}  Water: {inv.water}  Bread: {inv.bread}")
             print(f"  Soul: {mem.soul or '(none)'}")
             print(f"  Journal: {mem.memory or '(none)'}")
@@ -254,7 +270,9 @@ async def run(args):
             parts = line.split()
             n = int(parts[1]) if len(parts) > 1 else 1
             for _ in range(n):
-                storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
+                storage.save_component(
+                    "_meta", "tick", {"value": tick_number.value + 1}
+                )
                 await engine.tick()
             print(f"  advanced to tick {tick_number.value}")
             continue

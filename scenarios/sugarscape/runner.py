@@ -3,16 +3,21 @@ import logging
 import random
 import sys
 
-from conwai.actions import PendingActions, ActionFeedback
+from conwai.actions import ActionFeedback, PendingActions
 from conwai.brain import Brain
-from conwai.engine import ActionSystem, BrainSystem, Engine, TickNumber
+from conwai.contrib.systems import ActionSystem, BrainSystem
+from conwai.engine import Engine, TickNumber
 from conwai.world import World
-
 from scenarios.sugarscape.actions import create_registry
-from scenarios.sugarscape.components import Sugar, Position, Vision
+from scenarios.sugarscape.components import Position, Sugar, Vision
 from scenarios.sugarscape.grid import Grid
 from scenarios.sugarscape.perception import SugarPerception
-from scenarios.sugarscape.processes import RememberSugar, PlanMove, ExecuteMove, SugarMemory
+from scenarios.sugarscape.processes import (
+    ExecuteMove,
+    PlanMove,
+    RememberSugar,
+    SugarMemory,
+)
 from scenarios.sugarscape.systems import MetabolismSystem, RegrowthSystem
 
 log = logging.getLogger("conwai")
@@ -30,13 +35,13 @@ def gini(values: list[int | float]) -> float:
 
 
 _SUGAR_COLORS = {
-    0: "\033[90m·\033[0m",       # dim dot
-    1: "\033[33m░\033[0m",       # dim yellow
-    2: "\033[93m▒\033[0m",       # yellow
-    3: "\033[93m▓\033[0m",       # bright yellow
-    4: "\033[93m█\033[0m",       # full yellow
+    0: "\033[90m·\033[0m",  # dim dot
+    1: "\033[33m░\033[0m",  # dim yellow
+    2: "\033[93m▒\033[0m",  # yellow
+    3: "\033[93m▓\033[0m",  # bright yellow
+    4: "\033[93m█\033[0m",  # full yellow
 }
-_AGENT = "\033[1;32m@\033[0m"    # bright green
+_AGENT = "\033[1;32m@\033[0m"  # bright green
 
 
 def render(world: World, grid: Grid) -> str:
@@ -90,11 +95,16 @@ async def run(
     brains: dict[str, Brain] = {}
     for i in range(n_agents):
         handle = f"A{i}"
-        world.spawn(handle, overrides=[
-            Position(x=random.randint(0, width - 1), y=random.randint(0, height - 1)),
-            Sugar(wealth=random.randint(5, 25), metabolism=random.randint(1, 4)),
-            Vision(range=random.randint(1, 6)),
-        ])
+        world.spawn(
+            handle,
+            overrides=[
+                Position(
+                    x=random.randint(0, width - 1), y=random.randint(0, height - 1)
+                ),
+                Sugar(wealth=random.randint(5, 25), metabolism=random.randint(1, 4)),
+                Vision(range=random.randint(1, 6)),
+            ],
+        )
         brains[handle] = Brain(
             processes=[RememberSugar(), PlanMove(), ExecuteMove()],
             state_types=[SugarMemory],
@@ -104,12 +114,15 @@ async def run(
     brain_system = BrainSystem(brains=brains, perception=perception.build)
     action_system = ActionSystem(actions=registry)
 
-    engine = Engine(world, systems=[
-        RegrowthSystem(),
-        brain_system,
-        action_system,
-        MetabolismSystem(),
-    ])
+    engine = Engine(
+        world,
+        systems=[
+            RegrowthSystem(),
+            brain_system,
+            action_system,
+            MetabolismSystem(),
+        ],
+    )
 
     # Run
     for t in range(ticks):
@@ -128,7 +141,9 @@ async def run(
         print()
         for eid, sugar, vision in world.query(Sugar, Vision):
             bar = "█" * min(40, sugar.wealth // 2)
-            print(f"  {eid:>3}: {bar} {sugar.wealth} (m={sugar.metabolism} v={vision.range})")
+            print(
+                f"  {eid:>3}: {bar} {sugar.wealth} (m={sugar.metabolism} v={vision.range})"
+            )
         await asyncio.sleep(0.3)
 
     # Summary

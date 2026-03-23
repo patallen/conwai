@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 
-from conwai.brain import BrainContext, Decision, Decisions
 from conwai.actions import ActionResult
+from conwai.brain import BrainContext, Decision, Decisions
+from conwai.llm import LLMResponse, ToolCall
 from conwai.processes import (
     ContextAssembly,
     InferenceProcess,
@@ -20,14 +21,12 @@ from conwai.processes.types import (
     LLMSnapshot,
     Observations,
     PerceptFeedback,
-    RecalledMemories,
     PerceptTick,
+    RecalledMemories,
     WorkingMemory,
     WorkingMemoryEntry,
 )
-from conwai.llm import LLMResponse, ToolCall
 from conwai.typemap import Blackboard, Percept, State
-
 
 # ---------------------------------------------------------------------------
 # Test helpers
@@ -56,9 +55,15 @@ class ErrorLLMClient:
 
 
 def _make_ctx(
-    agent_id="A1", tick=1, identity="", observations="tick 1 perception",
-    feedback=None, working_memory=None, episodes=None,
-    tick_entry_start=None, last_tick=0,
+    agent_id="A1",
+    tick=1,
+    identity="",
+    observations="tick 1 perception",
+    feedback=None,
+    working_memory=None,
+    episodes=None,
+    tick_entry_start=None,
+    last_tick=0,
 ) -> BrainContext:
     percept = Percept()
     percept.set(AgentHandle(value=agent_id))
@@ -69,11 +74,13 @@ def _make_ctx(
         percept.set(PerceptFeedback(entries=feedback))
 
     state = State()
-    state.set(WorkingMemory(
-        entries=working_memory if working_memory is not None else [],
-        last_tick=last_tick,
-        tick_entry_start=tick_entry_start,
-    ))
+    state.set(
+        WorkingMemory(
+            entries=working_memory if working_memory is not None else [],
+            last_tick=last_tick,
+            tick_entry_start=tick_entry_start,
+        )
+    )
     state.set(Episodes(entries=episodes if episodes is not None else []))
 
     return BrainContext(percept=percept, state=state, bb=Blackboard())
@@ -110,7 +117,13 @@ class TestMemoryCompression:
             WorkingMemoryEntry(content="perception", kind="observation"),
             WorkingMemoryEntry(content="thinking", kind="reasoning"),
         ]
-        ctx = _make_ctx(tick=2, working_memory=wm, tick_entry_start=0, last_tick=2, feedback=feedback)
+        ctx = _make_ctx(
+            tick=2,
+            working_memory=wm,
+            tick_entry_start=0,
+            last_tick=2,
+            feedback=feedback,
+        )
         mc = MemoryCompression()
 
         asyncio.run(mc.run(ctx))
@@ -193,7 +206,9 @@ class TestMemoryRecall:
             Episode(content="saw @Bk2 at the market"),
             Episode(content="nothing relevant here @Cx3"),
         ]
-        ctx = _make_ctx(episodes=episodes, observations="@Ag1 is nearby and @Bk2 wants to trade")
+        ctx = _make_ctx(
+            episodes=episodes, observations="@Ag1 is nearby and @Bk2 wants to trade"
+        )
 
         recall = MemoryRecall(recall_limit=10)
         asyncio.run(recall.run(ctx))
@@ -223,16 +238,23 @@ class TestMemoryRecall:
     def test_vector_recall_finds_semantically_similar(self):
         class FakeEmbedder:
             def embed(self, texts):
-                return [[1.0, 0.0, 0.0] if ("trade" in t or "flour" in t)
-                        else [0.0, 1.0, 0.0] if ("election" in t or "vote" in t)
-                        else [0.0, 0.0, 1.0] for t in texts]
+                return [
+                    [1.0, 0.0, 0.0]
+                    if ("trade" in t or "flour" in t)
+                    else [0.0, 1.0, 0.0]
+                    if ("election" in t or "vote" in t)
+                    else [0.0, 0.0, 1.0]
+                    for t in texts
+                ]
 
         episodes = [
             Episode(content="traded flour with @A1", embedding=[1.0, 0.0, 0.0]),
             Episode(content="voted in the election", embedding=[0.0, 1.0, 0.0]),
             Episode(content="watched the sunset", embedding=[0.0, 0.0, 1.0]),
         ]
-        ctx = _make_ctx(episodes=episodes, observations="I need to trade flour for water")
+        ctx = _make_ctx(
+            episodes=episodes, observations="I need to trade flour for water"
+        )
 
         recall = MemoryRecall(recall_limit=1, embedder=FakeEmbedder())
         asyncio.run(recall.run(ctx))
@@ -293,7 +315,9 @@ class TestContextAssembly:
         assert snap.system_prompt == "be helpful"
 
     def test_context_trimming(self):
-        wm = [WorkingMemoryEntry(content="a" * 100, kind="observation") for _ in range(10)]
+        wm = [
+            WorkingMemoryEntry(content="a" * 100, kind="observation") for _ in range(10)
+        ]
         ctx = _make_ctx(working_memory=wm, observations="short")
 
         ca = ContextAssembly(context_window=300)
@@ -307,7 +331,9 @@ class TestContextAssembly:
             WorkingMemoryEntry(content="old identity", kind="identity"),
             WorkingMemoryEntry(content="summary", kind="tick_summary"),
         ]
-        ctx = _make_ctx(working_memory=wm, identity="new identity", observations="tick 2")
+        ctx = _make_ctx(
+            working_memory=wm, identity="new identity", observations="tick 2"
+        )
 
         ca = ContextAssembly()
         asyncio.run(ca.run(ctx))
@@ -325,7 +351,9 @@ class TestContextAssembly:
         asyncio.run(ca.run(ctx))
 
         snap = ctx.bb.get(LLMSnapshot)
-        recall_msgs = [m for m in snap.messages if "RECALLED MEMORIES" in m.get("content", "")]
+        recall_msgs = [
+            m for m in snap.messages if "RECALLED MEMORIES" in m.get("content", "")
+        ]
         assert len(recall_msgs) == 1
 
         for e in ctx.state.get(WorkingMemory).entries:
@@ -357,7 +385,12 @@ class TestInferenceProcess:
         proc = InferenceProcess(client=client, tools=[{"function": {"name": "bake"}}])
 
         ctx = _make_ctx()
-        ctx.bb.set(LLMSnapshot(messages=[{"role": "user", "content": "tick 1"}], system_prompt="be helpful"))
+        ctx.bb.set(
+            LLMSnapshot(
+                messages=[{"role": "user", "content": "tick 1"}],
+                system_prompt="be helpful",
+            )
+        )
 
         asyncio.run(proc.run(ctx))
 
@@ -443,7 +476,9 @@ class TestFullPipeline:
         assert decisions.entries[0] == Decision("harvest", {"field": "north"})
 
         # --- Tick 2 --- same state, fresh bb
-        feedback = [ActionResult(action="harvest", args={"field": "north"}, result="3 wheat")]
+        feedback = [
+            ActionResult(action="harvest", args={"field": "north"}, result="3 wheat")
+        ]
         percept2 = Percept()
         percept2.set(AgentHandle(value="A1"))
         percept2.set(PerceptTick(value=2))

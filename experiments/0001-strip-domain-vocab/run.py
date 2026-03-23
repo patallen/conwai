@@ -16,21 +16,38 @@ import numpy as np
 from conwai.embeddings import FastEmbedder
 from conwai.storage import SQLiteStorage
 
-
 DB_PATH = "data.pre-abliterated.bak/state.db"
 AGENT = "Helen"
 CLUSTER_THRESHOLD = 0.70
 SAMPLES_PER_CLUSTER = 3
 
 DOMAIN_WORDS = {
-    "flour", "water", "bread", "loaf", "loaves",
-    "coin", "coins",
-    "forage", "foraged", "foraging",
-    "bake", "baked", "baking",
-    "trade", "traded", "trading",
-    "hunger", "hungry", "starving", "starve",
-    "resources", "surplus", "deficit", "inventory",
-    "consume", "consumed",
+    "flour",
+    "water",
+    "bread",
+    "loaf",
+    "loaves",
+    "coin",
+    "coins",
+    "forage",
+    "foraged",
+    "foraging",
+    "bake",
+    "baked",
+    "baking",
+    "trade",
+    "traded",
+    "trading",
+    "hunger",
+    "hungry",
+    "starving",
+    "starve",
+    "resources",
+    "surplus",
+    "deficit",
+    "inventory",
+    "consume",
+    "consumed",
 }
 
 _STRIP_PATTERN = re.compile(
@@ -89,7 +106,9 @@ def cluster_incremental(
             clusters[best_cluster].append(idx)
             # Update centroid as running mean
             n = len(clusters[best_cluster])
-            centroids[best_cluster] = centroids[best_cluster] * ((n - 1) / n) + vec * (1 / n)
+            centroids[best_cluster] = centroids[best_cluster] * ((n - 1) / n) + vec * (
+                1 / n
+            )
         else:
             clusters.append([idx])
             centroids.append(vec.copy())
@@ -113,8 +132,8 @@ def main() -> None:
     print(f"Diary entries: {len(raw_entries)}\n")
 
     # Extract reasoning and strip domain vocab
-    originals: list[str] = []   # original reasoning (for display)
-    stripped: list[str] = []    # stripped text (for embedding)
+    originals: list[str] = []  # original reasoning (for display)
+    stripped: list[str] = []  # stripped text (for embedding)
 
     for entry in raw_entries:
         reasoning = extract_reasoning(entry)
@@ -140,9 +159,9 @@ def main() -> None:
     clusters = cluster_incremental(vectors, CLUSTER_THRESHOLD)
     clusters_sorted = sorted(clusters, key=lambda c: -len(c))
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"RESULTS: {len(clusters)} clusters from {len(vectors)} entries")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     for ci, cluster in enumerate(clusters_sorted):
         print(f"Cluster {ci + 1}  (size={len(cluster)})")
@@ -156,9 +175,9 @@ def main() -> None:
 
     # Summary statistics
     sizes = [len(c) for c in clusters]
-    print(f"{'='*70}")
-    print(f"SUMMARY")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
+    print("SUMMARY")
+    print(f"{'=' * 70}")
     print(f"  Total entries   : {len(vectors)}")
     print(f"  Total clusters  : {len(clusters)}")
     print(f"  Largest cluster : {max(sizes)}")

@@ -105,14 +105,18 @@ def main() -> None:
     parsed = []
     for e in diary:
         action, reasoning = parse_entry(e["content"])
-        parsed.append({"action": action, "reasoning": reasoning[:200], "raw": e["content"][:300]})
+        parsed.append(
+            {"action": action, "reasoning": reasoning[:200], "raw": e["content"][:300]}
+        )
 
     # Split into halves
     mid = len(parsed) // 2
     first_half = parsed[:mid]
     second_half = parsed[mid:]
-    print(f"First half: entries 0-{mid-1} ({len(first_half)} entries)")
-    print(f"Second half: entries {mid}-{len(parsed)-1} ({len(second_half)} entries)\n")
+    print(f"First half: entries 0-{mid - 1} ({len(first_half)} entries)")
+    print(
+        f"Second half: entries {mid}-{len(parsed) - 1} ({len(second_half)} entries)\n"
+    )
 
     client = httpx.Client()
 
@@ -124,8 +128,7 @@ def main() -> None:
     else:
         print("Phase 1: Discovering patterns from first half...")
         entries_text = "\n".join(
-            f"[{i+1}] {p['reasoning'][:150]}"
-            for i, p in enumerate(first_half)
+            f"[{i + 1}] {p['reasoning'][:150]}" for i, p in enumerate(first_half)
         )
         patterns_text = llm_call(
             client,
@@ -144,9 +147,9 @@ def main() -> None:
         print("Phase 2a: Classifying first half...")
         c1: dict[str, int] = {}
         for batch_start in range(0, len(first_half), 30):
-            batch = first_half[batch_start:batch_start + 30]
+            batch = first_half[batch_start : batch_start + 30]
             batch_text = "\n".join(
-                f"{i+1}. [{e['action']}] {e['reasoning'][:150]}"
+                f"{i + 1}. [{e['action']}] {e['reasoning'][:150]}"
                 for i, e in enumerate(batch)
             )
             result = llm_call(
@@ -176,9 +179,9 @@ def main() -> None:
         print("Phase 2b: Classifying second half with first-half patterns...")
         c2: dict[str, int] = {}
         for batch_start in range(0, len(second_half), 30):
-            batch = second_half[batch_start:batch_start + 30]
+            batch = second_half[batch_start : batch_start + 30]
             batch_text = "\n".join(
-                f"{i+1}. [{e['action']}] {e['reasoning'][:150]}"
+                f"{i + 1}. [{e['action']}] {e['reasoning'][:150]}"
                 for i, e in enumerate(batch)
             )
             result = llm_call(
@@ -197,15 +200,17 @@ def main() -> None:
                             c2[str(gi)] = pn
                     except (ValueError, IndexError):
                         pass
-            print(f"  Classified {min(batch_start+30, len(second_half))}/{len(second_half)}")
+            print(
+                f"  Classified {min(batch_start + 30, len(second_half))}/{len(second_half)}"
+            )
         cache_c2.write_text(json.dumps(c2))
 
     client.close()
 
     # Analysis
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("RESULTS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     # First half distribution
     g1: dict[int, int] = {}
@@ -235,23 +240,23 @@ def main() -> None:
     only_first = all_patterns_1 - all_patterns_2
     only_second = all_patterns_2 - all_patterns_1
 
-    print(f"\nPattern overlap:")
+    print("\nPattern overlap:")
     print(f"  Shared: {len(shared)} patterns ({shared})")
     print(f"  Only in first half: {len(only_first)} ({only_first})")
     print(f"  Only in second half: {len(only_second)} ({only_second})")
     print(f"  NEW (unmatched): {g2.get(0, 0)} entries")
 
     if new_entries:
-        print(f"\nNEW entries that didn't match any pattern:")
+        print("\nNEW entries that didn't match any pattern:")
         for idx in new_entries[:5]:
             if mid + idx < len(parsed):
                 p = parsed[mid + idx]
-                print(f"  [{mid+idx}] [{p['action']}] {p['reasoning'][:120]}")
+                print(f"  [{mid + idx}] [{p['action']}] {p['reasoning'][:120]}")
 
     # Distribution comparison
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("DISTRIBUTION COMPARISON")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"{'Pattern':>10s} {'First Half':>12s} {'Second Half':>12s} {'Shift':>8s}")
     all_pats = sorted(all_patterns_1 | all_patterns_2)
     for pn in all_pats:
@@ -260,7 +265,9 @@ def main() -> None:
         f_pct = f_count / len(c1) * 100 if c1 else 0
         s_pct = s_count / len(c2) * 100 if c2 else 0
         shift = s_pct - f_pct
-        print(f"  {pn:8d} {f_count:5d} ({f_pct:4.1f}%) {s_count:5d} ({s_pct:4.1f}%) {shift:+6.1f}%")
+        print(
+            f"  {pn:8d} {f_count:5d} ({f_pct:4.1f}%) {s_count:5d} ({s_pct:4.1f}%) {shift:+6.1f}%"
+        )
 
 
 if __name__ == "__main__":

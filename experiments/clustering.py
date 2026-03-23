@@ -5,7 +5,8 @@ Feed it a bunch of diary-like entries, embed them, find clusters, see what emerg
 """
 
 import numpy as np
-from conwai.embeddings import FastEmbedder, cosine_topk
+
+from conwai.embeddings import FastEmbedder
 
 embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 
@@ -16,23 +17,19 @@ entries = [
     "Angel promised 10 bread but never delivered, wasted my tick",
     "Matthew agreed to trade then changed his mind at the last moment",
     "Debra said she'd send water but disappeared after I sent flour",
-
     # Successful trade cluster
     "Traded 30 flour for 30 water with Bridget, fair deal completed",
     "Bridget sent 15 bread as promised, reliable partner",
     "Completed a smooth 1:1 flour-water swap with Bridget, no issues",
-
     # Foraging / survival cluster
     "Foraged and got 20 flour and 3 water, decent haul",
     "Bad forage day, found nothing, wasted a tick",
     "Foraged 15 flour, need to bake soon before bread runs out",
     "Baked 8 bread from 10 flour and 10 water, stabilized hunger",
-
     # Social / board cluster
     "Posted on board looking for trade partners, no responses yet",
     "Election started, voted for Bridget because she's reliable",
     "Board is full of desperate offers, nobody has bread",
-
     # Resource crisis
     "Zero bread, eating raw flour, hunger dropping fast",
     "Critically low on water, can't bake, need to trade urgently",
@@ -84,7 +81,7 @@ for ci, cluster in enumerate(clusters):
         print(f"  [{idx}] {entries[idx][:80]}")
 
     # What does the centroid recall?
-    print(f"\n  Centroid recall (top 3 from ALL entries):")
+    print("\n  Centroid recall (top 3 from ALL entries):")
     all_sims = (normalized @ centroid) / (np.linalg.norm(centroid))
     top = np.argsort(all_sims)[::-1][:3]
     for t in top:
@@ -104,7 +101,9 @@ queries = [
 centroids = []
 for cluster in clusters:
     centroids.append(np.mean(vecs[cluster], axis=0))
-centroid_labels = [f"Cluster {i+1}: {entries[c[0]][:50]}..." for i, c in enumerate(clusters)]
+centroid_labels = [
+    f"Cluster {i + 1}: {entries[c[0]][:50]}..." for i, c in enumerate(clusters)
+]
 
 for query in queries:
     qvec = np.array(embedder.embed([query])[0])
@@ -125,11 +124,11 @@ for query in queries:
         concept_sims = []
         top_concept = None
 
-    print(f"Query: \"{query}\"")
-    print(f"  Episode recall:")
+    print(f'Query: "{query}"')
+    print("  Episode recall:")
     for t in top_ep:
         print(f"    {episode_sims[t]:.3f}  {entries[t][:70]}")
     if top_concept is not None:
-        print(f"  Concept recall:")
+        print("  Concept recall:")
         print(f"    {concept_sims[top_concept]:.3f}  {centroid_labels[top_concept]}")
     print()

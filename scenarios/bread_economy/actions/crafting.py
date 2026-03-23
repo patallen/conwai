@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from conwai.actions import ActionRegistry
 from conwai.events import EventLog
-
 from scenarios.bread_economy.actions.helpers import _capped_add
 from scenarios.bread_economy.components import AgentInfo, Inventory
 from scenarios.bread_economy.config import get_config
@@ -28,8 +27,12 @@ def _forage(entity_id: str, world: World, args: dict) -> str:
     flour = _capped_add(inv, "flour", flour)
     water = _capped_add(inv, "water", water)
 
-    world.get_resource(ActionRegistry).block(entity_id, "You are foraging this tick and cannot take other actions.")
-    world.get_resource(EventLog).log(entity_id, "forage", {"flour": flour, "water": water})
+    world.get_resource(ActionRegistry).block(
+        entity_id, "You are foraging this tick and cannot take other actions."
+    )
+    world.get_resource(EventLog).log(
+        entity_id, "forage", {"flour": flour, "water": water}
+    )
     log.info(f"[{entity_id}] foraged {flour} flour, {water} water")
     parts = []
     if flour > 0:

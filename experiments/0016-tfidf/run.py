@@ -10,7 +10,6 @@ Usage:
     PYTHONPATH=. uv run python experiments/0016-tfidf/run.py
 """
 
-import math
 import re
 from collections import Counter
 from pathlib import Path
@@ -83,12 +82,16 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     sim = vectors @ vectors.T
     upper = sim[np.triu_indices(len(vectors), k=1)]
     return {
-        "mean": float(np.mean(upper)), "std": float(np.std(upper)),
-        "min": float(np.min(upper)), "max": float(np.max(upper)),
+        "mean": float(np.mean(upper)),
+        "std": float(np.std(upper)),
+        "min": float(np.min(upper)),
+        "max": float(np.max(upper)),
     }
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -170,39 +173,43 @@ def main() -> None:
             df[vocab.index(w)] += 1
     idf = np.log((len(documents) + 1) / (df + 1)) + 1
 
-    print(f"\nTop 20 highest-IDF words (most distinctive):")
+    print("\nTop 20 highest-IDF words (most distinctive):")
     top_idf = np.argsort(idf)[::-1][:20]
     for i in top_idf:
         print(f"  {vocab[i]:20s} IDF={idf[i]:.3f} (in {int(df[i])} docs)")
 
-    print(f"\nTop 20 lowest-IDF words (most common):")
+    print("\nTop 20 lowest-IDF words (most common):")
     low_idf = np.argsort(idf)[:20]
     for i in low_idf:
         print(f"  {vocab[i]:20s} IDF={idf[i]:.3f} (in {int(df[i])} docs)")
 
     # Pairwise stats
     stats = pairwise_stats(tfidf_matrix)
-    print(f"\nTF-IDF pairwise similarity:")
-    print(f"  mean={stats['mean']:.4f} std={stats['std']:.4f} "
-          f"range=[{stats['min']:.4f}, {stats['max']:.4f}]")
-    print(f"  (Compare: bge-large mean=0.7972 std=0.0745)")
+    print("\nTF-IDF pairwise similarity:")
+    print(
+        f"  mean={stats['mean']:.4f} std={stats['std']:.4f} "
+        f"range=[{stats['min']:.4f}, {stats['max']:.4f}]"
+    )
+    print("  (Compare: bge-large mean=0.7972 std=0.0745)")
     print()
 
     # Threshold-based clustering
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("THRESHOLD CLUSTERING ON TF-IDF")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for threshold in [0.05, 0.10, 0.15, 0.20, 0.30, 0.40]:
         clusters = cluster_centroid(tfidf_matrix, threshold)
         sizes = sorted([len(c) for c in clusters], reverse=True)
         non_sing = sum(1 for s in sizes if s > 1)
-        print(f"  threshold={threshold:.2f}: {len(clusters)} clusters "
-              f"({non_sing} non-singleton) top={sizes[:10]}")
+        print(
+            f"  threshold={threshold:.2f}: {len(clusters)} clusters "
+            f"({non_sing} non-singleton) top={sizes[:10]}"
+        )
 
     # K-means on TF-IDF
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS ON TF-IDF")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for k in [5, 8, 10, 15]:
         labels = kmeans_cosine(tfidf_matrix, k)
         sizes = sorted([int((labels == ki).sum()) for ki in range(k)], reverse=True)

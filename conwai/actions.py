@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 @dataclass
 class ActionResult:
     """Result of a single executed action."""
+
     action: str
     args: dict[str, Any]
     result: str
@@ -21,35 +22,21 @@ class ActionResult:
 @dataclass
 class PendingActions(Component):
     """Decisions waiting to be executed."""
+
     entries: list[Decision] = field(default_factory=list)
 
 
 @dataclass
 class ActionFeedback(Component):
     """Results of executed actions. Written by ActionSystem, read by perception."""
+
     entries: list[ActionResult] = field(default_factory=list)
 
 
 @dataclass
 class Action:
     name: str
-    description: str
-    parameters: dict = field(default_factory=dict)
-    handler: Callable | None = None
-
-    def tool_schema(self) -> dict:
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": {
-                    "type": "object",
-                    "properties": self.parameters,
-                    "required": list(self.parameters.keys()),
-                },
-            },
-        }
+    handler: Callable
 
 
 class ActionRegistry:
@@ -62,9 +49,6 @@ class ActionRegistry:
 
     def get(self, name: str) -> Action | None:
         return self._actions.get(name)
-
-    def tool_definitions(self) -> list[dict]:
-        return [a.tool_schema() for a in self._actions.values()]
 
     def begin_tick(self, world: World, handles: list[str]) -> None:
         self._tick_state = {h: {} for h in handles}
@@ -89,5 +73,5 @@ class ActionRegistry:
         if ts.get("blocked"):
             return ts["blocked"]
 
-        result = action.handler(entity_id, world, args) if action.handler else "ok"
+        result = action.handler(entity_id, world, args)
         return result or "ok"

@@ -48,7 +48,9 @@ class StrategicReview:
 
         eps = ctx.state.get(Episodes)
         recent = eps.entries[-24:] if eps and eps.entries else []
-        diary_text = "\n".join(e.content for e in recent) if recent else "(no diary entries yet)"
+        diary_text = (
+            "\n".join(e.content for e in recent) if recent else "(no diary entries yet)"
+        )
 
         if self.store.has(agent_id, AgentMemory):
             mem = self.store.get(agent_id, AgentMemory)

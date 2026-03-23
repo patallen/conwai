@@ -7,17 +7,19 @@ import time
 from faker import Faker
 
 import scenarios.bread_economy.config as config
-from conwai.actions import PendingActions, ActionFeedback
-from conwai.bulletin_board import BulletinBoard
+from conwai.actions import ActionFeedback, PendingActions
 from conwai.brain import Brain
-from conwai.engine import ActionSystem, BrainSystem, Engine, TickNumber
+from conwai.bulletin_board import BulletinBoard
+from conwai.contrib.systems import ActionSystem, BrainSystem
+from conwai.engine import Engine, TickNumber
 from conwai.events import EventLog
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
+from conwai.processes.types import Episodes, WorkingMemory
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
-from conwai.processes.types import Episodes, WorkingMemory
+from scenarios.bread_economy.actions.registry import tool_definitions
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
@@ -51,6 +53,7 @@ from scenarios.bread_economy.systems import (
 
 log = logging.getLogger("conwai")
 
+
 async def process_commands(world: World, brains=None, brain_factory=None):
     """Poll the command queue and execute admin commands from the dashboard."""
     storage = world._storage
@@ -70,22 +73,40 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                     if handle in set(world.entities()) and world.has(handle, Economy):
                         eco = world.get(handle, Economy)
                         eco.coins = max(0, eco.coins - amount)
-                        events.log("HANDLER", "drain", {"handle": handle, "amount": amount, "remaining": eco.coins})
-                        log.info(f"[HANDLER] drained {handle} by {amount}, now {eco.coins}")
+                        events.log(
+                            "HANDLER",
+                            "drain",
+                            {
+                                "handle": handle,
+                                "amount": amount,
+                                "remaining": eco.coins,
+                            },
+                        )
+                        log.info(
+                            f"[HANDLER] drained {handle} by {amount}, now {eco.coins}"
+                        )
 
                 elif action == "set_energy":
                     handle, value = cmd["handle"], int(cmd["value"])
                     if handle in set(world.entities()) and world.has(handle, Economy):
                         eco = world.get(handle, Economy)
                         eco.coins = min(get_config().energy_max, max(0, value))
-                        events.log("HANDLER", "set_energy", {"handle": handle, "energy": eco.coins})
+                        events.log(
+                            "HANDLER",
+                            "set_energy",
+                            {"handle": handle, "energy": eco.coins},
+                        )
                         log.info(f"[HANDLER] set {handle} energy to {eco.coins}")
 
                 elif action == "drop_secret":
                     handle, content = cmd["handle"], cmd["content"]
                     if handle in set(world.entities()):
                         bus.send("WORLD", handle, content)
-                        events.log("WORLD", "secret_dropped", {"to": handle, "content": content})
+                        events.log(
+                            "WORLD",
+                            "secret_dropped",
+                            {"to": handle, "content": content},
+                        )
                         log.info(f"[HANDLER] dropped secret to {handle}: {content}")
 
                 elif action == "send_dm":
@@ -97,7 +118,10 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                         cfg = get_config()
                         eco = world.get(handle, Economy)
                         eco.coins += cfg.energy_gain.get("dm_received", 0)
-                        perception.notify(handle, f"coins +{cfg.energy_gain.get('dm_received', 0)} (HANDLER attention)")
+                        perception.notify(
+                            handle,
+                            f"coins +{cfg.energy_gain.get('dm_received', 0)} (HANDLER attention)",
+                        )
 
                 elif action == "post_board":
                     content = cmd["content"]
@@ -106,16 +130,35 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                     log.info(f"[HANDLER]: {content}")
 
                 elif action == "spawn":
-                    handle, role, personality = cmd["handle"], cmd["role"], cmd["personality"]
+                    handle, role, personality = (
+                        cmd["handle"],
+                        cmd["role"],
+                        cmd["personality"],
+                    )
                     if handle in set(world.entities()):
                         log.warning(f"[HANDLER] spawn failed: {handle} already exists")
                     else:
-                        world.spawn(handle, overrides=[AgentInfo(role=role, personality=personality)])
+                        world.spawn(
+                            handle,
+                            overrides=[AgentInfo(role=role, personality=personality)],
+                        )
                         if brains is not None and brain_factory:
                             brains[handle] = brain_factory()
-                        board.post("WORLD", f"New agent {handle} has joined the community.")
-                        events.log("HANDLER", "agent_spawned", {"handle": handle, "role": role, "personality": personality})
-                        log.info(f"[HANDLER] spawned {handle} as {role} ({personality})")
+                        board.post(
+                            "WORLD", f"New agent {handle} has joined the community."
+                        )
+                        events.log(
+                            "HANDLER",
+                            "agent_spawned",
+                            {
+                                "handle": handle,
+                                "role": role,
+                                "personality": personality,
+                            },
+                        )
+                        log.info(
+                            f"[HANDLER] spawned {handle} as {role} ({personality})"
+                        )
 
             except (KeyError, ValueError) as e:
                 log.warning(f"[HANDLER] bad command {cmd}: {e}")
@@ -157,9 +200,13 @@ async def run():
     world.register(Economy, Economy(coins=cfg.starting_coins))
     world.register(
         Inventory,
-        Inventory(flour=cfg.starting_flour, water=cfg.starting_water, bread=cfg.starting_bread),
+        Inventory(
+            flour=cfg.starting_flour, water=cfg.starting_water, bread=cfg.starting_bread
+        ),
     )
-    world.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
+    world.register(
+        Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst)
+    )
     world.register(AgentMemory)
     world.register(AgentInfo)
     world.register(PendingActions)
@@ -167,7 +214,8 @@ async def run():
 
     # --- Infrastructure ---
     board = BulletinBoard(
-        max_posts=cfg.board_max_posts, max_post_length=cfg.board_max_post_length,
+        max_posts=cfg.board_max_posts,
+        max_post_length=cfg.board_max_post_length,
         storage=storage,
     )
     bus = MessageBus(storage=storage)
@@ -250,7 +298,7 @@ async def run():
                 ),
                 InferenceProcess(
                     client=client,
-                    tools=registry.tool_definitions(),
+                    tools=tool_definitions(),
                 ),
             ],
             state_types=[WorkingMemory, Episodes],
@@ -263,8 +311,10 @@ async def run():
     # 20 agents: indices 0-9 = first-person, 10-19 = third-person
     # Each group: 5 flour + 5 water, all same neutral personality
     ab_roles = (
-        ["flour_forager"] * 2 + ["water_forager"] * 2  # first-person
-        + ["flour_forager"] * 1 + ["water_forager"] * 1  # third-person
+        ["flour_forager"] * 2
+        + ["water_forager"] * 2  # first-person
+        + ["flour_forager"] * 1
+        + ["water_forager"] * 1  # third-person
     )
     ab_personality = "practical, observant"
 
@@ -272,6 +322,7 @@ async def run():
     saved_groups: dict[str, str] = {}
     try:
         import sqlite3 as _sql
+
         _edb = _sql.connect("data/events.db")
         for entity, data in _edb.execute(
             "SELECT entity, data FROM events WHERE type='ab_group'"
@@ -303,14 +354,18 @@ async def run():
         while handle in existing_handles:
             handle = fake.first_name()
         existing_handles.add(handle)
-        world.spawn(handle, overrides=[AgentInfo(role=role, personality=ab_personality)])
+        world.spawn(
+            handle, overrides=[AgentInfo(role=role, personality=ab_personality)]
+        )
         fp = len(first_person_group) < 4
         brains[handle] = make_brain(first_person=fp)
         if fp:
             first_person_group.add(handle)
 
     log.info(f"[WORLD] A/B test: FIRST PERSON for {sorted(first_person_group)}")
-    log.info(f"[WORLD] A/B test: THIRD PERSON for {sorted(set(brains.keys()) - first_person_group)}")
+    log.info(
+        f"[WORLD] A/B test: THIRD PERSON for {sorted(set(brains.keys()) - first_person_group)}"
+    )
     # Only log ab_group events for new agents (avoid duplicates on resume)
     for handle in brains:
         if handle not in saved_groups:
@@ -330,9 +385,7 @@ async def run():
         personality = ", ".join(assign_traits())
         world.spawn(handle, overrides=[AgentInfo(role=role, personality=personality)])
         board.post("WORLD", f"{dead_entity_id} has died of starvation.")
-        board.post(
-            "WORLD", f"A new agent {handle} ({role}) has arrived."
-        )
+        board.post("WORLD", f"A new agent {handle} ({role}) has arrived.")
         events.log(
             "WORLD",
             "agent_died",
@@ -363,16 +416,19 @@ async def run():
     action_system = ActionSystem(actions=registry)
 
     # --- Engine ---
-    engine = Engine(world, systems=[
-        DecaySystem(),
-        TaxSystem(),
-        SpoilageSystem(),
-        DeathSystem(on_death=on_death),
-        world_events,
-        brain_system,
-        action_system,
-        ConsumptionSystem(),
-    ])
+    engine = Engine(
+        world,
+        systems=[
+            DecaySystem(),
+            TaxSystem(),
+            SpoilageSystem(),
+            DeathSystem(on_death=on_death),
+            world_events,
+            brain_system,
+            action_system,
+            ConsumptionSystem(),
+        ],
+    )
 
     asyncio.create_task(
         process_commands(

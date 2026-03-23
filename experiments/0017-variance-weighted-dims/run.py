@@ -27,7 +27,9 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     return {"mean": float(np.mean(upper)), "std": float(np.std(upper))}
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -58,12 +60,14 @@ def main() -> None:
 
     # Compute per-dimension variance
     variances = np.var(vectors, axis=0)
-    print(f"Dimension variances: min={variances.min():.6f} max={variances.max():.6f} "
-          f"mean={variances.mean():.6f} std={variances.std():.6f}")
+    print(
+        f"Dimension variances: min={variances.min():.6f} max={variances.max():.6f} "
+        f"mean={variances.mean():.6f} std={variances.std():.6f}"
+    )
 
     # Distribution of variances
     percentiles = [10, 25, 50, 75, 90, 95, 99]
-    print(f"Variance percentiles:")
+    print("Variance percentiles:")
     for p in percentiles:
         print(f"  {p}th: {np.percentile(variances, p):.6f}")
 
@@ -82,12 +86,13 @@ def main() -> None:
         "top_128_dims": vectors[:, np.argsort(variances)[-128:]],
         "top_64_dims": vectors[:, np.argsort(variances)[-64:]],
         "bottom_256_removed": vectors[:, np.argsort(variances)[256:]],
-        "sqrt_variance_only_top50pct": vectors[:, high_var_dims] * np.sqrt(variances[high_var_dims]),
+        "sqrt_variance_only_top50pct": vectors[:, high_var_dims]
+        * np.sqrt(variances[high_var_dims]),
     }
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("COMPARISON OF WEIGHTING STRATEGIES")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"{'Strategy':40s} {'Mean Sim':>10s} {'Std':>10s} {'K=10 sizes':>30s}")
 
     for name, vecs in strategies.items():
@@ -98,10 +103,12 @@ def main() -> None:
 
     # Detailed view of best strategy
     # Find the one with lowest mean similarity
-    best_name = min(strategies.keys(), key=lambda n: pairwise_stats(strategies[n])["mean"])
-    print(f"\n{'='*70}")
+    best_name = min(
+        strategies.keys(), key=lambda n: pairwise_stats(strategies[n])["mean"]
+    )
+    print(f"\n{'=' * 70}")
     print(f"BEST STRATEGY: {best_name}")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     best_vecs = strategies[best_name]
     labels = kmeans_cosine(best_vecs, 10)
 
@@ -110,7 +117,9 @@ def main() -> None:
         indices = np.where(mask)[0]
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top)
         print(f"\n  Cluster {ki} ({int(mask.sum())} entries) [{action_str}]")

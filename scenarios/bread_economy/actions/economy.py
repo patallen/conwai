@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from conwai.engine import TickNumber
 from conwai.events import EventLog
-
 from scenarios.bread_economy.actions.helpers import _capped_add
 from scenarios.bread_economy.components import Economy, Inventory
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
@@ -27,7 +26,9 @@ class OfferBook:
         self._offers: dict[int, dict] = {}
 
     def expire(self, tick: int) -> None:
-        expired = [oid for oid, o in self._offers.items() if tick - o["tick"] >= self.expiry]
+        expired = [
+            oid for oid, o in self._offers.items() if tick - o["tick"] >= self.expiry
+        ]
         for oid in expired:
             del self._offers[oid]
 
@@ -148,12 +149,17 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         if offer_book.count_by_agent(entity_id) >= 3:
             return "you already have 3 pending offers. Wait for them to be accepted or expire."
 
-        oid = offer_book.create({
-            "from": entity_id, "to": to,
-            "give_type": give_type, "give_amount": give_amount,
-            "want_type": want_type, "want_amount": want_amount,
-            "tick": tick,
-        })
+        oid = offer_book.create(
+            {
+                "from": entity_id,
+                "to": to,
+                "give_type": give_type,
+                "give_amount": give_amount,
+                "want_type": want_type,
+                "want_amount": want_amount,
+                "tick": tick,
+            }
+        )
 
         perception = world.get_resource(BreadPerceptionBuilder)
         perception.notify(
@@ -161,11 +167,21 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             f"Trade offer #{oid} from @{entity_id}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
         )
 
-        world.get_resource(EventLog).log(entity_id, "offer", {
-            "id": oid, "to": to, "give_type": give_type, "give_amount": give_amount,
-            "want_type": want_type, "want_amount": want_amount,
-        })
-        log.info(f"[{entity_id}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}")
+        world.get_resource(EventLog).log(
+            entity_id,
+            "offer",
+            {
+                "id": oid,
+                "to": to,
+                "give_type": give_type,
+                "give_amount": give_amount,
+                "want_type": want_type,
+                "want_amount": want_amount,
+            },
+        )
+        log.info(
+            f"[{entity_id}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}"
+        )
         return f"Offer #{oid} sent to {to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks."
 
     def _accept(entity_id: str, world: World, args: dict) -> str:
@@ -193,12 +209,16 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             off_eco = world.get(offerer, Economy)
             if give_amount > off_eco.coins:
                 offer_book.remove(oid)
-                return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
+                return (
+                    f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
+                )
         else:
             off_inv = world.get(offerer, Inventory)
             if give_amount > getattr(off_inv, give_type):
                 offer_book.remove(oid)
-                return f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
+                return (
+                    f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
+                )
 
         # Verify accepter has the wanted resources
         if want_type == "coins":
@@ -238,21 +258,43 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         offer_book.remove(oid)
 
         perception = world.get_resource(BreadPerceptionBuilder)
-        perception.notify(offerer, f"Offer #{oid} accepted by @{entity_id}: gave {give_amount} {give_type}, received {want_amount} {want_type}")
-        perception.notify(entity_id, f"Accepted offer #{oid} from @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}")
+        perception.notify(
+            offerer,
+            f"Offer #{oid} accepted by @{entity_id}: gave {give_amount} {give_type}, received {want_amount} {want_type}",
+        )
+        perception.notify(
+            entity_id,
+            f"Accepted offer #{oid} from @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}",
+        )
 
         events = world.get_resource(EventLog)
-        events.log(entity_id, "trade", {
-            "id": oid, "with": offerer,
-            "received_type": give_type, "received_amount": give_amount,
-            "gave_type": want_type, "gave_amount": want_amount,
-        })
-        events.log(offerer, "trade", {
-            "id": oid, "with": entity_id,
-            "received_type": want_type, "received_amount": want_amount,
-            "gave_type": give_type, "gave_amount": give_amount,
-        })
-        log.info(f"[TRADE] #{oid}: {offerer} gave {give_amount} {give_type}, {entity_id} gave {want_amount} {want_type}")
+        events.log(
+            entity_id,
+            "trade",
+            {
+                "id": oid,
+                "with": offerer,
+                "received_type": give_type,
+                "received_amount": give_amount,
+                "gave_type": want_type,
+                "gave_amount": want_amount,
+            },
+        )
+        events.log(
+            offerer,
+            "trade",
+            {
+                "id": oid,
+                "with": entity_id,
+                "received_type": want_type,
+                "received_amount": want_amount,
+                "gave_type": give_type,
+                "gave_amount": give_amount,
+            },
+        )
+        log.info(
+            f"[TRADE] #{oid}: {offerer} gave {give_amount} {give_type}, {entity_id} gave {want_amount} {want_type}"
+        )
         return f"Trade complete: received {give_amount} {give_type} from {offerer}, gave {want_amount} {want_type}."
 
     return _offer, _accept

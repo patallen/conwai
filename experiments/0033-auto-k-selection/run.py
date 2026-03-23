@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, calinski_harabasz_score
+from sklearn.metrics import calinski_harabasz_score, silhouette_score
 
 CACHE_VECS = Path("experiments/helen_embeddings.npz")
 CACHE_PARSED = Path("experiments/helen_parsed.json")
@@ -67,7 +67,9 @@ def main() -> None:
     calinski = []
     gaps = []
 
-    print(f"{'K':>4s} {'Inertia':>12s} {'Silhouette':>12s} {'Calinski-H':>12s} {'Gap':>10s}")
+    print(
+        f"{'K':>4s} {'Inertia':>12s} {'Silhouette':>12s} {'Calinski-H':>12s} {'Gap':>10s}"
+    )
     for k in k_range:
         km = KMeans(n_clusters=k, random_state=42, n_init=10)
         labels = km.fit_predict(projected)
@@ -85,9 +87,9 @@ def main() -> None:
         print(f"  {k:2d}   {inertia:10.2f}   {sil:10.4f}   {ch:10.1f}   {gap:8.4f}")
 
     # Find optimal K by each method
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("OPTIMAL K SELECTION")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     # Silhouette: max
     best_sil_k = list(k_range)[np.argmax(silhouettes)]
@@ -99,8 +101,10 @@ def main() -> None:
 
     # Elbow: largest 2nd derivative of inertia
     if len(inertias) > 2:
-        second_deriv = [inertias[i-1] - 2*inertias[i] + inertias[i+1]
-                       for i in range(1, len(inertias)-1)]
+        second_deriv = [
+            inertias[i - 1] - 2 * inertias[i] + inertias[i + 1]
+            for i in range(1, len(inertias) - 1)
+        ]
         elbow_idx = np.argmax(second_deriv) + 1
         elbow_k = list(k_range)[elbow_idx]
         print(f"  Elbow method:      K={elbow_k}")
@@ -109,13 +113,15 @@ def main() -> None:
     best_gap_k = list(k_range)[np.argmax(gaps)]
     print(f"  Gap statistic:     K={best_gap_k} (gap={max(gaps):.4f})")
 
-    print(f"\n  Consensus: the methods suggest K in range [{min(best_sil_k, best_ch_k)}, {max(best_sil_k, best_ch_k)}]")
+    print(
+        f"\n  Consensus: the methods suggest K in range [{min(best_sil_k, best_ch_k)}, {max(best_sil_k, best_ch_k)}]"
+    )
 
     # Show clusters at consensus K
     consensus_k = best_sil_k
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"CLUSTERS AT CONSENSUS K={consensus_k}")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     km = KMeans(n_clusters=consensus_k, random_state=42, n_init=10)
     labels = km.fit_predict(projected)
     for ki in range(consensus_k):
@@ -123,7 +129,9 @@ def main() -> None:
         indices = np.where(mask)[0]
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top)
         print(f"  Cluster {ki} ({int(mask.sum())}) [{action_str}]")

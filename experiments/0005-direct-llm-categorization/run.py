@@ -105,7 +105,7 @@ def main() -> None:
     # Use 3 batches spread across the timeline
     sample_indices = list(range(0, len(parsed), max(1, len(parsed) // 90)))[:90]
     sample_entries = "\n".join(
-        f"[{i+1}] {parsed[idx]['reasoning'][:150]}"
+        f"[{i + 1}] {parsed[idx]['reasoning'][:150]}"
         for i, idx in enumerate(sample_indices)
     )
 
@@ -133,9 +133,9 @@ def main() -> None:
     else:
         classifications: dict[int, int] = {}
         for batch_start in range(0, len(parsed), BATCH_SIZE):
-            batch = parsed[batch_start:batch_start + BATCH_SIZE]
+            batch = parsed[batch_start : batch_start + BATCH_SIZE]
             batch_entries = "\n".join(
-                f"{i+1}. [{e['action']}] {e['reasoning'][:150]}"
+                f"{i + 1}. [{e['action']}] {e['reasoning'][:150]}"
                 for i, e in enumerate(batch)
             )
             result = llm_call(
@@ -156,16 +156,16 @@ def main() -> None:
                             classifications[global_idx] = pattern_num
                     except (ValueError, IndexError):
                         pass
-            print(f"  Classified {batch_start+len(batch)}/{len(parsed)}")
+            print(f"  Classified {batch_start + len(batch)}/{len(parsed)}")
 
         classify_cache.write_text(json.dumps(classifications))
 
     client.close()
 
     # Analyze results
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("RESULTS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     # Group by pattern
     pattern_groups: dict[int, list[int]] = {}
@@ -175,7 +175,9 @@ def main() -> None:
 
     classified_count = sum(len(v) for v in pattern_groups.values())
     unclassified = len(parsed) - classified_count
-    print(f"\nClassified: {classified_count}/{len(parsed)} (unclassified: {unclassified})")
+    print(
+        f"\nClassified: {classified_count}/{len(parsed)} (unclassified: {unclassified})"
+    )
     print(f"Patterns used: {len(pattern_groups)}\n")
 
     for pattern_num in sorted(pattern_groups.keys()):
@@ -185,13 +187,15 @@ def main() -> None:
             if idx < len(parsed):
                 a = parsed[idx]["action"]
                 action_counts[a] = action_counts.get(a, 0) + 1
-        action_str = ", ".join(f"{k}:{v}" for k, v in sorted(action_counts.items(), key=lambda x: -x[1]))
+        action_str = ", ".join(
+            f"{k}:{v}" for k, v in sorted(action_counts.items(), key=lambda x: -x[1])
+        )
         print(f"Pattern {pattern_num} ({len(indices)} entries) [{action_str}]")
         for idx in indices[:3]:
             if idx < len(parsed):
                 print(f"  [{idx:3d}] {parsed[idx]['reasoning'][:120]}")
         if len(indices) > 3:
-            print(f"  ... and {len(indices)-3} more")
+            print(f"  ... and {len(indices) - 3} more")
         print()
 
 

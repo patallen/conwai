@@ -147,24 +147,18 @@ class ScenarioConfig:
                 },
             ),
             inventory_cap=get(cfg, "inventory", "cap", default=100),
-            bake_cost=get(
-                cfg, "baking", "cost", default={"flour": 3, "water": 3}
-            ),
+            bake_cost=get(cfg, "baking", "cost", default={"flour": 3, "water": 3}),
             bake_yield=get(cfg, "baking", "yield", default=2),
             bake_baker_yield=get(cfg, "baking", "baker_yield", default=3),
             bread_spoil_interval=get(cfg, "spoilage", "interval", default=6),
             bread_spoil_amount=get(cfg, "spoilage", "amount", default=1),
             context_window=get(cfg, "brain", "context_window", default=16000),
             memory_max=get(cfg, "brain", "memory_max", default=1000),
-            state_board_length=get(
-                cfg, "perception", "board_length", default=10
-            ),
+            state_board_length=get(cfg, "perception", "board_length", default=10),
             state_interactions_length=get(
                 cfg, "perception", "interactions_length", default=10
             ),
-            state_ledger_length=get(
-                cfg, "perception", "ledger_length", default=10
-            ),
+            state_ledger_length=get(cfg, "perception", "ledger_length", default=10),
             role_descriptions=get(
                 cfg,
                 "roles",
@@ -223,4 +217,5 @@ def assign_traits(n: int = 2) -> list[str]:
 def register_components(store) -> None:
     """Register all bread-economy components on a World."""
     from scenarios.bread_economy.components import AgentInfo
+
     store.register(AgentInfo)

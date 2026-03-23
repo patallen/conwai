@@ -1,6 +1,12 @@
-from conwai.actions import ActionFeedback, ActionResult, PendingActions
-from conwai.brain import Decision
+import asyncio
+
+from conwai.actions import Action, ActionFeedback, ActionRegistry, ActionResult, PendingActions
+from conwai.brain import Brain, BrainContext, Decision, Decisions
 from conwai.component import Component
+from conwai.contrib.systems import ActionSystem, BrainSystem
+from conwai.engine import TickNumber
+from conwai.typemap import Percept
+from conwai.world import World
 
 
 def test_pending_actions_is_component():
@@ -15,15 +21,6 @@ def test_action_result_fields():
     r = ActionResult(action="eat", args={}, result="yum")
     assert r.action == "eat"
     assert r.result == "yum"
-
-
-import asyncio
-
-from conwai.actions import Action, ActionRegistry, ActionFeedback, ActionResult, PendingActions
-from conwai.brain import Brain, BrainContext, Decision, Decisions
-from conwai.engine import ActionSystem, BrainSystem, TickNumber
-from conwai.typemap import Percept
-from conwai.world import World
 
 
 class FakeDecider:
@@ -45,7 +42,7 @@ def test_action_system_executes_pending():
         return "yum"
 
     registry = ActionRegistry()
-    registry.register(Action(name="eat", description="eat food", parameters={}, handler=handler))
+    registry.register(Action(name="eat", handler=handler))
 
     system = ActionSystem(actions=registry)
     asyncio.run(system.run(world))

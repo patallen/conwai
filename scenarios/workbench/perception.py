@@ -6,7 +6,13 @@ from conwai.actions import ActionFeedback
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
-from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
+from conwai.processes.types import (
+    AgentHandle,
+    Identity,
+    Observations,
+    PerceptFeedback,
+    PerceptTick,
+)
 from conwai.typemap import Percept
 from scenarios.workbench.components import AgentInfo
 
@@ -63,9 +69,7 @@ class WorkbenchPerceptionBuilder:
         new_dms = bus.receive(entity_id)
         if new_dms:
             parts.append(
-                "\n".join(
-                    f"DM from @{dm.from_handle}: {dm.content}" for dm in new_dms
-                )
+                "\n".join(f"DM from @{dm.from_handle}: {dm.content}" for dm in new_dms)
             )
 
         stimuli = self._stimuli.pop(entity_id, [])

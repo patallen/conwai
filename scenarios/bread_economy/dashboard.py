@@ -107,7 +107,10 @@ def api_election():
         "started_tick": state.get("election_started_tick", 0),
         "ticks_left": max(0, state.get("election_started_tick", 0) + 15 - tick),
         "total_votes": len(votes),
-        "tally": {c: {"count": len(v), "voters": v} for c, v in sorted(tally.items(), key=lambda x: -len(x[1]))},
+        "tally": {
+            c: {"count": len(v), "voters": v}
+            for c, v in sorted(tally.items(), key=lambda x: -len(x[1]))
+        },
     }
 
 
@@ -153,13 +156,23 @@ async def api_handler(request: Request):
 
     if "action" in body:
         action = body["action"]
-        valid_actions = {"post_board", "send_dm", "set_energy", "drain_energy", "drop_secret"}
+        valid_actions = {
+            "post_board",
+            "send_dm",
+            "set_energy",
+            "drain_energy",
+            "drop_secret",
+        }
         if action not in valid_actions:
-            return JSONResponse({"ok": False, "error": f"unknown action: {action}"}, status_code=400)
+            return JSONResponse(
+                {"ok": False, "error": f"unknown action: {action}"}, status_code=400
+            )
         try:
             _storage.push_command(body)
         except KeyError as e:
-            return JSONResponse({"ok": False, "error": f"missing field: {e}"}, status_code=400)
+            return JSONResponse(
+                {"ok": False, "error": f"missing field: {e}"}, status_code=400
+            )
         return {"ok": True}
 
     msg = body.get("message", "").strip()
@@ -172,12 +185,16 @@ async def api_handler(request: Request):
 @app.get("/api/handler/inbox")
 def api_handler_inbox():
     """All DM threads involving HANDLER (both directions)."""
-    rows = _events._conn().execute(
-        "SELECT id, t, entity, type, data FROM events "
-        "WHERE type = 'dm_sent' AND "
-        "(json_extract(data, '$.to') = 'HANDLER' OR entity = 'HANDLER') "
-        "ORDER BY id"
-    ).fetchall()
+    rows = (
+        _events._conn()
+        .execute(
+            "SELECT id, t, entity, type, data FROM events "
+            "WHERE type = 'dm_sent' AND "
+            "(json_extract(data, '$.to') = 'HANDLER' OR entity = 'HANDLER') "
+            "ORDER BY id"
+        )
+        .fetchall()
+    )
     threads: dict[str, list[dict]] = {}
     for r in rows:
         event = _events._row_to_dict(r)
@@ -188,34 +205,42 @@ def api_handler_inbox():
             other = event["entity"]
         if not other or other == "HANDLER":
             continue
-        threads.setdefault(other, []).append({
-            "t": event["t"],
-            "content": event["data"].get("content", ""),
-            "from": event["entity"],
-        })
+        threads.setdefault(other, []).append(
+            {
+                "t": event["t"],
+                "content": event["data"].get("content", ""),
+                "from": event["entity"],
+            }
+        )
     return threads
 
 
 @app.get("/api/handler/inbox/{handle}")
 def api_handler_thread(handle: str):
     """DM thread between a specific agent and HANDLER (both directions)."""
-    rows = _events._conn().execute(
-        "SELECT id, t, entity, type, data FROM events "
-        "WHERE type = 'dm_sent' AND "
-        "(entity = ? AND json_extract(data, '$.to') = 'HANDLER' OR "
-        " entity = 'HANDLER' AND json_extract(data, '$.to') = ?) "
-        "ORDER BY id",
-        (handle, handle),
-    ).fetchall()
+    rows = (
+        _events._conn()
+        .execute(
+            "SELECT id, t, entity, type, data FROM events "
+            "WHERE type = 'dm_sent' AND "
+            "(entity = ? AND json_extract(data, '$.to') = 'HANDLER' OR "
+            " entity = 'HANDLER' AND json_extract(data, '$.to') = ?) "
+            "ORDER BY id",
+            (handle, handle),
+        )
+        .fetchall()
+    )
     messages = []
     for r in rows:
         event = _events._row_to_dict(r)
-        messages.append({
-            "from": event["entity"],
-            "to": event["data"].get("to", ""),
-            "content": event["data"].get("content", ""),
-            "t": event["t"],
-        })
+        messages.append(
+            {
+                "from": event["entity"],
+                "to": event["data"].get("to", ""),
+                "content": event["data"].get("content", ""),
+                "t": event["t"],
+            }
+        )
     return messages
 
 
@@ -254,11 +279,15 @@ def api_agent_detail(handle: str):
 
 
 if FRONTEND_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="static-assets")
+    app.mount(
+        "/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="static-assets"
+    )
 
     @app.get("/{full_path:path}", response_class=HTMLResponse)
     def serve_frontend(full_path: str):
         index_path = FRONTEND_DIR / "index.html"
         if index_path.exists():
             return index_path.read_text()
-        return HTMLResponse("Frontend not built. Run: cd frontend && npm run build", status_code=404)
+        return HTMLResponse(
+            "Frontend not built. Run: cd frontend && npm run build", status_code=404
+        )

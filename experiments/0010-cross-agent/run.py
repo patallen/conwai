@@ -97,9 +97,9 @@ For each entry, respond with entry number and pattern number:
 
 def run_for_agent(agent: str, client: httpx.Client) -> dict:
     diary = load_diary(DB_PATH, agent)
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"AGENT: {agent} ({len(diary)} entries)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     parsed = []
     for e in diary:
@@ -110,7 +110,9 @@ def run_for_agent(agent: str, client: httpx.Client) -> dict:
     action_counts: dict[str, int] = {}
     for p in parsed:
         action_counts[p["action"]] = action_counts.get(p["action"], 0) + 1
-    print(f"Actions: {', '.join(f'{k}:{v}' for k, v in sorted(action_counts.items(), key=lambda x: -x[1]))}")
+    print(
+        f"Actions: {', '.join(f'{k}:{v}' for k, v in sorted(action_counts.items(), key=lambda x: -x[1]))}"
+    )
 
     # Phase 1: Discover patterns
     cache_key = f"patterns_{agent}.txt"
@@ -120,12 +122,13 @@ def run_for_agent(agent: str, client: httpx.Client) -> dict:
         print("  Patterns loaded from cache")
     else:
         sample_entries = "\n".join(
-            f"[{i+1}] {parsed[i]['reasoning'][:150]}"
-            for i in range(len(parsed))
+            f"[{i + 1}] {parsed[i]['reasoning'][:150]}" for i in range(len(parsed))
         )
         patterns_text = llm_call(
             client,
-            DISCOVER_PROMPT.format(agent=agent, count=len(parsed), entries=sample_entries),
+            DISCOVER_PROMPT.format(
+                agent=agent, count=len(parsed), entries=sample_entries
+            ),
         )
         cache_path.write_text(patterns_text)
 
@@ -140,14 +143,16 @@ def run_for_agent(agent: str, client: httpx.Client) -> dict:
         classifications: dict[str, int] = {}
         batch_size = 30
         for batch_start in range(0, len(parsed), batch_size):
-            batch = parsed[batch_start:batch_start + batch_size]
+            batch = parsed[batch_start : batch_start + batch_size]
             batch_entries = "\n".join(
-                f"{i+1}. [{e['action']}] {e['reasoning'][:150]}"
+                f"{i + 1}. [{e['action']}] {e['reasoning'][:150]}"
                 for i, e in enumerate(batch)
             )
             result = llm_call(
                 client,
-                CLASSIFY_PROMPT.format(agent=agent, patterns=patterns_text, entries=batch_entries),
+                CLASSIFY_PROMPT.format(
+                    agent=agent, patterns=patterns_text, entries=batch_entries
+                ),
                 max_tokens=500,
             )
             for line in result.strip().split("\n"):
@@ -161,7 +166,9 @@ def run_for_agent(agent: str, client: httpx.Client) -> dict:
                             classifications[str(global_idx)] = pattern_num
                     except (ValueError, IndexError):
                         pass
-            print(f"  Classified {min(batch_start+batch_size, len(parsed))}/{len(parsed)}")
+            print(
+                f"  Classified {min(batch_start + batch_size, len(parsed))}/{len(parsed)}"
+            )
 
         classify_cache.write_text(json.dumps(classifications))
 
@@ -179,8 +186,12 @@ def run_for_agent(agent: str, client: httpx.Client) -> dict:
         actions: dict[str, int] = {}
         for idx in indices:
             if idx < len(parsed):
-                actions[parsed[idx]["action"]] = actions.get(parsed[idx]["action"], 0) + 1
-        action_str = ", ".join(f"{k}:{v}" for k, v in sorted(actions.items(), key=lambda x: -x[1])[:4])
+                actions[parsed[idx]["action"]] = (
+                    actions.get(parsed[idx]["action"], 0) + 1
+                )
+        action_str = ", ".join(
+            f"{k}:{v}" for k, v in sorted(actions.items(), key=lambda x: -x[1])[:4]
+        )
         print(f"  Pattern {pn:2d}: {len(indices):3d} entries [{action_str}]")
         for idx in indices[:2]:
             if idx < len(parsed):
@@ -204,13 +215,17 @@ def main() -> None:
     client.close()
 
     # Summary comparison
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CROSS-AGENT SUMMARY")
-    print(f"{'='*70}")
-    print(f"{'Agent':15s} {'Entries':>8s} {'Classified':>11s} {'Patterns':>9s} {'Sizes':>30s}")
+    print(f"{'=' * 70}")
+    print(
+        f"{'Agent':15s} {'Entries':>8s} {'Classified':>11s} {'Patterns':>9s} {'Sizes':>30s}"
+    )
     for r in results:
         sizes = sorted(r["pattern_sizes"].values(), reverse=True)
-        print(f"{r['agent']:15s} {r['total']:8d} {r['classified']:11d} {r['patterns_used']:9d} {str(sizes)}")
+        print(
+            f"{r['agent']:15s} {r['total']:8d} {r['classified']:11d} {r['patterns_used']:9d} {str(sizes)}"
+        )
 
 
 if __name__ == "__main__":

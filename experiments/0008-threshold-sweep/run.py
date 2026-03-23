@@ -85,7 +85,12 @@ def cluster_at_threshold(
 def summarize_clusters(clusters: list[list[int]], n_entries: int) -> dict:
     """Compute cluster statistics."""
     if not clusters:
-        return {"num_clusters": 0, "sizes": [], "clustered_entries": 0, "unclustered": n_entries}
+        return {
+            "num_clusters": 0,
+            "sizes": [],
+            "clustered_entries": 0,
+            "unclustered": n_entries,
+        }
 
     all_clustered = set()
     for c in clusters:
@@ -225,7 +230,9 @@ def main() -> None:
                 break
 
     if interesting is None:
-        print("No threshold produced multiple clusters. Embedding space may be too uniform.")
+        print(
+            "No threshold produced multiple clusters. Embedding space may be too uniform."
+        )
         return
 
     print("=" * 70)

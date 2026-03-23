@@ -11,8 +11,8 @@ from conwai.processes.types import (
     Identity,
     LLMSnapshot,
     Observations,
-    RecalledMemories,
     PerceptTick,
+    RecalledMemories,
     WorkingMemory,
     WorkingMemoryEntry,
 )
@@ -45,7 +45,9 @@ class ContextAssembly:
             if entries and entries[0].kind == "identity":
                 entries[0] = WorkingMemoryEntry(content=identity.text, kind="identity")
             else:
-                entries.insert(0, WorkingMemoryEntry(content=identity.text, kind="identity"))
+                entries.insert(
+                    0, WorkingMemoryEntry(content=identity.text, kind="identity")
+                )
 
         # Convert working memory to LLM message format
         messages = []
@@ -57,7 +59,11 @@ class ContextAssembly:
 
         # Recalled memories (ephemeral — in snapshot only)
         if recalled and recalled.entries:
-            recall_text = "=== RECALLED MEMORIES ===\n" + "\n".join(recalled.entries) + "\n=== END ==="
+            recall_text = (
+                "=== RECALLED MEMORIES ===\n"
+                + "\n".join(recalled.entries)
+                + "\n=== END ==="
+            )
             messages.append({"role": "user", "content": recall_text})
 
         # Observations as perception prompt

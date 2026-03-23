@@ -12,7 +12,6 @@ Usage:
 """
 
 import asyncio
-import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -23,9 +22,10 @@ from conwai.embeddings import FastEmbedder
 from conwai.llm import LLMClient
 from conwai.storage import SQLiteStorage
 
-
 CLUSTER_THRESHOLD = 0.70  # tighter than before
-CONCEPT_MERGE_THRESHOLD = 0.80  # if new cluster centroid is this close to existing concept, reinforce instead
+CONCEPT_MERGE_THRESHOLD = (
+    0.80  # if new cluster centroid is this close to existing concept, reinforce instead
+)
 MAX_CLUSTER_SIZE = 5
 BOOST_FACTOR = 0.02
 BOOST_DECAY = 0.995
@@ -58,10 +58,10 @@ class ConsolidationMemory:
     def __init__(self, embedder: FastEmbedder, llm: LLMClient):
         self.embedder = embedder
         self.llm = llm
-        self.entries: list[str] = []           # full diary text
-        self.reasoning: list[str] = []         # reasoning-only (for embedding)
-        self.vectors: list[np.ndarray] = []    # embeddings of reasoning
-        self.concepts: list[dict] = []         # {label, centroid, entries, strength}
+        self.entries: list[str] = []  # full diary text
+        self.reasoning: list[str] = []  # reasoning-only (for embedding)
+        self.vectors: list[np.ndarray] = []  # embeddings of reasoning
+        self.concepts: list[dict] = []  # {label, centroid, entries, strength}
         self._boost: defaultdict[tuple[int, int], float] = defaultdict(float)
 
     def _pair_key(self, a: int, b: int) -> tuple[int, int]:
@@ -71,9 +71,14 @@ class ConsolidationMemory:
         return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
 
     def _eff_sim(self, i: int, j: int) -> float:
-        return self._sim(self.vectors[i], self.vectors[j]) + self._boost[self._pair_key(i, j)]
+        return (
+            self._sim(self.vectors[i], self.vectors[j])
+            + self._boost[self._pair_key(i, j)]
+        )
 
-    def _top_neighbors(self, vec: np.ndarray, idx: int, k: int = 4) -> list[tuple[int, float]]:
+    def _top_neighbors(
+        self, vec: np.ndarray, idx: int, k: int = 4
+    ) -> list[tuple[int, float]]:
         results = []
         for i, v in enumerate(self.vectors):
             if i == idx:
@@ -139,7 +144,9 @@ class ConsolidationMemory:
             existing["strength"] += 1
             # Running average of centroid
             n = existing["strength"]
-            existing["centroid"] = existing["centroid"] * ((n - 1) / n) + centroid * (1 / n)
+            existing["centroid"] = existing["centroid"] * ((n - 1) / n) + centroid * (
+                1 / n
+            )
             # Add new entry indices (dedup)
             for i in cluster:
                 if i not in existing["entries"]:
@@ -172,7 +179,9 @@ class ConsolidationMemory:
             raw_sim = self._sim(c["centroid"], qvec)
             # Strength boosts recall priority
             boosted_sim = raw_sim * (1 + 0.05 * min(c["strength"], 10))
-            concepts.append((boosted_sim, raw_sim, c["label"], c["strength"], len(c["entries"])))
+            concepts.append(
+                (boosted_sim, raw_sim, c["label"], c["strength"], len(c["entries"]))
+            )
         concepts.sort(reverse=True)
         concepts = concepts[:top_k]
 
@@ -188,7 +197,10 @@ class ConsolidationMemory:
 
         return {
             "episodes": [(sim, text) for sim, _, text in episodes],
-            "concepts": [(bsim, label, strength, size) for bsim, _, label, strength, size in concepts],
+            "concepts": [
+                (bsim, label, strength, size)
+                for bsim, _, label, strength, size in concepts
+            ],
         }
 
 
@@ -196,7 +208,9 @@ async def main():
     db_path = sys.argv[1] if len(sys.argv) > 1 else "data.removed-auto.bak/state.db"
     agent = sys.argv[2] if len(sys.argv) > 2 else "Jeffery"
     llm_url = sys.argv[3] if len(sys.argv) > 3 else "http://ai-lab.lan:8081/v1"
-    llm_model = sys.argv[4] if len(sys.argv) > 4 else "/mnt/models/Qwen3.5-27B-GPTQ-Int4"
+    llm_model = (
+        sys.argv[4] if len(sys.argv) > 4 else "/mnt/models/Qwen3.5-27B-GPTQ-Int4"
+    )
 
     print(f"DB: {db_path}  Agent: {agent}")
     print(f"LLM: {llm_url} / {llm_model}")
@@ -224,33 +238,35 @@ async def main():
     memory = ConsolidationMemory(embedder, llm)
 
     # Phase 1: Add entries
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"ADDING {len(raw_entries)} ENTRIES")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     for i, entry in enumerate(raw_entries):
         result = await memory.add(entry)
         if result:
             is_new = result["strength"] == 1
             tag = "NEW" if is_new else f"REINFORCED (x{result['strength']})"
-            print(f"  [{i:2d}] {tag}: \"{result['label'][:80]}\"")
+            print(f'  [{i:2d}] {tag}: "{result["label"][:80]}"')
 
     print(f"\n  {len(memory.entries)} episodes → {len(memory.concepts)} concepts\n")
 
     # Phase 2: Show concepts sorted by strength
-    print(f"{'='*70}")
-    print(f"CONCEPTS (sorted by strength)")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}")
+    print("CONCEPTS (sorted by strength)")
+    print(f"{'=' * 70}\n")
 
     by_strength = sorted(memory.concepts, key=lambda c: -c["strength"])
     for c in by_strength:
-        print(f"  [strength={c['strength']:2d}, entries={len(c['entries']):2d}] \"{c['label'][:85]}\"")
+        print(
+            f'  [strength={c["strength"]:2d}, entries={len(c["entries"]):2d}] "{c["label"][:85]}"'
+        )
     print()
 
     # Phase 3: Query test
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("QUERY TEST")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     queries = [
         "Someone wants to trade with me, should I trust them?",
@@ -263,9 +279,11 @@ async def main():
 
     for q in queries:
         result = memory.recall(q)
-        print(f"Q: \"{q}\"")
+        print(f'Q: "{q}"')
         if result["episodes"]:
-            print(f"  Episode: {result['episodes'][0][0]:.3f}  {result['episodes'][0][1][:60]}")
+            print(
+                f"  Episode: {result['episodes'][0][0]:.3f}  {result['episodes'][0][1][:60]}"
+            )
         if result["concepts"]:
             c = result["concepts"][0]
             print(f"  Concept: {c[0]:.3f}  [str={c[2]}, {c[3]} entries] {c[1][:55]}")

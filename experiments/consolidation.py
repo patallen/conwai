@@ -14,12 +14,11 @@ import numpy as np
 from conwai.embeddings import FastEmbedder
 from conwai.llm import LLMClient
 
-
 CLUSTER_THRESHOLD = 0.65
 MAX_CLUSTER_SIZE = 5
 BOOST_FACTOR = 0.02
 BOOST_DECAY = 0.995  # slight decay each recall cycle to prevent runaway
-BOOST_CAP = 0.15     # max boost between any pair
+BOOST_CAP = 0.15  # max boost between any pair
 
 ENTRIES = [
     # Day 1
@@ -29,19 +28,16 @@ ENTRIES = [
     "Traded 30 flour for 30 water with Bridget, fair deal completed",
     "Foraged 15 flour, need to bake soon before bread runs out",
     "Baked 8 bread from 10 flour and 10 water, stabilized hunger",
-
     # Day 2
     "Angel promised 10 bread but never delivered, wasted my tick",
     "Bridget sent 15 bread as promised, reliable partner",
     "Zero bread, eating raw flour, hunger dropping fast",
     "Matthew agreed to trade then changed his mind at the last moment",
-
     # Day 3
     "Completed a smooth 1:1 flour-water swap with Bridget, no issues",
     "Debra said she'd send water but disappeared after I sent flour",
     "Critically low on water, can't bake, need to trade urgently",
     "Election started, voted for Bridget because she's reliable",
-
     # Day 4
     "Board is full of desperate offers, nobody has bread",
     "Starving with 100 flour and no water, useless surplus",
@@ -90,7 +86,9 @@ class ConsolidationMemory:
         boost = self._boost[self._pair_key(i, j)]
         return raw + boost
 
-    def _top_neighbors(self, vec: np.ndarray, idx: int, k: int = 4) -> list[tuple[int, float]]:
+    def _top_neighbors(
+        self, vec: np.ndarray, idx: int, k: int = 4
+    ) -> list[tuple[int, float]]:
         results = []
         for i, v in enumerate(self.vectors):
             if i == idx:
@@ -172,7 +170,9 @@ class ConsolidationMemory:
 
         return new_concepts
 
-    def recall(self, query: str, top_k_episodes: int = 3, top_k_concepts: int = 3) -> dict:
+    def recall(
+        self, query: str, top_k_episodes: int = 3, top_k_concepts: int = 3
+    ) -> dict:
         qvec = np.array(self.embedder.embed([query])[0])
 
         # Episode recall
@@ -214,7 +214,9 @@ class ConsolidationMemory:
                     if a < b:
                         key = self._pair_key(a, b)
                         self._boost[key] = min(
-                            self._boost[key] + BOOST_FACTOR * 0.5,  # lighter boost for concept membership
+                            self._boost[key]
+                            + BOOST_FACTOR
+                            * 0.5,  # lighter boost for concept membership
                             BOOST_CAP,
                         )
 
@@ -235,12 +237,16 @@ class ConsolidationMemory:
             print("  (no significant boosts)")
             return
         for (i, j), b in boosts[:15]:
-            print(f"  {b:.4f}  [{i:2d}]-[{j:2d}]  {self.entries[i][:35]} <-> {self.entries[j][:35]}")
+            print(
+                f"  {b:.4f}  [{i:2d}]-[{j:2d}]  {self.entries[i][:35]} <-> {self.entries[j][:35]}"
+            )
 
 
 async def main():
     llm_url = sys.argv[1] if len(sys.argv) > 1 else "http://ai-lab.lan:8081/v1"
-    llm_model = sys.argv[2] if len(sys.argv) > 2 else "/mnt/models/Qwen3.5-27B-GPTQ-Int4"
+    llm_model = (
+        sys.argv[2] if len(sys.argv) > 2 else "/mnt/models/Qwen3.5-27B-GPTQ-Int4"
+    )
 
     print(f"LLM: {llm_url} / {llm_model}")
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
@@ -249,12 +255,12 @@ async def main():
     memory = ConsolidationMemory(embedder, llm)
 
     # Phase 1: Add entries
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("PHASE 1: INCREMENTAL CONSOLIDATION")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     for i, entry in enumerate(ENTRIES):
-        print(f"[{i+1:2d}] + \"{entry[:70]}\"")
+        print(f'[{i + 1:2d}] + "{entry[:70]}"')
         concepts = await memory.add(entry)
         for c in concepts:
             print(f"     >>> CONCEPT ({len(c['entries'])} entries): {c['label'][:80]}")
@@ -263,28 +269,32 @@ async def main():
     print(f"  {len(memory.entries)} episodes, {len(memory.concepts)} concepts\n")
 
     # Phase 2: Query sequence (simulates agent encountering situations over time)
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("PHASE 2: QUERY SEQUENCE WITH HEBBIAN REINFORCEMENT")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     for round_num, query in enumerate(QUERY_SEQUENCE):
         result = memory.recall(query)
-        print(f"Round {round_num + 1}: \"{query}\"")
-        print(f"  Top episode:  {result['episodes'][0][0]:.3f}  {result['episodes'][0][1][:60]}")
+        print(f'Round {round_num + 1}: "{query}"')
+        print(
+            f"  Top episode:  {result['episodes'][0][0]:.3f}  {result['episodes'][0][1][:60]}"
+        )
         if result["concepts"]:
-            print(f"  Top concept:  {result['concepts'][0][0]:.3f}  [{result['concepts'][0][2]}] {result['concepts'][0][1][:55]}")
+            print(
+                f"  Top concept:  {result['concepts'][0][0]:.3f}  [{result['concepts'][0][2]}] {result['concepts'][0][1][:55]}"
+            )
         print()
 
     # Phase 3: Show what got reinforced
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("PHASE 3: HEBBIAN REINFORCEMENT MAP")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
     memory.print_boosts()
 
     # Phase 4: Re-query to see if reinforcement changed results
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("PHASE 4: RE-QUERY AFTER REINFORCEMENT")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     retest_queries = [
         "Should I trust a new agent offering a trade?",
@@ -293,12 +303,12 @@ async def main():
 
     for q in retest_queries:
         result = memory.recall(q)
-        print(f"Q: \"{q}\"")
-        print(f"  Episodes:")
+        print(f'Q: "{q}"')
+        print("  Episodes:")
         for sim, text in result["episodes"][:3]:
             print(f"    {sim:.3f}  {text[:65]}")
         if result["concepts"]:
-            print(f"  Concepts:")
+            print("  Concepts:")
             for sim, label, size in result["concepts"][:3]:
                 print(f"    {sim:.3f}  [{size}] {label[:60]}")
         print()

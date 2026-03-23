@@ -1,6 +1,5 @@
 import asyncio
 
-from scenarios.bread_economy.config import get_config
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
 from conwai.events import EventLog
@@ -13,6 +12,7 @@ from scenarios.bread_economy.components import (
     Hunger,
     Inventory,
 )
+from scenarios.bread_economy.config import get_config
 from scenarios.bread_economy.perception import make_bread_perception
 from scenarios.bread_economy.systems import (
     ConsumptionSystem,

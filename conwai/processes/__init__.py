@@ -17,8 +17,8 @@ from conwai.processes.types import (
     LLMSnapshot,
     Observations,
     PerceptFeedback,
-    RecalledMemories,
     PerceptTick,
+    RecalledMemories,
     WorkingMemory,
     WorkingMemoryEntry,
 )

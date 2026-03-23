@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 
 from conwai.brain import Brain, BrainContext, Decision, Decisions
 from conwai.processes.types import (
-    Episodes,
     Episode,
+    Episodes,
     LLMSnapshot,
     WorkingMemory,
     WorkingMemoryEntry,

@@ -8,7 +8,6 @@ from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
 from conwai.events import EventLog
 from conwai.messages import MessageBus
-
 from scenarios.bread_economy.actions.helpers import charge
 from scenarios.bread_economy.components import AgentMemory, Economy
 from scenarios.bread_economy.config import get_config
@@ -26,7 +25,9 @@ def _post_to_board(entity_id: str, world: World, args: dict) -> str:
     # Cooldown: 6 ticks between board posts
     mem = world.get(entity_id, AgentMemory)
     if mem.last_board_post and tick - mem.last_board_post < 6:
-        return f"You posted recently. Wait {6 - (tick - mem.last_board_post)} more ticks."
+        return (
+            f"You posted recently. Wait {6 - (tick - mem.last_board_post)} more ticks."
+        )
     err = charge(world, entity_id, 25, "post_to_board")
     if err:
         return err
@@ -64,7 +65,9 @@ def _send_message(entity_id: str, world: World, args: dict) -> str:
         log.info(f"[{entity_id}] SEND FAILED: {err}")
         return f"DM failed: {err}"
     action_reg.set_tick_state(entity_id, "dm_sent", dm_sent + 1)
-    world.get_resource(EventLog).log(entity_id, "dm_sent", {"to": to, "content": message})
+    world.get_resource(EventLog).log(
+        entity_id, "dm_sent", {"to": to, "content": message}
+    )
     log.info(f"[{entity_id}] -> [{to}]: {message}")
     alive = set(world.entities())
     if to in alive:

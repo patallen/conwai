@@ -60,11 +60,14 @@ class LLMClient:
         if tools:
             kwargs["tools"] = tools
         import logging
+
         _log = logging.getLogger("conwai")
         try:
             response = await self._client.chat.completions.create(**kwargs)
         except Exception as e:
-            _log.error(f"LLM call failed: {e} | model={self.model} base_url={self.base_url}")
+            _log.error(
+                f"LLM call failed: {e} | model={self.model} base_url={self.base_url}"
+            )
             raise
         usage = response.usage
         msg = response.choices[0].message

@@ -36,10 +36,12 @@ def tokenize(text: str) -> list[str]:
 
 
 def get_bigrams(tokens: list[str]) -> list[str]:
-    return [f"{tokens[i]}_{tokens[i+1]}" for i in range(len(tokens) - 1)]
+    return [f"{tokens[i]}_{tokens[i + 1]}" for i in range(len(tokens) - 1)]
 
 
-def build_tfidf(documents: list[str], use_bigrams: bool = False) -> tuple[np.ndarray, list[str]]:
+def build_tfidf(
+    documents: list[str], use_bigrams: bool = False
+) -> tuple[np.ndarray, list[str]]:
     doc_tokens = [tokenize(doc) for doc in documents]
     if use_bigrams:
         doc_features = [tokenize(doc) + get_bigrams(tokenize(doc)) for doc in documents]
@@ -83,7 +85,9 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     return {"mean": float(np.mean(upper)), "std": float(np.std(upper))}
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -124,7 +128,9 @@ def main() -> None:
     for name, use_bi in [("unigram", False), ("unigram+bigram", True)]:
         matrix, vocab = build_tfidf(documents, use_bigrams=use_bi)
         stats = pairwise_stats(matrix)
-        print(f"{name}: shape={matrix.shape} mean_sim={stats['mean']:.4f} std={stats['std']:.4f}")
+        print(
+            f"{name}: shape={matrix.shape} mean_sim={stats['mean']:.4f} std={stats['std']:.4f}"
+        )
 
     # Focus on bigram version
     matrix, vocab = build_tfidf(documents, use_bigrams=True)
@@ -144,14 +150,14 @@ def main() -> None:
     # Bigrams in 5-50 documents (interesting range)
     interesting = [(bg, count) for bg, count in bigram_df.items() if 5 <= count <= 50]
     interesting.sort(key=lambda x: -x[1])
-    print(f"\nInteresting bigrams (in 5-50 docs, top 30):")
+    print("\nInteresting bigrams (in 5-50 docs, top 30):")
     for bg, count in interesting[:30]:
         print(f"  {bg:30s} in {count:3d} docs")
 
     # K-means
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS ON BIGRAM TF-IDF")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for k in [8, 10, 15]:
         labels = kmeans_cosine(matrix, k)
         sizes = sorted([int((labels == ki).sum()) for ki in range(k)], reverse=True)
@@ -161,7 +167,9 @@ def main() -> None:
             indices = np.where(mask)[0]
             action_counts: dict[str, int] = {}
             for idx in indices:
-                action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+                action_counts[parsed[idx]["action"]] = (
+                    action_counts.get(parsed[idx]["action"], 0) + 1
+                )
             top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
             action_str = ", ".join(f"{a}:{c}" for a, c in top)
             # Find top bigrams in this cluster
@@ -172,7 +180,9 @@ def main() -> None:
                 cluster_bigram_counts.update(bigrams)
             top_bigrams = cluster_bigram_counts.most_common(3)
             bigram_str = ", ".join(f'"{bg}"' for bg, _ in top_bigrams)
-            print(f"    Cluster {ki}: {int(mask.sum()):3d} [{action_str}] top_bigrams=[{bigram_str}]")
+            print(
+                f"    Cluster {ki}: {int(mask.sum()):3d} [{action_str}] top_bigrams=[{bigram_str}]"
+            )
             for idx in indices[:2]:
                 print(f"      [{idx:3d}] {parsed[idx]['reasoning'][:100]}")
 

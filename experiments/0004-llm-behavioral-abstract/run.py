@@ -59,7 +59,9 @@ def llm_abstract(client: httpx.Client, entry_text: str) -> str:
         f"{LLM_BASE}/chat/completions",
         json={
             "model": LLM_MODEL,
-            "messages": [{"role": "user", "content": ABSTRACT_PROMPT.format(entry=entry_text)}],
+            "messages": [
+                {"role": "user", "content": ABSTRACT_PROMPT.format(entry=entry_text)}
+            ],
             "max_tokens": 200,
             "temperature": 0.3,
             "chat_template_kwargs": {"enable_thinking": False},
@@ -71,7 +73,9 @@ def llm_abstract(client: httpx.Client, entry_text: str) -> str:
     content = data["choices"][0]["message"].get("content") or ""
     # Qwen3.5 may use reasoning_content; fall back to that
     if not content:
-        content = data["choices"][0]["message"].get("reasoning_content") or "unknown pattern"
+        content = (
+            data["choices"][0]["message"].get("reasoning_content") or "unknown pattern"
+        )
     return content.strip().strip('"')
 
 
@@ -81,7 +85,9 @@ def cluster_centroid(vectors: list[np.ndarray], threshold: float) -> list[list[i
     for idx, vec in enumerate(vectors):
         best_ci, best_sim = -1, -1.0
         for ci, c in enumerate(centroids):
-            sim = float(np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10))
+            sim = float(
+                np.dot(vec, c) / (np.linalg.norm(vec) * np.linalg.norm(c) + 1e-10)
+            )
             if sim > best_sim:
                 best_sim = sim
                 best_ci = ci
@@ -149,7 +155,7 @@ def main() -> None:
     client.close()
 
     # Show sample abstracts
-    print(f"\nSample abstracts (every 25th):")
+    print("\nSample abstracts (every 25th):")
     for i in range(0, len(abstracts), 25):
         print(f"  [{i:3d}] {parsed[i]['action']:15s} → {abstracts[i]}")
     print()
@@ -163,10 +169,12 @@ def main() -> None:
 
     # Pairwise stats on abstracts
     stats = pairwise_stats(vectors)
-    print(f"Pairwise similarity of abstracts:")
-    print(f"  mean={stats['mean']:.4f} std={stats['std']:.4f} "
-          f"min={stats['min']:.4f} max={stats['max']:.4f}")
-    print(f"  (Compare to raw reasoning: mean=0.7972 std=0.0745)")
+    print("Pairwise similarity of abstracts:")
+    print(
+        f"  mean={stats['mean']:.4f} std={stats['std']:.4f} "
+        f"min={stats['min']:.4f} max={stats['max']:.4f}"
+    )
+    print("  (Compare to raw reasoning: mean=0.7972 std=0.0745)")
     print()
 
     # Cluster at multiple thresholds
@@ -176,9 +184,9 @@ def main() -> None:
         clusters_sorted = sorted(clusters, key=lambda c: -len(c))
         sizes = [len(c) for c in clusters_sorted]
 
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"THRESHOLD {threshold:.2f}: {len(clusters)} clusters")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"  Sizes: {sizes[:20]}{'...' if len(sizes) > 20 else ''}")
 
         # Show clusters with their abstracts
@@ -190,22 +198,24 @@ def main() -> None:
                 cluster_abstracts[a] = cluster_abstracts.get(a, 0) + 1
             top_abstracts = sorted(cluster_abstracts.items(), key=lambda x: -x[1])
 
-            print(f"\n  Cluster {ci+1} (size={len(cluster)}):")
+            print(f"\n  Cluster {ci + 1} (size={len(cluster)}):")
             for abstract, count in top_abstracts[:5]:
                 print(f"    [{count:2d}x] {abstract}")
             if len(top_abstracts) > 5:
-                print(f"    ... and {len(top_abstracts)-5} more unique abstracts")
+                print(f"    ... and {len(top_abstracts) - 5} more unique abstracts")
         print()
 
     # Find the best threshold (5-15 clusters, non-trivial)
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("BEST THRESHOLD ANALYSIS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for threshold in THRESHOLDS:
         vec_list = [vectors[i] for i in range(len(vectors))]
         clusters = cluster_centroid(vec_list, threshold)
         non_singleton = [c for c in clusters if len(c) > 1]
-        print(f"  {threshold:.2f}: {len(clusters)} total, {len(non_singleton)} non-singleton")
+        print(
+            f"  {threshold:.2f}: {len(clusters)} total, {len(non_singleton)} non-singleton"
+        )
 
 
 if __name__ == "__main__":

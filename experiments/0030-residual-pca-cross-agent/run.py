@@ -11,7 +11,6 @@ Usage:
 import json
 import re
 import sqlite3
-from pathlib import Path
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -58,9 +57,9 @@ def main() -> None:
 
     for agent in AGENTS:
         diary = load_diary(DB_PATH, agent)
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"AGENT: {agent} ({len(diary)} entries)")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         parsed = []
         for e in diary:
@@ -71,7 +70,9 @@ def main() -> None:
         action_counts: dict[str, int] = {}
         for p in parsed:
             action_counts[p["action"]] = action_counts.get(p["action"], 0) + 1
-        print(f"Actions: {', '.join(f'{k}:{v}' for k, v in sorted(action_counts.items(), key=lambda x: -x[1]))}")
+        print(
+            f"Actions: {', '.join(f'{k}:{v}' for k, v in sorted(action_counts.items(), key=lambda x: -x[1]))}"
+        )
 
         # Embed
         vectors = np.array(embedder.embed([p["reasoning"] for p in parsed]))
@@ -81,14 +82,16 @@ def main() -> None:
         residuals = vectors - centroid
 
         # Try different PCs and Ks
-        print(f"\nResidual + PCA clustering:")
+        print("\nResidual + PCA clustering:")
         for n_pcs in [3, 5]:
             projected = pca_project(residuals, n_pcs)
             for k in [5, 8, 10]:
                 km = KMeans(n_clusters=k, random_state=42, n_init=10)
                 labels = km.fit_predict(projected)
                 sil = silhouette_score(projected, labels, metric="cosine")
-                sizes = sorted([int((labels == ki).sum()) for ki in range(k)], reverse=True)
+                sizes = sorted(
+                    [int((labels == ki).sum()) for ki in range(k)], reverse=True
+                )
                 print(f"  PCs={n_pcs} K={k}: sil={sil:.4f} sizes={sizes}")
 
         # Detailed view at best config (3 PCs, K=8)
@@ -103,7 +106,9 @@ def main() -> None:
             indices = np.where(mask)[0]
             action_counts_cl: dict[str, int] = {}
             for idx in indices:
-                action_counts_cl[parsed[idx]["action"]] = action_counts_cl.get(parsed[idx]["action"], 0) + 1
+                action_counts_cl[parsed[idx]["action"]] = (
+                    action_counts_cl.get(parsed[idx]["action"], 0) + 1
+                )
             top = sorted(action_counts_cl.items(), key=lambda x: -x[1])[:3]
             action_str = ", ".join(f"{a}:{c}" for a, c in top)
             print(f"  Cluster {ki} ({int(mask.sum())}) [{action_str}]")
@@ -111,9 +116,9 @@ def main() -> None:
                 print(f"    [{idx:3d}] {parsed[idx]['reasoning'][:100]}")
 
     # Summary
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CROSS-AGENT SUMMARY (3 PCs, K=8)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for agent in AGENTS:
         diary = load_diary(DB_PATH, agent)
         parsed = [parse_entry(e["content"]) for e in diary]

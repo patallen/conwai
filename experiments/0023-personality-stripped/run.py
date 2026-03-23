@@ -65,7 +65,9 @@ def pairwise_stats(vectors: np.ndarray) -> dict:
     return {"mean": float(np.mean(upper)), "std": float(np.std(upper))}
 
 
-def kmeans_cosine(vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42) -> np.ndarray:
+def kmeans_cosine(
+    vectors: np.ndarray, k: int, max_iter: int = 100, seed: int = 42
+) -> np.ndarray:
     rng = np.random.RandomState(seed)
     n = len(vectors)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -103,7 +105,7 @@ def main() -> None:
             matches += 1
     print(f"Entries with personality markers: {matches}/{len(parsed)}")
 
-    print(f"\nSample stripping:")
+    print("\nSample stripping:")
     for i in range(min(5, len(parsed))):
         orig = parsed[i]["reasoning"][:120]
         s = stripped[i][:120]
@@ -113,7 +115,7 @@ def main() -> None:
 
     # Load cached original embeddings and embed stripped
     orig_vecs = np.load(Path("experiments/helen_embeddings.npz"))["vectors"]
-    print(f"\nEmbedding stripped text...")
+    print("\nEmbedding stripped text...")
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
     strip_vecs = np.array(embedder.embed(stripped))
 
@@ -123,25 +125,27 @@ def main() -> None:
     print(f"Stripped: mean={strip_stats['mean']:.4f} std={strip_stats['std']:.4f}")
 
     # K-means comparison
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("K-MEANS K=10 COMPARISON")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for name, vecs in [("original", orig_vecs), ("personality_stripped", strip_vecs)]:
         labels = kmeans_cosine(vecs, 10)
         sizes = sorted([int((labels == k).sum()) for k in range(10)], reverse=True)
         print(f"  {name}: sizes={sizes}")
 
     # Detailed clusters on stripped
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("STRIPPED CLUSTERS (K=10)")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     labels = kmeans_cosine(strip_vecs, 10)
     for ki in range(10):
         mask = labels == ki
         indices = np.where(mask)[0]
         action_counts: dict[str, int] = {}
         for idx in indices:
-            action_counts[parsed[idx]["action"]] = action_counts.get(parsed[idx]["action"], 0) + 1
+            action_counts[parsed[idx]["action"]] = (
+                action_counts.get(parsed[idx]["action"], 0) + 1
+            )
         top = sorted(action_counts.items(), key=lambda x: -x[1])[:3]
         action_str = ", ".join(f"{a}:{c}" for a, c in top)
         print(f"\n  Cluster {ki} ({int(mask.sum())} entries) [{action_str}]")
