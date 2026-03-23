@@ -34,11 +34,11 @@ def _setup(tick=1):
 
     world.set_resource(TickNumber(tick))
     board = BulletinBoard()
-    bus = MessageBus()
+    msg_bus = MessageBus()
     events = EventLog()
     perception = make_bread_perception()
     world.set_resource(board)
-    world.set_resource(bus)
+    world.set_resource(msg_bus)
     world.set_resource(events)
     world.set_resource(perception)
     return world

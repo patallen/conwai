@@ -42,9 +42,15 @@ class EventBus:
         self._queue.append(event)
         logger.debug("queued %s", type(event).__name__)
 
-    def drain(self) -> None:
+    def drain(self, max_iterations: int = 10_000) -> None:
         """Deliver all queued events, including any emitted by handlers (cascades)."""
+        iterations = 0
         while self._queue:
+            if iterations >= max_iterations:
+                raise RuntimeError(
+                    f"EventBus.drain() exceeded {max_iterations} iterations "
+                    f"(likely cascade loop, {len(self._queue)} events still queued)"
+                )
             event = self._queue.pop(0)
             handlers = self._handlers.get(type(event), [])
             logger.debug(
@@ -52,6 +58,7 @@ class EventBus:
             )
             for handler in handlers:
                 handler(event)
+            iterations += 1
 
     def pending(self) -> int:
         """Return the number of events currently waiting to be drained."""
