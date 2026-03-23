@@ -7,7 +7,7 @@ import re
 from typing import TYPE_CHECKING
 
 from conwai.brain import BrainContext
-from conwai.processes.types import Episode, Episodes, Observations, RecalledMemories
+from conwai.processes.types import AgentHandle, Episode, Episodes, Observations, RecalledMemories
 
 if TYPE_CHECKING:
     from conwai.embeddings import Embedder
@@ -23,7 +23,7 @@ class MemoryRecall:
     def __init__(
         self,
         recall_limit: int = 5,
-        reflection_limit: int | None = None,
+        reflection_limit: int = 2,
         embedder: Embedder | None = None,
     ):
         self.recall_limit = recall_limit
@@ -41,12 +41,11 @@ class MemoryRecall:
         if self._embedder:
             embedded = [e for e in eps.entries if e.embedding is not None]
             if embedded:
+                handle = ctx.percept.get(AgentHandle)
+                agent_id = handle.value if handle else "?"
                 query_vec = self._embedder.embed([perception_text])[0]
 
-                if self.reflection_limit is not None:
-                    recalled = self._split_recall(embedded, query_vec)
-                else:
-                    recalled = self._boosted_recall(embedded, query_vec)
+                recalled = self._split_recall(embedded, query_vec, agent_id)
 
                 if recalled:
                     ctx.bb.set(RecalledMemories(entries=recalled))
@@ -57,30 +56,16 @@ class MemoryRecall:
             ctx.bb.set(RecalledMemories(entries=matches))
 
     def _split_recall(
-        self, embedded: list[Episode], query_vec: list[float]
+        self, embedded: list[Episode], query_vec: list[float], agent_id: str = "?"
     ) -> list[str]:
-        episodes = [e for e in embedded if not e.content.startswith("[Reflection]")]
-        reflections = [e for e in embedded if e.content.startswith("[Reflection]")]
+        episodes = [e for e in embedded if not e.content.startswith("[Reflection")]
+        reflections = [e for e in embedded if e.content.startswith("[Reflection")]
         recalled = []
         if episodes:
-            recalled.extend(self._topk(episodes, query_vec, self.recall_limit))
+            recalled.extend(self._topk(episodes, query_vec, self.recall_limit, agent_id=agent_id))
         if reflections:
-            recalled.extend(self._topk(reflections, query_vec, self.reflection_limit))
+            recalled.extend(self._topk(reflections, query_vec, self.reflection_limit, agent_id=agent_id))
         return recalled
-
-    def _boosted_recall(
-        self, embedded: list[Episode], query_vec: list[float], min_sim: float = 0.3
-    ) -> list[str]:
-        import numpy as np
-
-        qv = np.array(query_vec)
-        cv = np.array([e.embedding for e in embedded])
-        sims = cv @ qv / (np.linalg.norm(cv, axis=1) * np.linalg.norm(qv) + 1e-10)
-        for i, e in enumerate(embedded):
-            if e.content.startswith("[Reflection]"):
-                sims[i] *= 1.5
-        top = list(np.argsort(sims)[-self.recall_limit :][::-1])
-        return [embedded[i].content for i in top if sims[i] >= min_sim]
 
     def _handle_recall(
         self, episodes: list[Episode], perception_text: str
@@ -101,7 +86,7 @@ class MemoryRecall:
 
     @staticmethod
     def _topk(
-        entries: list[Episode], query_vec: list[float], k: int, min_sim: float = 0.3
+        entries: list[Episode], query_vec: list[float], k: int, min_sim: float = 0.3, agent_id: str = "?"
     ) -> list[str]:
         if not entries:
             return []
@@ -111,4 +96,14 @@ class MemoryRecall:
         vecs = np.array([e.embedding for e in entries])
         sims = vecs @ qv / (np.linalg.norm(vecs, axis=1) * np.linalg.norm(qv) + 1e-10)
         top = list(np.argsort(sims)[-k:][::-1])
-        return [entries[i].content for i in top if sims[i] >= min_sim]
+        recalled = []
+        for i in top:
+            if sims[i] < min_sim:
+                continue
+            content_preview = entries[i].content[:60].replace("\n", " ")
+            log.info(
+                f"[{agent_id}] recall: \"{content_preview}\" "
+                f"(cosine={sims[i]:.2f})"
+            )
+            recalled.append(entries[i].content)
+        return recalled
