@@ -189,7 +189,7 @@ def api_handler_inbox():
         _events._conn()
         .execute(
             "SELECT id, t, entity, type, data FROM events "
-            "WHERE type = 'dm_sent' AND "
+            "WHERE type = 'send_message' AND "
             "(json_extract(data, '$.to') = 'HANDLER' OR entity = 'HANDLER') "
             "ORDER BY id"
         )
@@ -208,7 +208,7 @@ def api_handler_inbox():
         threads.setdefault(other, []).append(
             {
                 "t": event["t"],
-                "content": event["data"].get("content", ""),
+                "content": event["data"].get("message", ""),
                 "from": event["entity"],
             }
         )
@@ -222,7 +222,7 @@ def api_handler_thread(handle: str):
         _events._conn()
         .execute(
             "SELECT id, t, entity, type, data FROM events "
-            "WHERE type = 'dm_sent' AND "
+            "WHERE type = 'send_message' AND "
             "(entity = ? AND json_extract(data, '$.to') = 'HANDLER' OR "
             " entity = 'HANDLER' AND json_extract(data, '$.to') = ?) "
             "ORDER BY id",
@@ -237,7 +237,7 @@ def api_handler_thread(handle: str):
             {
                 "from": event["entity"],
                 "to": event["data"].get("to", ""),
-                "content": event["data"].get("content", ""),
+                "content": event["data"].get("message", ""),
                 "t": event["t"],
             }
         )
@@ -272,9 +272,9 @@ def api_agent_detail(handle: str):
     agent = next((a for a in agents if a["handle"] == handle), None)
     if not agent:
         return {"error": "not found"}
-    agent["board_posts"] = _events.agent_events(handle, "board_post", 20)
+    agent["board_posts"] = _events.agent_events(handle, "post_to_board", 20)
     agent["dms"] = queries.agent_dms(_events, handle, 30)
-    agent["soul_updates"] = _events.agent_events(handle, "soul_updated", 5)
+    agent["soul_updates"] = _events.agent_events(handle, "update_soul", 5)
     return agent
 
 
