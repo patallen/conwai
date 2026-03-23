@@ -3,15 +3,31 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable
 
+from conwai.component import Component
+
 if TYPE_CHECKING:
+    from conwai.brain import Decision
     from conwai.world import World
 
 
 @dataclass
-class ActionFeedback:
+class ActionResult:
+    """Result of a single executed action."""
     action: str
     args: dict[str, Any]
     result: str
+
+
+@dataclass
+class PendingActions(Component):
+    """Decisions waiting to be executed."""
+    entries: list[Decision] = field(default_factory=list)
+
+
+@dataclass
+class ActionFeedback(Component):
+    """Results of executed actions. Written by ActionSystem, read by perception."""
+    entries: list[ActionResult] = field(default_factory=list)
 
 
 @dataclass

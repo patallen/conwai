@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from conwai.bulletin_board import BulletinBoard
 from conwai.actions import ActionFeedback
+from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
 from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
@@ -37,7 +37,6 @@ class WorkbenchPerceptionBuilder:
         self,
         entity_id: str,
         world: World,
-        action_feedback: list[ActionFeedback] | None = None,
     ) -> Percept:
         tick = world.get_resource(TickNumber).value
         board = world.get_resource(BulletinBoard)
@@ -83,5 +82,9 @@ class WorkbenchPerceptionBuilder:
         percept.set(PerceptTick(value=tick))
         percept.set(Identity(text=identity))
         percept.set(Observations(text=observations))
-        percept.set(PerceptFeedback(entries=action_feedback or []))
+        if world.has(entity_id, ActionFeedback):
+            fb = world.get(entity_id, ActionFeedback)
+            percept.set(PerceptFeedback(entries=fb.entries))
+        else:
+            percept.set(PerceptFeedback(entries=[]))
         return percept

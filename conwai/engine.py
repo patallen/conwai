@@ -4,30 +4,14 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Callable, Protocol, runtime_checkable
 
-from conwai.actions import ActionFeedback
+from conwai.actions import ActionFeedback, ActionResult, PendingActions
 
 if TYPE_CHECKING:
     from conwai.actions import ActionRegistry
     from conwai.brain import Brain
-    from conwai.typemap import Percept
     from conwai.world import World
-
-
-class PerceptionBuilder(Protocol):
-    """What BrainSystem needs from a perception system."""
-
-    def build(
-        self,
-        entity_id: str,
-        world: World,
-        action_feedback: list[ActionFeedback] | None = None,
-    ) -> Percept: ...
-
-    def notify(self, handle: str, message: str) -> None: ...
-
-    def build_system_prompt(self) -> str: ...
 
 log = logging.getLogger("conwai")
 
@@ -48,19 +32,15 @@ class BrainSystem:
 
     def __init__(
         self,
-        actions: ActionRegistry,
         brains: dict[str, Brain],
-        perception: PerceptionBuilder,
+        perception: Callable,
     ):
-        self.actions = actions
         self.brains = brains
         self.perception = perception
-        self._action_feedback: dict[str, list[ActionFeedback]] = {}
 
     async def run(self, world: World) -> None:
         entities = set(world.entities())
         handles = [h for h in self.brains if h in entities]
-        self.actions.begin_tick(world, handles)
         tasks = [
             asyncio.create_task(self._tick_agent(handle, world))
             for handle in handles
@@ -75,25 +55,12 @@ class BrainSystem:
         brain = self.brains[handle]
         tick = world.get_resource(TickNumber)
 
-        feedback = self._action_feedback.pop(handle, [])
-        percept: Percept = self.perception.build(handle, world, action_feedback=feedback)
-
+        percept = self.perception(handle, world)
         decisions = await brain.think(percept)
 
-        # Persist brain state
-        world.save_raw(handle, "brain_state", brain.save_state())
+        world.set(handle, PendingActions(entries=decisions))
 
-        # Execute decisions, collect feedback
-        tick_feedback: list[ActionFeedback] = []
-        for decision in decisions:
-            result = self.actions.execute(handle, decision.action, decision.args, world)
-            tick_feedback.append(ActionFeedback(
-                action=decision.action,
-                args=decision.args,
-                result=result,
-            ))
-        if tick_feedback:
-            self._action_feedback[handle] = tick_feedback
+        world.save_raw(handle, "brain_state", brain.save_state())
 
         log.info(f"[{handle}] tick {tick.value} took {time.monotonic() - start:.1f}s")
 
@@ -104,6 +71,31 @@ class BrainSystem:
             if data:
                 brain.load_state(data)
                 log.info(f"[{handle}] loaded brain state")
+
+
+class ActionSystem:
+    name = "actions"
+
+    def __init__(self, actions: ActionRegistry):
+        self.actions = actions
+
+    async def run(self, world: World) -> None:
+        pending_pairs = list(world.query(PendingActions))
+        self.actions.begin_tick(world, [eid for eid, _ in pending_pairs])
+
+        for entity_id, pending in pending_pairs:
+            feedback_entries = []
+            for decision in pending.entries:
+                result = self.actions.execute(
+                    entity_id, decision.action, decision.args, world
+                )
+                feedback_entries.append(ActionResult(
+                    action=decision.action,
+                    args=decision.args,
+                    result=result,
+                ))
+            world.set(entity_id, ActionFeedback(entries=feedback_entries))
+            pending.entries.clear()
 
 
 class Engine:

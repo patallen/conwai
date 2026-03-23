@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from conwai.actions import ActionFeedback
+from conwai.actions import ActionResult
 
 
 # -- Percept entries (read-only, loaded by scenario) -----------------------
@@ -40,7 +40,7 @@ class PerceptTick:
 @dataclass
 class PerceptFeedback:
     """Action results from the previous cycle."""
-    entries: list[ActionFeedback] = field(default_factory=list)
+    entries: list[ActionResult] = field(default_factory=list)
 
 
 # -- Blackboard types (mutable, process-to-process) ------------------------

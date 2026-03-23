@@ -3,8 +3,9 @@ import logging
 import random
 import sys
 
+from conwai.actions import PendingActions, ActionFeedback
 from conwai.brain import Brain
-from conwai.engine import BrainSystem, Engine, TickNumber
+from conwai.engine import ActionSystem, BrainSystem, Engine, TickNumber
 from conwai.world import World
 
 from scenarios.sugarscape.actions import create_registry
@@ -70,6 +71,8 @@ async def run(
     world.register(Position)
     world.register(Sugar)
     world.register(Vision)
+    world.register(PendingActions)
+    world.register(ActionFeedback)
 
     # Grid — two sugar peaks
     grid = Grid(width, height)
@@ -98,13 +101,13 @@ async def run(
         )
 
     # Systems
-    brain_system = BrainSystem(
-        actions=registry, brains=brains, perception=perception,
-    )
+    brain_system = BrainSystem(brains=brains, perception=perception.build)
+    action_system = ActionSystem(actions=registry)
 
     engine = Engine(world, systems=[
         RegrowthSystem(),
         brain_system,
+        action_system,
         MetabolismSystem(),
     ])
 

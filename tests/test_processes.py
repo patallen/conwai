@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 
 from conwai.brain import BrainContext, Decision, Decisions
-from conwai.actions import ActionFeedback
+from conwai.actions import ActionResult
 from conwai.processes import (
     ContextAssembly,
     InferenceProcess,
@@ -103,8 +103,8 @@ class TestMemoryCompression:
 
     def test_collapse_includes_action_feedback(self):
         feedback = [
-            ActionFeedback(action="harvest", args={"field": "north"}, result="3 wheat"),
-            ActionFeedback(action="eat", args={}, result="hunger restored"),
+            ActionResult(action="harvest", args={"field": "north"}, result="3 wheat"),
+            ActionResult(action="eat", args={}, result="hunger restored"),
         ]
         wm = [
             WorkingMemoryEntry(content="perception", kind="observation"),
@@ -443,7 +443,7 @@ class TestFullPipeline:
         assert decisions.entries[0] == Decision("harvest", {"field": "north"})
 
         # --- Tick 2 --- same state, fresh bb
-        feedback = [ActionFeedback(action="harvest", args={"field": "north"}, result="3 wheat")]
+        feedback = [ActionResult(action="harvest", args={"field": "north"}, result="3 wheat")]
         percept2 = Percept()
         percept2.set(AgentHandle(value="A1"))
         percept2.set(PerceptTick(value=2))

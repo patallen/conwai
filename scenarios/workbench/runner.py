@@ -24,10 +24,11 @@ from pathlib import Path
 
 from faker import Faker
 
+from conwai.actions import PendingActions, ActionFeedback
 from conwai.bulletin_board import BulletinBoard
 from conwai.brain import Brain
 from conwai.embeddings import FastEmbedder
-from conwai.engine import BrainSystem, Engine, TickNumber
+from conwai.engine import ActionSystem, BrainSystem, Engine, TickNumber
 from conwai.events import EventLog
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
@@ -61,6 +62,8 @@ async def run(args):
     # --- World ---
     world = World(storage=storage)
     world.register(AgentInfo)
+    world.register(PendingActions)
+    world.register(ActionFeedback)
 
     # --- Infrastructure ---
     board = BulletinBoard(storage=storage)
@@ -127,10 +130,11 @@ async def run(args):
 
     bus.register("WORLD")
 
-    brain_system = BrainSystem(actions=registry, brains=brains, perception=perception)
+    brain_system = BrainSystem(brains=brains, perception=perception.build)
     brain_system.load_brain_states(world)
+    action_system = ActionSystem(actions=registry)
 
-    engine = Engine(world, systems=[brain_system])
+    engine = Engine(world, systems=[brain_system, action_system])
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")

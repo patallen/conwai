@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from conwai.actions import ActionFeedback
 from conwai.typemap import Percept
 
 from scenarios.sugarscape.components import Sugar, Position, Vision
@@ -38,7 +37,6 @@ class SugarPerception:
         self,
         entity_id: str,
         world: World,
-        action_feedback: list[ActionFeedback] | None = None,
     ) -> Percept:
         grid = world.get_resource(Grid)
         pos = world.get(entity_id, Position)
@@ -69,9 +67,3 @@ class SugarPerception:
             my_wealth=sugar.wealth,
         ))
         return percept
-
-    def notify(self, handle: str, message: str) -> None:
-        pass
-
-    def build_system_prompt(self) -> str:
-        return ""

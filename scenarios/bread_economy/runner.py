@@ -7,9 +7,10 @@ import time
 from faker import Faker
 
 import scenarios.bread_economy.config as config
+from conwai.actions import PendingActions, ActionFeedback
 from conwai.bulletin_board import BulletinBoard
 from conwai.brain import Brain
-from conwai.engine import BrainSystem, Engine, TickNumber
+from conwai.engine import ActionSystem, BrainSystem, Engine, TickNumber
 from conwai.events import EventLog
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
@@ -161,6 +162,8 @@ async def run():
     world.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
     world.register(AgentMemory)
     world.register(AgentInfo)
+    world.register(PendingActions)
+    world.register(ActionFeedback)
 
     # --- Infrastructure ---
     board = BulletinBoard(
@@ -355,10 +358,9 @@ async def run():
         )
 
     # --- Brain system ---
-    brain_system = BrainSystem(
-        actions=registry, brains=brains, perception=perception
-    )
+    brain_system = BrainSystem(brains=brains, perception=perception.build)
     brain_system.load_brain_states(world)
+    action_system = ActionSystem(actions=registry)
 
     # --- Engine ---
     engine = Engine(world, systems=[
@@ -368,6 +370,7 @@ async def run():
         DeathSystem(on_death=on_death),
         world_events,
         brain_system,
+        action_system,
         ConsumptionSystem(),
     ])
 

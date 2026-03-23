@@ -1,5 +1,5 @@
+from conwai.actions import ActionFeedback, ActionResult
 from conwai.bulletin_board import BulletinBoard
-from conwai.actions import ActionFeedback
 from conwai.engine import TickNumber
 from conwai.messages import MessageBus
 from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
@@ -11,6 +11,7 @@ from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 def _setup():
     world = World()
     world.register(AgentInfo)
+    world.register(ActionFeedback)
 
     board = BulletinBoard()
     bus = MessageBus()
@@ -65,9 +66,11 @@ def test_percept_includes_action_feedback():
     _add(world, "A1")
     bus.register("A1")
 
+    feedback = [ActionResult(action="broadcast", args={"content": "hi"}, result="sent")]
+    world.set("A1", ActionFeedback(entries=feedback))
+
     builder = WorkbenchPerceptionBuilder()
-    feedback = [ActionFeedback(action="broadcast", args={"content": "hi"}, result="sent")]
-    percept = builder.build("A1", world, action_feedback=feedback)
+    percept = builder.build("A1", world)
     assert percept.get(PerceptFeedback).entries == feedback
 
 
