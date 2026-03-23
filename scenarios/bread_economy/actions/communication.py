@@ -34,14 +34,15 @@ def _post_to_board(entity_id: str, world: World, args: dict) -> str:
     content = args.get("message", "")
     board = world.get_resource(BulletinBoard)
     board.post(entity_id, content)
-    mem.last_board_post = tick
+    with world.mutate(entity_id, AgentMemory) as mem:
+        mem.last_board_post = tick
     world.get_resource(EventLog).log(entity_id, "board_post", {"content": content})
     log.info(f"[{entity_id}] posted: {content}")
     perception = world.get_resource(BreadPerceptionBuilder)
     for other in world.entities():
         if other != entity_id and f"@{other}" in content:
-            other_eco = world.get(other, Economy)
-            other_eco.coins += cfg.energy_gain["referenced"]
+            with world.mutate(other, Economy) as other_eco:
+                other_eco.coins += cfg.energy_gain["referenced"]
             perception.notify(
                 other,
                 f"+{cfg.energy_gain['referenced']} coins (referenced on board)",
@@ -71,8 +72,8 @@ def _send_message(entity_id: str, world: World, args: dict) -> str:
     log.info(f"[{entity_id}] -> [{to}]: {message}")
     alive = set(world.entities())
     if to in alive:
-        rec_eco = world.get(to, Economy)
-        rec_eco.coins += cfg.energy_gain["dm_received"]
+        with world.mutate(to, Economy) as rec_eco:
+            rec_eco.coins += cfg.energy_gain["dm_received"]
         world.get_resource(BreadPerceptionBuilder).notify(
             to,
             f"+{cfg.energy_gain['dm_received']} coins (received DM)",

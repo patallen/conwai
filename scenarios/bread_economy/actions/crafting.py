@@ -23,9 +23,9 @@ def _forage(entity_id: str, world: World, args: dict) -> str:
 
     flour = random.randint(0, skills["flour"])
     water = random.randint(0, skills["water"])
-    inv = world.get(entity_id, Inventory)
-    flour = _capped_add(inv, "flour", flour)
-    water = _capped_add(inv, "water", water)
+    with world.mutate(entity_id, Inventory) as inv:
+        flour = _capped_add(inv, "flour", flour)
+        water = _capped_add(inv, "water", water)
 
     world.get_resource(ActionRegistry).block(
         entity_id, "You are foraging this tick and cannot take other actions."
@@ -53,9 +53,10 @@ def _bake(entity_id: str, world: World, args: dict) -> str:
         return f"need {flour_needed} flour and {water_needed} water to bake (have {inv.flour} flour, {inv.water} water)"
     info = world.get(entity_id, AgentInfo)
     bread_yield = cfg.bake_baker_yield if info.role == "baker" else cfg.bake_yield
-    inv.flour -= flour_needed
-    inv.water -= water_needed
-    bread_yield = _capped_add(inv, "bread", bread_yield)
+    with world.mutate(entity_id, Inventory) as inv:
+        inv.flour -= flour_needed
+        inv.water -= water_needed
+        bread_yield = _capped_add(inv, "bread", bread_yield)
     world.get_resource(EventLog).log(
         entity_id,
         "bake",

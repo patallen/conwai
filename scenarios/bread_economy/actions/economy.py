@@ -65,9 +65,10 @@ def _pay(entity_id: str, world: World, args: dict) -> str:
         return f"unknown agent: {to}"
     if to == entity_id:
         return "cannot pay yourself"
-    eco.coins -= amount
-    other_eco = world.get(to, Economy)
-    other_eco.coins += amount
+    with world.mutate(entity_id, Economy) as eco:
+        eco.coins -= amount
+    with world.mutate(to, Economy) as other_eco:
+        other_eco.coins += amount
     perception = world.get_resource(BreadPerceptionBuilder)
     perception.notify(entity_id, f"-{amount} coins (paid to @{to})")
     perception.notify(to, f"+{amount} coins (payment from @{entity_id})")
@@ -96,9 +97,10 @@ def _give(entity_id: str, world: World, args: dict) -> str:
         return f"unknown agent: {to}"
     if to == entity_id:
         return "cannot give to yourself"
-    setattr(inv, resource, getattr(inv, resource) - amount)
-    other_inv = world.get(to, Inventory)
-    _capped_add(other_inv, resource, amount)
+    with world.mutate(entity_id, Inventory) as inv:
+        setattr(inv, resource, getattr(inv, resource) - amount)
+    with world.mutate(to, Inventory) as other_inv:
+        _capped_add(other_inv, resource, amount)
     perception = world.get_resource(BreadPerceptionBuilder)
     perception.notify(to, f"received {amount} {resource} from @{entity_id}")
     world.get_resource(EventLog).log(
@@ -233,27 +235,27 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         # Execute the swap atomically
         # Offerer gives give_type, accepter receives it
         if give_type == "coins":
-            off_eco = world.get(offerer, Economy)
-            off_eco.coins -= give_amount
-            acc_eco = world.get(entity_id, Economy)
-            acc_eco.coins += give_amount
+            with world.mutate(offerer, Economy) as off_eco:
+                off_eco.coins -= give_amount
+            with world.mutate(entity_id, Economy) as acc_eco:
+                acc_eco.coins += give_amount
         else:
-            off_inv = world.get(offerer, Inventory)
-            setattr(off_inv, give_type, getattr(off_inv, give_type) - give_amount)
-            acc_inv = world.get(entity_id, Inventory)
-            _capped_add(acc_inv, give_type, give_amount)
+            with world.mutate(offerer, Inventory) as off_inv:
+                setattr(off_inv, give_type, getattr(off_inv, give_type) - give_amount)
+            with world.mutate(entity_id, Inventory) as acc_inv:
+                _capped_add(acc_inv, give_type, give_amount)
 
         # Accepter gives want_type, offerer receives it
         if want_type == "coins":
-            acc_eco = world.get(entity_id, Economy)
-            acc_eco.coins -= want_amount
-            off_eco = world.get(offerer, Economy)
-            off_eco.coins += want_amount
+            with world.mutate(entity_id, Economy) as acc_eco:
+                acc_eco.coins -= want_amount
+            with world.mutate(offerer, Economy) as off_eco:
+                off_eco.coins += want_amount
         else:
-            acc_inv = world.get(entity_id, Inventory)
-            setattr(acc_inv, want_type, getattr(acc_inv, want_type) - want_amount)
-            off_inv = world.get(offerer, Inventory)
-            _capped_add(off_inv, want_type, want_amount)
+            with world.mutate(entity_id, Inventory) as acc_inv:
+                setattr(acc_inv, want_type, getattr(acc_inv, want_type) - want_amount)
+            with world.mutate(offerer, Inventory) as off_inv:
+                _capped_add(off_inv, want_type, want_amount)
 
         offer_book.remove(oid)
 

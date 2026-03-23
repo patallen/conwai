@@ -28,8 +28,8 @@ def _update_soul(entity_id: str, world: World, args: dict) -> str:
         if err:
             return err
     content = args.get("content", "")
-    mem = world.get(entity_id, AgentMemory)
-    mem.soul = content
+    with world.mutate(entity_id, AgentMemory) as mem:
+        mem.soul = content
     world.get_resource(EventLog).log(entity_id, "soul_updated", {"content": content})
     log.info(f"[{entity_id}] soul updated")
     return "soul updated"
@@ -38,13 +38,13 @@ def _update_soul(entity_id: str, world: World, args: dict) -> str:
 def _update_journal(entity_id: str, world: World, args: dict) -> str:
     cfg = get_config()
     content = args.get("content", "")
-    mem = world.get(entity_id, AgentMemory)
     max_len = cfg.memory_max
     lost = 0
     if len(content) > max_len:
         lost = len(content) - max_len
         content = content[:max_len]
-    mem.memory = content
+    with world.mutate(entity_id, AgentMemory) as mem:
+        mem.memory = content
     world.get_resource(EventLog).log(
         entity_id, "journal_updated", {"chars": len(content)}
     )
