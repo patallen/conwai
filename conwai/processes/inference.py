@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from conwai.brain import BrainContext, Decision
-from conwai.processes.types import AgentHandle, Decisions, LLMSnapshot, WorkingMemory, WorkingMemoryEntry
+from conwai.brain import BrainContext, Decision, Decisions
+from conwai.processes.types import AgentHandle, LLMSnapshot, WorkingMemory, WorkingMemoryEntry
 
 if TYPE_CHECKING:
     from conwai.llm import LLMProvider

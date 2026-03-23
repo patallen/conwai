@@ -7,12 +7,8 @@ builder. Blackboard types are read/written by processes during a cycle.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from conwai.actions import ActionFeedback
-
-if TYPE_CHECKING:
-    from conwai.brain import Decision
 
 
 # -- Percept entries (read-only, loaded by scenario) -----------------------
@@ -95,11 +91,6 @@ class RecalledMemories:
     """Episodes surfaced for this cycle by recall."""
     entries: list[str] = field(default_factory=list)
 
-
-@dataclass
-class Decisions:
-    """Actions the agent wants to take this cycle."""
-    entries: list[Decision] = field(default_factory=list)
 
 
 @dataclass

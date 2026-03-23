@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from conwai.brain import BrainContext, Decision
+from conwai.brain import BrainContext, Decision, Decisions
 from conwai.actions import ActionFeedback
 from conwai.processes import (
     ContextAssembly,
@@ -14,7 +14,6 @@ from conwai.processes import (
 )
 from conwai.processes.types import (
     AgentHandle,
-    Decisions,
     Episode,
     Episodes,
     Identity,

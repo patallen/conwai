@@ -6,7 +6,6 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from conwai.processes.types import Decisions
 from conwai.typemap import Blackboard, Percept, State
 
 log = logging.getLogger("conwai")
@@ -16,6 +15,12 @@ log = logging.getLogger("conwai")
 class Decision:
     action: str
     args: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class Decisions:
+    """Actions the agent wants to take this cycle."""
+    entries: list[Decision] = field(default_factory=list)
 
 
 @dataclass

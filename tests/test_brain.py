@@ -1,9 +1,8 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from conwai.brain import Brain, BrainContext, Decision
+from conwai.brain import Brain, BrainContext, Decision, Decisions
 from conwai.processes.types import (
-    Decisions,
     Episodes,
     Episode,
     LLMSnapshot,

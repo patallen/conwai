@@ -11,7 +11,6 @@ from conwai.processes.inference import InferenceProcess
 from conwai.processes.recall import MemoryRecall
 from conwai.processes.types import (
     AgentHandle,
-    Decisions,
     Episode,
     Episodes,
     Identity,
@@ -27,7 +26,6 @@ from conwai.processes.types import (
 __all__ = [
     "AgentHandle",
     "ContextAssembly",
-    "Decisions",
     "Episode",
     "Episodes",
     "Identity",
