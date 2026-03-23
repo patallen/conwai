@@ -19,6 +19,16 @@ from pathlib import Path
 DATA = Path("data")
 
 
+def _gini(values: list) -> float:
+    """Gini coefficient. 0 = perfect equality, 1 = perfect inequality."""
+    if not values or sum(values) == 0:
+        return 0.0
+    n = len(values)
+    sorted_vals = sorted(values)
+    cumulative = sum((2 * (i + 1) - n - 1) * v for i, v in enumerate(sorted_vals))
+    return cumulative / (n * sum(sorted_vals))
+
+
 def connect():
     ev = sqlite3.connect(DATA / "events.db")
     st = sqlite3.connect(DATA / "state.db")
@@ -216,6 +226,8 @@ def report_compare(ev, st):
         ("avg hunger", ("hunger", "hunger")),
         ("min bread", None),
         ("zero bread", None),
+        ("gini coins", None),
+        ("gini total res", None),
     ]:
         line = f"  {metric:20s}"
         for g in grp_names:
@@ -235,6 +247,17 @@ def report_compare(ev, st):
                     if a.get("inventory", {}).get("bread", 0) == 0
                 )
                 line += f" {val:>12d}"
+            elif metric == "gini coins":
+                vals = sorted(a.get("economy", {}).get("coins", 0) for a in agents)
+                line += f" {_gini(vals):>12.3f}"
+            elif metric == "gini total res":
+                vals = sorted(
+                    a.get("inventory", {}).get("flour", 0)
+                    + a.get("inventory", {}).get("water", 0)
+                    + a.get("inventory", {}).get("bread", 0)
+                    for a in agents
+                )
+                line += f" {_gini(vals):>12.3f}"
             else:
                 comp, field = path
                 vals = [a.get(comp, {}).get(field, 0) for a in agents]
