@@ -1,0 +1,58 @@
+"""Event bus for decoupled, typed pub/sub messaging within a simulation tick."""
+
+from __future__ import annotations
+
+import logging
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Callable
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Event:
+    """Base class for all typed events."""
+    pass
+
+
+Handler = Callable[[Event], None]
+
+
+class EventBus:
+    """Synchronous, in-process event bus with cascade support.
+
+    Events are queued by emit() and delivered to subscribers only when
+    drain() is called.  Handlers may themselves call emit(), causing
+    secondary events to be appended to the queue; drain() continues until
+    the queue is empty, so cascades are handled naturally.
+    """
+
+    def __init__(self) -> None:
+        self._handlers: dict[type[Event], list[Handler]] = defaultdict(list)
+        self._queue: list[Event] = []
+
+    def subscribe(self, event_type: type[Event], handler: Handler) -> None:
+        """Register *handler* to be called whenever *event_type* is drained."""
+        self._handlers[event_type].append(handler)
+        logger.debug("subscribed %s to %s", handler, event_type.__name__)
+
+    def emit(self, event: Event) -> None:
+        """Queue *event* for delivery on the next drain()."""
+        self._queue.append(event)
+        logger.debug("queued %s", type(event).__name__)
+
+    def drain(self) -> None:
+        """Deliver all queued events, including any emitted by handlers (cascades)."""
+        while self._queue:
+            event = self._queue.pop(0)
+            handlers = self._handlers.get(type(event), [])
+            logger.debug(
+                "delivering %s to %d handler(s)", type(event).__name__, len(handlers)
+            )
+            for handler in handlers:
+                handler(event)
+
+    def pending(self) -> int:
+        """Return the number of events currently waiting to be drained."""
+        return len(self._queue)
