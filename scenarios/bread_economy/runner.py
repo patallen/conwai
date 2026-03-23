@@ -12,6 +12,7 @@ from conwai.brain import Brain
 from conwai.bulletin_board import BulletinBoard
 from conwai.contrib.systems import ActionSystem, BrainSystem
 from conwai.engine import Engine, TickNumber
+from conwai.event_bus import EventBus
 from conwai.events import EventLog
 from conwai.llm import LLMClient
 from conwai.messages import MessageBus
@@ -71,32 +72,32 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                 if action == "drain_energy":
                     handle, amount = cmd["handle"], int(cmd["amount"])
                     if handle in set(world.entities()) and world.has(handle, Economy):
-                        eco = world.get(handle, Economy)
-                        eco.coins = max(0, eco.coins - amount)
+                        with world.mutate(handle, Economy) as eco:
+                            eco.coins = max(0, eco.coins - amount)
                         events.log(
                             "HANDLER",
                             "drain",
                             {
                                 "handle": handle,
                                 "amount": amount,
-                                "remaining": eco.coins,
+                                "remaining": world.get(handle, Economy).coins,
                             },
                         )
                         log.info(
-                            f"[HANDLER] drained {handle} by {amount}, now {eco.coins}"
+                            f"[HANDLER] drained {handle} by {amount}, now {world.get(handle, Economy).coins}"
                         )
 
                 elif action == "set_energy":
                     handle, value = cmd["handle"], int(cmd["value"])
                     if handle in set(world.entities()) and world.has(handle, Economy):
-                        eco = world.get(handle, Economy)
-                        eco.coins = min(get_config().energy_max, max(0, value))
+                        with world.mutate(handle, Economy) as eco:
+                            eco.coins = min(get_config().energy_max, max(0, value))
                         events.log(
                             "HANDLER",
                             "set_energy",
-                            {"handle": handle, "energy": eco.coins},
+                            {"handle": handle, "energy": world.get(handle, Economy).coins},
                         )
-                        log.info(f"[HANDLER] set {handle} energy to {eco.coins}")
+                        log.info(f"[HANDLER] set {handle} energy to {world.get(handle, Economy).coins}")
 
                 elif action == "drop_secret":
                     handle, content = cmd["handle"], cmd["content"]
@@ -116,8 +117,8 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                     log.info(f"[HANDLER] -> [{handle}]: {content}")
                     if world.has(handle, Economy):
                         cfg = get_config()
-                        eco = world.get(handle, Economy)
-                        eco.coins += cfg.energy_gain.get("dm_received", 0)
+                        with world.mutate(handle, Economy) as eco:
+                            eco.coins += cfg.energy_gain.get("dm_received", 0)
                         perception.notify(
                             handle,
                             f"coins +{cfg.energy_gain.get('dm_received', 0)} (HANDLER attention)",
@@ -195,8 +196,11 @@ async def run():
     # --- Storage ---
     storage = SQLiteStorage()
 
+    # --- Event bus ---
+    event_bus = EventBus()
+
     # --- World ---
-    world = World(storage=storage)
+    world = World(storage=storage, bus=event_bus)
     world.register(Economy, Economy(coins=cfg.starting_coins))
     world.register(
         Inventory,
@@ -220,6 +224,7 @@ async def run():
     )
     bus = MessageBus(storage=storage)
     events = EventLog()
+    events.subscribe_to(event_bus)
     perception = make_bread_perception()
 
     # Register resources on World

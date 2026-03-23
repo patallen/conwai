@@ -2,6 +2,7 @@ from pathlib import Path
 
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
+from conwai.event_bus import EventBus
 from conwai.events import EventLog
 from conwai.messages import MessageBus
 from conwai.world import World
@@ -17,7 +18,8 @@ from scenarios.bread_economy.perception import make_bread_perception
 
 
 def _setup():
-    world = World()
+    bus = EventBus()
+    world = World(bus=bus)
     world.register(Economy)
     world.register(Inventory)
     world.register(Hunger)
@@ -25,18 +27,19 @@ def _setup():
     world.register(AgentInfo)
 
     board = BulletinBoard()
-    bus = MessageBus()
+    msg_bus = MessageBus()
     events = EventLog(path=Path(":memory:"))
+    events.subscribe_to(bus)
     perception = make_bread_perception()
     registry = create_registry()
 
     world.set_resource(TickNumber(1))
     world.set_resource(board)
-    world.set_resource(bus)
+    world.set_resource(msg_bus)
     world.set_resource(events)
     world.set_resource(perception)
     world.set_resource(registry)
-    return world, board, bus, registry
+    return world, board, msg_bus, registry
 
 
 def _add(world, handle, role):
