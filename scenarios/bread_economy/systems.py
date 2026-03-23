@@ -19,10 +19,11 @@ class DecaySystem:
 
     async def run(self, world: World) -> None:
         cfg = get_config()
-        for entity, h, inv in world.query(Hunger, Inventory):
-            h.hunger = max(0, h.hunger - cfg.hunger_decay_per_tick)
-            h.thirst = max(0, h.thirst - cfg.thirst_decay_per_tick)
-            inv.water += cfg.passive_water_per_tick
+        for entity, _h, _inv in world.query(Hunger, Inventory):
+            with world.mutate(entity, Hunger) as h, world.mutate(entity, Inventory) as inv:
+                h.hunger = max(0, h.hunger - cfg.hunger_decay_per_tick)
+                h.thirst = max(0, h.thirst - cfg.thirst_decay_per_tick)
+                inv.water += cfg.passive_water_per_tick
 
 
 class TaxSystem:
@@ -40,7 +41,8 @@ class TaxSystem:
         for entity, eco in world.query(Economy):
             if eco.coins > 0:
                 tax = max(1, int(eco.coins * self.rate))
-                eco.coins -= tax
+                with world.mutate(entity, Economy) as eco:
+                    eco.coins -= tax
                 perception.notify(entity, f"coins -{tax} (daily tax)")
         log.info(f"[WORLD] daily tax collected (tick {tick})")
 
@@ -59,7 +61,8 @@ class SpoilageSystem:
         for entity, inv in world.query(Inventory):
             if inv.bread > 0:
                 spoiled = min(inv.bread, cfg.bread_spoil_amount)
-                inv.bread -= spoiled
+                with world.mutate(entity, Inventory) as inv:
+                    inv.bread -= spoiled
                 perception.notify(
                     entity, f"{spoiled} bread spoiled (bread left: {inv.bread})"
                 )
@@ -81,8 +84,9 @@ class AutoForageSystem:
             water = random.randint(0, skills["water"])
             flour = min(flour, max(0, cap - inv.flour))
             water = min(water, max(0, cap - inv.water))
-            inv.flour += flour
-            inv.water += water
+            with world.mutate(entity, Inventory) as inv:
+                inv.flour += flour
+                inv.water += water
 
 
 class AutoBakeSystem:
@@ -97,17 +101,18 @@ class AutoBakeSystem:
         bread_yield = cfg.bake_yield
         cap = cfg.inventory_cap
 
-        for entity, inv in world.query(Inventory):
-            # Bake when bread is low and we have ingredients
-            while (
-                inv.bread < 20 and inv.flour >= flour_cost and inv.water >= water_cost
-            ):
-                inv.flour -= flour_cost
-                inv.water -= water_cost
-                actual = min(bread_yield, max(0, cap - inv.bread))
-                inv.bread += actual
-                if actual == 0:
-                    break
+        for entity, _inv in world.query(Inventory):
+            with world.mutate(entity, Inventory) as inv:
+                # Bake when bread is low and we have ingredients
+                while (
+                    inv.bread < 20 and inv.flour >= flour_cost and inv.water >= water_cost
+                ):
+                    inv.flour -= flour_cost
+                    inv.water -= water_cost
+                    actual = min(bread_yield, max(0, cap - inv.bread))
+                    inv.bread += actual
+                    if actual == 0:
+                        break
 
 
 class ConsumptionSystem:
@@ -116,58 +121,63 @@ class ConsumptionSystem:
     async def run(self, world: World) -> None:
         cfg = get_config()
         perception = world.get_resource(BreadPerceptionBuilder)
-        for entity, h, inv, eco in world.query(Hunger, Inventory, Economy):
-            # Auto-eat bread
-            if h.hunger <= cfg.hunger_auto_eat_threshold:
-                bread_eaten = 0
-                while h.hunger <= cfg.hunger_auto_eat_threshold and inv.bread > 0:
-                    inv.bread -= 1
-                    h.hunger = min(cfg.hunger_max, h.hunger + cfg.hunger_eat_restore)
-                    bread_eaten += 1
-                if bread_eaten:
+        for entity, _h, _inv, _eco in world.query(Hunger, Inventory, Economy):
+            with (
+                world.mutate(entity, Hunger) as h,
+                world.mutate(entity, Inventory) as inv,
+                world.mutate(entity, Economy) as eco,
+            ):
+                # Auto-eat bread
+                if h.hunger <= cfg.hunger_auto_eat_threshold:
+                    bread_eaten = 0
+                    while h.hunger <= cfg.hunger_auto_eat_threshold and inv.bread > 0:
+                        inv.bread -= 1
+                        h.hunger = min(cfg.hunger_max, h.hunger + cfg.hunger_eat_restore)
+                        bread_eaten += 1
+                    if bread_eaten:
+                        perception.notify(
+                            entity,
+                            f"ate {bread_eaten} bread (hunger now {h.hunger}, bread left: {inv.bread})",
+                        )
+
+                    # Fall back to raw flour only if no bread
+                    flour_eaten = 0
+                    while h.hunger <= cfg.hunger_auto_eat_threshold and inv.flour > 0:
+                        inv.flour -= 1
+                        h.hunger = min(
+                            cfg.hunger_max, h.hunger + cfg.hunger_eat_raw_restore
+                        )
+                        flour_eaten += 1
+                    if flour_eaten:
+                        perception.notify(
+                            entity,
+                            f"ate {flour_eaten} flour raw (hunger now {h.hunger}, flour left: {inv.flour})",
+                        )
+
+                if h.hunger == 0:
+                    eco.coins = max(0, eco.coins - cfg.hunger_starve_coin_penalty)
                     perception.notify(
-                        entity,
-                        f"ate {bread_eaten} bread (hunger now {h.hunger}, bread left: {inv.bread})",
+                        entity, f"coins -{cfg.hunger_starve_coin_penalty} (starving)"
                     )
 
-                # Fall back to raw flour only if no bread
-                flour_eaten = 0
-                while h.hunger <= cfg.hunger_auto_eat_threshold and inv.flour > 0:
-                    inv.flour -= 1
-                    h.hunger = min(
-                        cfg.hunger_max, h.hunger + cfg.hunger_eat_raw_restore
-                    )
-                    flour_eaten += 1
-                if flour_eaten:
+                # Auto-drink
+                if h.thirst <= cfg.thirst_auto_drink_threshold:
+                    water_drunk = 0
+                    while h.thirst <= cfg.thirst_auto_drink_threshold and inv.water > 0:
+                        inv.water -= 1
+                        h.thirst = min(cfg.hunger_max, h.thirst + cfg.thirst_drink_restore)
+                        water_drunk += 1
+                    if water_drunk:
+                        perception.notify(
+                            entity,
+                            f"drank {water_drunk} water (thirst now {h.thirst}, water left: {inv.water})",
+                        )
+
+                if h.thirst == 0:
+                    eco.coins = max(0, eco.coins - cfg.thirst_dehydration_coin_penalty)
                     perception.notify(
-                        entity,
-                        f"ate {flour_eaten} flour raw (hunger now {h.hunger}, flour left: {inv.flour})",
+                        entity, f"coins -{cfg.thirst_dehydration_coin_penalty} (dehydrated)"
                     )
-
-            if h.hunger == 0:
-                eco.coins = max(0, eco.coins - cfg.hunger_starve_coin_penalty)
-                perception.notify(
-                    entity, f"coins -{cfg.hunger_starve_coin_penalty} (starving)"
-                )
-
-            # Auto-drink
-            if h.thirst <= cfg.thirst_auto_drink_threshold:
-                water_drunk = 0
-                while h.thirst <= cfg.thirst_auto_drink_threshold and inv.water > 0:
-                    inv.water -= 1
-                    h.thirst = min(cfg.hunger_max, h.thirst + cfg.thirst_drink_restore)
-                    water_drunk += 1
-                if water_drunk:
-                    perception.notify(
-                        entity,
-                        f"drank {water_drunk} water (thirst now {h.thirst}, water left: {inv.water})",
-                    )
-
-            if h.thirst == 0:
-                eco.coins = max(0, eco.coins - cfg.thirst_dehydration_coin_penalty)
-                perception.notify(
-                    entity, f"coins -{cfg.thirst_dehydration_coin_penalty} (dehydrated)"
-                )
 
 
 class DeathSystem:
