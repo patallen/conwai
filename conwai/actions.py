@@ -39,6 +39,12 @@ class ActionFeedback(Component):
 
     entries: list[ActionResult] = field(default_factory=list)
 
+    @classmethod
+    def from_dict(cls, data: dict) -> ActionFeedback:
+        return cls(
+            entries=[ActionResult(**e) if isinstance(e, dict) else e for e in data.get("entries", [])]
+        )
+
 
 @dataclass
 class Action:
