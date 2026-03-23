@@ -219,7 +219,7 @@ export function AgentDetail() {
       <Section title={`recent posts (${boardPosts.length})`}>
         {boardPosts.length === 0 ? <Muted>(none)</Muted> : boardPosts.map((e, i) => (
           <div key={`post-${e.idx}-${i}`} style={{ padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: 12, overflowWrap: 'anywhere' }}>
-            {e.data.content}
+            {e.data.message}
           </div>
         ))}
       </Section>
@@ -233,7 +233,7 @@ export function AgentDetail() {
               <span style={{ color: outgoing ? 'var(--energy-healthy)' : 'var(--accent-interactive)' }}>
                 {outgoing ? `→ ${e.data.to}` : `← ${e.entity}`}
               </span>
-              {': '}{e.data.content}
+              {': '}{e.data.message}
             </div>
           )
         })}

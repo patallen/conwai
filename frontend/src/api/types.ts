@@ -23,8 +23,8 @@ export interface SimEvent {
 }
 
 export interface BoardPost extends SimEvent {
-  type: 'board_post'
-  data: { content: string }
+  type: 'post_to_board'
+  data: { message: string }
 }
 
 export interface AgentStats {

@@ -53,7 +53,7 @@ export function BoardView() {
               lineHeight: 1.5,
               overflowWrap: 'anywhere',
             }}>
-              {post.data.content}
+              {post.data.message}
             </div>
           </div>
         ))}
