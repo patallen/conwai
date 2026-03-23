@@ -8,7 +8,7 @@ from faker import Faker
 
 import scenarios.bread_economy.config as config
 from conwai.bulletin_board import BulletinBoard
-from conwai.cognition import BlackboardBrain
+from conwai.brain import Brain
 from conwai.engine import BrainSystem, Engine, TickNumber
 from conwai.events import EventLog
 from conwai.llm import LLMClient
@@ -16,10 +16,10 @@ from conwai.messages import MessageBus
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
+from conwai.processes.types import Episodes, WorkingMemory
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
-    BrainState,
     Economy,
     Hunger,
     Inventory,
@@ -160,7 +160,6 @@ async def run():
     )
     world.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
     world.register(AgentMemory)
-    world.register(BrainState)
     world.register(AgentInfo)
 
     # --- Infrastructure ---
@@ -222,11 +221,11 @@ async def run():
 
     _brain_counter = 0
 
-    def make_brain(first_person: bool = True) -> BlackboardBrain:
+    def make_brain(first_person: bool = True) -> Brain:
         nonlocal _brain_counter
         client = clients[_brain_counter % len(clients)]
         _brain_counter += 1
-        return BlackboardBrain(
+        return Brain(
             processes=[
                 StrategicReview(client=client, store=world, interval=24),
                 MemoryCompression(
@@ -251,11 +250,12 @@ async def run():
                     tools=registry.tool_definitions(),
                 ),
             ],
+            state_types=[WorkingMemory, Episodes],
         )
 
     # --- Agents + Brains ---
     # A/B test: first-person vs third-person reflections
-    brains: dict[str, BlackboardBrain] = {}
+    brains: dict[str, Brain] = {}
     first_person_group: set[str] = set()
     # 20 agents: indices 0-9 = first-person, 10-19 = third-person
     # Each group: 5 flour + 5 water, all same neutral personality
@@ -358,6 +358,7 @@ async def run():
     brain_system = BrainSystem(
         actions=registry, brains=brains, perception=perception
     )
+    brain_system.load_brain_states(world)
 
     # --- Engine ---
     engine = Engine(world, systems=[

@@ -14,8 +14,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episodes, Episode, PerceptTick
-from conwai.typemap import Blackboard, Percept
 
 log = logging.getLogger("conwai")
 
@@ -47,10 +47,10 @@ class ConsolidationProcess:
         self.first_person = first_person
         self._fmt = timestamp_formatter or str
 
-    async def run(self, percept: Percept, bb: Blackboard) -> None:
-        tick_num = percept.get(PerceptTick)
+    async def run(self, ctx: BrainContext) -> None:
+        tick_num = ctx.percept.get(PerceptTick)
         tick = tick_num.value if tick_num else 0
-        handle = percept.get(AgentHandle)
+        handle = ctx.percept.get(AgentHandle)
         agent_id = handle.value if handle else "?"
 
         if not self.enabled or tick == 0 or tick % self.interval != 0:
@@ -59,7 +59,7 @@ class ConsolidationProcess:
         if not self._articulator or not self._embedder:
             return
 
-        eps = bb.get(Episodes)
+        eps = ctx.state.get(Episodes)
         if not eps or len(eps.entries) < _MIN_ENTRIES:
             log.debug(f"[@{agent_id}] reflection skipped: not enough episodes")
             return
@@ -109,7 +109,7 @@ class ConsolidationProcess:
                     tick=tick,
                     embedding=vec,
                 ))
-            bb.set(eps)
+            ctx.state.set(eps)
 
             log.info(
                 f"[@{agent_id}] reflection: {len(entries_with_emb)} entries -> "

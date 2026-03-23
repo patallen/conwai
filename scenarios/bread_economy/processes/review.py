@@ -6,8 +6,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episodes, Identity, PerceptTick
-from conwai.typemap import Blackboard, Percept
 
 if TYPE_CHECKING:
     from conwai.llm import LLMProvider
@@ -35,18 +35,18 @@ class StrategicReview:
         d = prompts_dir or _PROMPTS_DIR
         self._review_tpl = (d / "morning_review.md").read_text()
 
-    async def run(self, percept: Percept, bb: Blackboard) -> None:
-        tick_num = percept.get(PerceptTick)
+    async def run(self, ctx: BrainContext) -> None:
+        tick_num = ctx.percept.get(PerceptTick)
         tick = tick_num.value if tick_num else 0
         if tick == 0 or tick % self.interval != 0:
             return
 
-        handle = percept.get(AgentHandle)
+        handle = ctx.percept.get(AgentHandle)
         agent_id = handle.value if handle else ""
-        identity = percept.get(Identity)
+        identity = ctx.percept.get(Identity)
         identity_text = identity.text if identity else ""
 
-        eps = bb.get(Episodes)
+        eps = ctx.state.get(Episodes)
         recent = eps.entries[-24:] if eps and eps.entries else []
         diary_text = "\n".join(e.content for e in recent) if recent else "(no diary entries yet)"
 

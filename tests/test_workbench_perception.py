@@ -4,14 +4,13 @@ from conwai.engine import TickNumber
 from conwai.messages import MessageBus
 from conwai.processes.types import AgentHandle, Identity, Observations, PerceptFeedback, PerceptTick
 from conwai.world import World
-from scenarios.workbench.components import AgentInfo, BrainState
+from scenarios.workbench.components import AgentInfo
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
 
 def _setup():
     world = World()
     world.register(AgentInfo)
-    world.register(BrainState)
 
     board = BulletinBoard()
     bus = MessageBus()

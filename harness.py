@@ -28,7 +28,7 @@ import logging
 import sys
 
 from conwai.bulletin_board import BulletinBoard
-from conwai.cognition import BlackboardBrain
+from conwai.brain import Brain
 from conwai.embeddings import FastEmbedder
 from conwai.engine import BrainSystem, Engine, TickNumber
 from conwai.events import EventLog
@@ -37,10 +37,10 @@ from conwai.messages import MessageBus
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
+from conwai.processes.types import Episodes, WorkingMemory
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
-    BrainState,
     Economy,
     Hunger,
     Inventory,
@@ -80,7 +80,6 @@ async def run(args):
     )
     world.register(Hunger, Hunger(hunger=cfg.starting_hunger, thirst=cfg.starting_thirst))
     world.register(AgentMemory)
-    world.register(BrainState)
     world.register(AgentInfo)
 
     # --- Infrastructure ---
@@ -130,7 +129,7 @@ async def run(args):
                 overrides=[AgentInfo(role="water_forager", personality="blunt, detached")],
             )
 
-    brain = BlackboardBrain(
+    brain = Brain(
         processes=[
             StrategicReview(client=client, store=world, interval=24),
             MemoryCompression(
@@ -146,10 +145,12 @@ async def run(args):
             ),
             InferenceProcess(client=client, tools=registry.tool_definitions()),
         ],
+        state_types=[WorkingMemory, Episodes],
     )
 
     brains = {handle: brain}
     brain_system = BrainSystem(actions=registry, brains=brains, perception=perception)
+    brain_system.load_brain_states(world)
 
     engine = Engine(world, systems=[
         DecaySystem(),
@@ -219,16 +220,19 @@ async def run(args):
             print()
             continue
         elif line == "!memory":
-            bs = world.get(handle, BrainState)
-            summaries = [e for e in bs.working_memory if e.get("kind") == "tick_summary"]
-            print(f"\n  === RECENT SUMMARIES ({len(summaries)}) ===")
-            for s in summaries[-5:]:
-                print(f"  {s['content'][:120]}")
-            print(f"\n  === EPISODES ({len(bs.episodes)} entries) ===")
-            for d in bs.episodes[-10:]:
-                print(f"  {d['content'][:120]}")
-                if d.get("embedding"):
-                    print(f"    [embedded, {len(d['embedding'])} dims]")
+            wm = brain.state.get(WorkingMemory)
+            eps = brain.state.get(Episodes)
+            if wm:
+                summaries = [e for e in wm.entries if e.kind == "tick_summary"]
+                print(f"\n  === RECENT SUMMARIES ({len(summaries)}) ===")
+                for s in summaries[-5:]:
+                    print(f"  {s.content[:120]}")
+            if eps:
+                print(f"\n  === EPISODES ({len(eps.entries)} entries) ===")
+                for ep in eps.entries[-10:]:
+                    print(f"  {ep.content[:120]}")
+                    if ep.embedding:
+                        print(f"    [embedded, {len(ep.embedding)} dims]")
             print()
             continue
         elif line == "!strategy":
@@ -236,8 +240,7 @@ async def run(args):
             print(f"\n  {mem.strategy or '(no strategy yet)'}\n")
             continue
         elif line == "!brain":
-            bs = world.get(handle, BrainState)
-            dumped = json.dumps(bs.to_dict(), indent=2)
+            dumped = json.dumps(brain.save_state(), indent=2)
             print(dumped[:3000])
             if len(dumped) > 3000:
                 print("...")

@@ -6,8 +6,8 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
+from conwai.brain import BrainContext
 from conwai.processes.types import Episodes, Episode, Observations, RecalledMemories
-from conwai.typemap import Blackboard, Percept
 
 if TYPE_CHECKING:
     from conwai.embeddings import Embedder
@@ -30,12 +30,12 @@ class MemoryRecall:
         self.reflection_limit = reflection_limit
         self._embedder = embedder
 
-    async def run(self, percept: Percept, bb: Blackboard) -> None:
-        eps = bb.get(Episodes)
+    async def run(self, ctx: BrainContext) -> None:
+        eps = ctx.state.get(Episodes)
         if not eps or not eps.entries:
             return
 
-        obs = percept.get(Observations)
+        obs = ctx.percept.get(Observations)
         perception_text = obs.text if obs else ""
 
         if self._embedder:
@@ -49,12 +49,12 @@ class MemoryRecall:
                     recalled = self._boosted_recall(embedded, query_vec)
 
                 if recalled:
-                    bb.set(RecalledMemories(entries=recalled))
+                    ctx.bb.set(RecalledMemories(entries=recalled))
                 return
 
         matches = self._handle_recall(eps.entries, perception_text)
         if matches:
-            bb.set(RecalledMemories(entries=matches))
+            ctx.bb.set(RecalledMemories(entries=matches))
 
     def _split_recall(self, embedded: list[Episode], query_vec: list[float]) -> list[str]:
         episodes = [e for e in embedded if not e.content.startswith("[Reflection]")]

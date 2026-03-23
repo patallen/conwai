@@ -7,15 +7,27 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from conwai.actions import ActionFeedback
-from conwai.cognition.types import BrainState
-from conwai.processes.types import WorkingMemory
 
 if TYPE_CHECKING:
     from conwai.actions import ActionRegistry
-    from conwai.cognition.blackboard import BlackboardBrain
-    from conwai.cognition.perception import PerceptionBuilder
+    from conwai.brain import Brain
     from conwai.typemap import Percept
     from conwai.world import World
+
+
+class PerceptionBuilder(Protocol):
+    """What BrainSystem needs from a perception system."""
+
+    def build(
+        self,
+        entity_id: str,
+        world: World,
+        action_feedback: list[ActionFeedback] | None = None,
+    ) -> Percept: ...
+
+    def notify(self, handle: str, message: str) -> None: ...
+
+    def build_system_prompt(self) -> str: ...
 
 log = logging.getLogger("conwai")
 
@@ -37,7 +49,7 @@ class BrainSystem:
     def __init__(
         self,
         actions: ActionRegistry,
-        brains: dict[str, BlackboardBrain],
+        brains: dict[str, Brain],
         perception: PerceptionBuilder,
     ):
         self.actions = actions
@@ -48,9 +60,6 @@ class BrainSystem:
     async def run(self, world: World) -> None:
         entities = set(world.entities())
         handles = [h for h in self.brains if h in entities]
-        self._action_feedback = {
-            h: fb for h, fb in self._action_feedback.items() if h in entities
-        }
         self.actions.begin_tick(world, handles)
         tasks = [
             asyncio.create_task(self._tick_agent(handle, world))
@@ -64,18 +73,17 @@ class BrainSystem:
     async def _tick_agent(self, handle: str, world: World) -> None:
         start = time.monotonic()
         brain = self.brains[handle]
-        feedback = self._action_feedback.pop(handle, [])
-
         tick = world.get_resource(TickNumber)
+
+        feedback = self._action_feedback.pop(handle, [])
         percept: Percept = self.perception.build(handle, world, action_feedback=feedback)
 
-        if not brain.bb.has(WorkingMemory):
-            if world.has(handle, BrainState):
-                world.get(handle, BrainState).load_into(brain.bb)
-
         decisions = await brain.think(percept)
-        world.set(handle, BrainState.save_from(brain.bb))
 
+        # Persist brain state
+        world.save_raw(handle, "brain_state", brain.save_state())
+
+        # Execute decisions, collect feedback
         tick_feedback: list[ActionFeedback] = []
         for decision in decisions:
             result = self.actions.execute(handle, decision.action, decision.args, world)
@@ -84,11 +92,18 @@ class BrainSystem:
                 args=decision.args,
                 result=result,
             ))
-
         if tick_feedback:
             self._action_feedback[handle] = tick_feedback
 
         log.info(f"[{handle}] tick {tick.value} took {time.monotonic() - start:.1f}s")
+
+    def load_brain_states(self, world: World) -> None:
+        """Load persisted brain state for all agents."""
+        for handle, brain in self.brains.items():
+            data = world.load_raw(handle, "brain_state")
+            if data:
+                brain.load_state(data)
+                log.info(f"[{handle}] loaded brain state")
 
 
 class Engine:

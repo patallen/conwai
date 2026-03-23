@@ -6,13 +6,12 @@ from conwai.events import EventLog
 from conwai.messages import MessageBus
 from conwai.world import World
 from scenarios.workbench.actions import create_registry
-from scenarios.workbench.components import AgentInfo, BrainState
+from scenarios.workbench.components import AgentInfo
 
 
 def _setup():
     world = World()
     world.register(AgentInfo)
-    world.register(BrainState)
 
     board = BulletinBoard()
     bus = MessageBus()

@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from conwai.cognition.types import BrainState
 from conwai.component import Component
 
-# Re-export framework BrainState so existing imports keep working
-__all__ = ["Economy", "Inventory", "Hunger", "AgentMemory", "AgentInfo", "BrainState"]
+__all__ = ["Economy", "Inventory", "Hunger", "AgentMemory", "AgentInfo"]
 
 
 @dataclass

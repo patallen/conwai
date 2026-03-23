@@ -6,6 +6,7 @@ format that LLM clients expect.
 
 from __future__ import annotations
 
+from conwai.brain import BrainContext
 from conwai.processes.types import (
     Identity,
     LLMSnapshot,
@@ -15,7 +16,6 @@ from conwai.processes.types import (
     WorkingMemory,
     WorkingMemoryEntry,
 )
-from conwai.typemap import Blackboard, Percept
 
 
 class ContextAssembly:
@@ -25,12 +25,12 @@ class ContextAssembly:
         self.context_window = context_window
         self.system_prompt = system_prompt
 
-    async def run(self, percept: Percept, bb: Blackboard) -> None:
-        wm = bb.get(WorkingMemory) or WorkingMemory()
-        recalled = bb.get(RecalledMemories)
-        identity = percept.get(Identity)
-        obs = percept.get(Observations)
-        tick_num = percept.get(PerceptTick)
+    async def run(self, ctx: BrainContext) -> None:
+        wm = ctx.state.get(WorkingMemory) or WorkingMemory()
+        recalled = ctx.bb.get(RecalledMemories)
+        identity = ctx.percept.get(Identity)
+        obs = ctx.percept.get(Observations)
+        tick_num = ctx.percept.get(PerceptTick)
 
         entries = wm.entries
 
@@ -69,5 +69,5 @@ class ContextAssembly:
         wm.tick_entry_start = len(entries) - 1 if entries else None
         wm.last_tick = tick_num.value if tick_num else 0
 
-        bb.set(wm)
-        bb.set(LLMSnapshot(messages=messages, system_prompt=self.system_prompt))
+        ctx.state.set(wm)
+        ctx.bb.set(LLMSnapshot(messages=messages, system_prompt=self.system_prompt))

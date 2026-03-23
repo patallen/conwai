@@ -47,18 +47,54 @@ class Percept(_TypeMap):
         self._data[type(val)] = val
 
 
-class Blackboard(_TypeMap):
-    """Mutable typed workspace for inter-process communication.
+class State(_TypeMap):
+    """Persistent typed state that carries across cognitive cycles.
 
-    Processes read and write typed entries during a cognitive cycle.
-    The blackboard persists on the brain instance across cycles —
-    working memory and episodes accumulate over time.
+    Processes read and write typed entries via BrainContext.state.
+    The Brain serializes/deserializes this for persistence between ticks.
+    """
+
+    def set[T](self, val: T) -> None:
+        """Store a value, keyed by its type."""
+        self._data[type(val)] = val
+
+    def remove(self, key: type) -> None:
+        """Remove a value by type."""
+        self._data.pop(key, None)
+
+    def serialize(self) -> dict:
+        """Serialize all entries to a dict keyed by class name."""
+        from dataclasses import asdict
+
+        return {type(val).__name__: asdict(val) for val in self._data.values()}
+
+    @classmethod
+    def deserialize(cls, data: dict, type_registry: dict[str, type]) -> State:
+        """Deserialize from a dict using a type registry for reconstruction."""
+        state = cls()
+        for name, fields in data.items():
+            typ = type_registry.get(name)
+            if typ is None:
+                continue
+            if hasattr(typ, "from_dict"):
+                state.set(typ.from_dict(fields))
+            else:
+                state.set(typ(**fields))
+        return state
+
+
+class Blackboard(_TypeMap):
+    """Per-cycle scratch workspace for inter-process communication.
+
+    Created fresh each think() cycle. Processes read and write typed
+    entries (Decisions, LLMSnapshot, RecalledMemories) that are
+    discarded at the end of the cycle. Persistent state lives on State.
 
     Example::
 
         bb = Blackboard()
-        bb.set(WorkingMemory(entries=[...]))
-        wm = bb.get(WorkingMemory)  # typed as WorkingMemory | None
+        bb.set(LLMSnapshot(messages=[...]))
+        snap = bb.get(LLMSnapshot)  # typed as LLMSnapshot | None
     """
 
     def set[T](self, val: T) -> None:

@@ -25,7 +25,7 @@ from pathlib import Path
 from faker import Faker
 
 from conwai.bulletin_board import BulletinBoard
-from conwai.cognition import BlackboardBrain
+from conwai.brain import Brain
 from conwai.embeddings import FastEmbedder
 from conwai.engine import BrainSystem, Engine, TickNumber
 from conwai.events import EventLog
@@ -39,8 +39,9 @@ from scenarios.bread_economy.processes import (
     MemoryCompression,
     MemoryRecall,
 )
+from conwai.processes.types import Episodes, WorkingMemory
 from scenarios.workbench.actions import create_registry
-from scenarios.workbench.components import AgentInfo, BrainState
+from scenarios.workbench.components import AgentInfo
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
 log = logging.getLogger("conwai")
@@ -60,7 +61,6 @@ async def run(args):
     # --- World ---
     world = World(storage=storage)
     world.register(AgentInfo)
-    world.register(BrainState)
 
     # --- Infrastructure ---
     board = BulletinBoard(storage=storage)
@@ -90,8 +90,8 @@ async def run(args):
 
     system_prompt = (Path(__file__).parent / "prompts" / "system.md").read_text()
 
-    def make_brain() -> BlackboardBrain:
-        return BlackboardBrain(
+    def make_brain() -> Brain:
+        return Brain(
             processes=[
                 MemoryCompression(
                     recent_ticks=16,
@@ -104,12 +104,13 @@ async def run(args):
                 ),
                 InferenceProcess(client=client, tools=registry.tool_definitions()),
             ],
+            state_types=[WorkingMemory, Episodes],
         )
 
     # Load or create agents
     fake = Faker()
 
-    brains: dict[str, BlackboardBrain] = {}
+    brains: dict[str, Brain] = {}
     loaded_handles = list(storage.list_entities())
     for handle in loaded_handles:
         if handle in set(world.entities()):
@@ -127,6 +128,7 @@ async def run(args):
     bus.register("WORLD")
 
     brain_system = BrainSystem(actions=registry, brains=brains, perception=perception)
+    brain_system.load_brain_states(world)
 
     engine = Engine(world, systems=[brain_system])
 
@@ -179,29 +181,32 @@ async def run(args):
         elif line.startswith("!memory"):
             parts = line.split()
             handle = parts[1] if len(parts) > 1 else agent_names[0]
-            if not world.has(handle, BrainState):
+            if handle not in brains:
                 print(f"  unknown agent: {handle}")
                 continue
-            brain_state = world.get(handle, BrainState)
-            summaries = [e for e in brain_state.working_memory if e.get("kind") == "tick_summary"]
-            print(f"\n  === RECENT SUMMARIES ({len(summaries)}) ===")
-            for s in summaries[-5:]:
-                print(f"  {s['content'][:120]}")
-            print(f"\n  === EPISODES ({len(brain_state.episodes)} entries) ===")
-            for d in brain_state.episodes[-10:]:
-                print(f"  {d['content'][:120]}")
-                if d.get("embedding"):
-                    print(f"    [embedded, {len(d['embedding'])} dims]")
+            brain = brains[handle]
+            wm = brain.state.get(WorkingMemory)
+            eps = brain.state.get(Episodes)
+            if wm:
+                summaries = [e for e in wm.entries if e.kind == "tick_summary"]
+                print(f"\n  === RECENT SUMMARIES ({len(summaries)}) ===")
+                for s in summaries[-5:]:
+                    print(f"  {s.content[:120]}")
+            if eps:
+                print(f"\n  === EPISODES ({len(eps.entries)} entries) ===")
+                for ep in eps.entries[-10:]:
+                    print(f"  {ep.content[:120]}")
+                    if ep.embedding:
+                        print(f"    [embedded, {len(ep.embedding)} dims]")
             print()
             continue
         elif line.startswith("!brain"):
             parts = line.split()
             handle = parts[1] if len(parts) > 1 else agent_names[0]
-            if not world.has(handle, BrainState):
+            if handle not in brains:
                 print(f"  unknown agent: {handle}")
                 continue
-            brain_state = world.get(handle, BrainState)
-            dumped = json.dumps(brain_state.to_dict(), indent=2)
+            dumped = json.dumps(brains[handle].save_state(), indent=2)
             print(dumped[:3000])
             if len(dumped) > 3000:
                 print("...")

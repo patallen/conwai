@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable, Set
 from typing import TYPE_CHECKING
 
+from conwai.brain import BrainContext
 from conwai.processes.types import (
     Episodes,
     Episode,
@@ -13,7 +14,6 @@ from conwai.processes.types import (
     WorkingMemory,
     WorkingMemoryEntry,
 )
-from conwai.typemap import Blackboard, Percept
 
 if TYPE_CHECKING:
     from conwai.embeddings import Embedder
@@ -39,10 +39,10 @@ class MemoryCompression:
         self._embedder = embedder
         self._noise = noise_actions
 
-    async def run(self, percept: Percept, bb: Blackboard) -> None:
-        wm = bb.get(WorkingMemory) or WorkingMemory()
-        eps = bb.get(Episodes) or Episodes()
-        fb = percept.get(PerceptFeedback)
+    async def run(self, ctx: BrainContext) -> None:
+        wm = ctx.state.get(WorkingMemory) or WorkingMemory()
+        eps = ctx.state.get(Episodes) or Episodes()
+        fb = ctx.percept.get(PerceptFeedback)
         feedback = fb.entries if fb else []
 
         if wm.tick_entry_start is not None and wm.tick_entry_start < len(wm.entries):
@@ -51,8 +51,8 @@ class MemoryCompression:
         self._archive(wm, eps)
         wm.tick_entry_start = None
 
-        bb.set(wm)
-        bb.set(eps)
+        ctx.state.set(wm)
+        ctx.state.set(eps)
 
     def _collapse(
         self,

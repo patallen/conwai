@@ -119,6 +119,17 @@ class World:
             return self._storage.load_component("_meta", key)
         return None
 
+    def save_raw(self, entity_id: str, key: str, data: dict) -> None:
+        """Save arbitrary data for an entity (bypasses Component system)."""
+        if self._storage:
+            self._storage.save_component(entity_id, key, data)
+
+    def load_raw(self, entity_id: str, key: str) -> dict | None:
+        """Load arbitrary data for an entity."""
+        if self._storage:
+            return self._storage.load_component(entity_id, key)
+        return None
+
     def load_all(self) -> None:
         if not self._storage:
             return
