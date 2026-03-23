@@ -277,59 +277,88 @@ async def run():
 
     _brain_counter = 0
 
-    def make_brain() -> Brain:
+    def make_brain(with_importance: bool = False) -> Brain:
         nonlocal _brain_counter
         client = clients[_brain_counter % len(clients)]
         _brain_counter += 1
-        return Brain(
-            processes=[
-                StrategicReview(client=client, store=world, interval=24),
-                MemoryCompression(
-                    recent_ticks=16,
-                    timestamp_formatter=tick_to_timestamp,
-                    embedder=embedder,
-                    noise_actions={"update_journal", "wait"},
-                ),
-                ImportanceScoring(articulator=articulator),
-                ConsolidationProcess(
-                    interval=24,
-                    articulator=articulator,
-                    embedder=embedder,
-                    first_person=True,
-                ),
-                ActivationRecall(recall_limit=5, reflection_limit=2, embedder=embedder),
-                ContextAssembly(
-                    context_window=get_config().context_window,
-                    system_prompt=perception.build_system_prompt(),
-                ),
-                InferenceProcess(
-                    client=client,
-                    tools=tool_definitions(),
-                ),
-            ],
-            state_types=[WorkingMemory, Episodes],
-        )
+        processes = [
+            StrategicReview(client=client, store=world, interval=24),
+            MemoryCompression(
+                recent_ticks=16,
+                timestamp_formatter=tick_to_timestamp,
+                embedder=embedder,
+                noise_actions={"update_journal", "wait"},
+            ),
+        ]
+        if with_importance:
+            processes.append(ImportanceScoring(articulator=articulator))
+        processes.extend([
+            ConsolidationProcess(
+                interval=24,
+                articulator=articulator,
+                embedder=embedder,
+                first_person=True,
+            ),
+            ActivationRecall(
+                recall_limit=5, reflection_limit=2, embedder=embedder,
+                delta=0.2 if with_importance else 0.0,
+            ),
+            ContextAssembly(
+                context_window=get_config().context_window,
+                system_prompt=perception.build_system_prompt(),
+            ),
+            InferenceProcess(
+                client=client,
+                tools=tool_definitions(),
+            ),
+        ])
+        return Brain(processes=processes, state_types=[WorkingMemory, Episodes])
 
     # --- Agents + Brains ---
+    # A/B test: importance scoring on vs off
     brains: dict[str, Brain] = {}
-    agent_roles = (
-        ["flour_forager"] * 7
-        + ["water_forager"] * 7
+    importance_group: set[str] = set()
+    ab_roles = (
+        ["flour_forager"] * 4
+        + ["water_forager"] * 4  # importance on
+        + ["flour_forager"] * 4
+        + ["water_forager"] * 4  # importance off
     )
     agent_personality = "practical, observant"
 
+    # Restore A/B group assignments from events DB if resuming
+    saved_groups: dict[str, str] = {}
+    try:
+        import sqlite3 as _sql
+
+        _edb = _sql.connect("data/events.db")
+        for entity, data in _edb.execute(
+            "SELECT entity, data FROM events WHERE type='ab_group'"
+        ).fetchall():
+            import json
+            saved_groups[entity] = json.loads(data)["group"]
+        _edb.close()
+    except Exception:
+        pass
+
     # Load all existing agents (already loaded via world.load_all())
     loaded_handles = list(storage.list_entities())
+    target = len(ab_roles)
     for handle in loaded_handles:
         if handle in set(world.entities()):
-            brains[handle] = make_brain()
+            if handle in saved_groups:
+                imp = saved_groups[handle] == "importance"
+            else:
+                imp = len(importance_group) < (target // 2)
+            brains[handle] = make_brain(with_importance=imp)
+            if imp:
+                importance_group.add(handle)
 
     # Create new agents to fill up to target population
-    target = len(agent_roles)
     alive_count = len(world.entities())
     existing_handles = set(world.entities())
     for i in range(alive_count, target):
-        role = agent_roles[i]
+        role = ab_roles[i]
         handle = fake.first_name()
         while handle in existing_handles:
             handle = fake.first_name()
@@ -337,9 +366,17 @@ async def run():
         world.spawn(
             handle, overrides=[AgentInfo(role=role, personality=agent_personality)]
         )
-        brains[handle] = make_brain()
+        imp = len(importance_group) < (target // 2)
+        brains[handle] = make_brain(with_importance=imp)
+        if imp:
+            importance_group.add(handle)
 
-    log.info(f"[WORLD] {len(brains)} agents: {sorted(brains.keys())}")
+    log.info(f"[WORLD] A/B test: IMPORTANCE for {sorted(importance_group)}")
+    log.info(f"[WORLD] A/B test: CONTROL for {sorted(set(brains.keys()) - importance_group)}")
+    for handle in brains:
+        if handle not in saved_groups:
+            group = "importance" if handle in importance_group else "control"
+            events.log(handle, "ab_group", {"group": group})
 
     for handle in brains:
         bus.register(handle)
@@ -372,8 +409,13 @@ async def run():
                 "replaced": dead_entity_id,
             },
         )
-        brains[handle] = make_brain()
-        log.info(f"[{handle}] spawned as {role} (replacing {dead_entity_id})")
+        was_imp = dead_entity_id in importance_group
+        if was_imp:
+            importance_group.discard(dead_entity_id)
+            importance_group.add(handle)
+        brains[handle] = make_brain(with_importance=was_imp)
+        group_label = "IMP" if was_imp else "CTL"
+        log.info(f"[{handle}] spawned as {role} (replacing {dead_entity_id}, {group_label})")
 
     # --- Brain system ---
     brain_system = BrainSystem(brains=brains, perception=perception.build)
