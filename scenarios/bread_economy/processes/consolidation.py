@@ -109,6 +109,7 @@ class ConsolidationProcess:
                         content=f"[Reflection, {self._fmt(tick)}] {text}",
                         tick=tick,
                         embedding=vec,
+                        last_accessed=tick,
                     )
                 )
             ctx.state.set(eps)

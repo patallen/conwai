@@ -5,6 +5,7 @@ in the Blackboard and read from the Percept. Mix them with scenario-specific
 or rule-based processes in any pipeline.
 """
 
+from conwai.processes.activation_recall import ActivationRecall
 from conwai.processes.compression import MemoryCompression
 from conwai.processes.context import ContextAssembly
 from conwai.processes.inference import InferenceProcess
@@ -24,6 +25,7 @@ from conwai.processes.types import (
 )
 
 __all__ = [
+    "ActivationRecall",
     "AgentHandle",
     "ContextAssembly",
     "Episode",

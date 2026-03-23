@@ -106,7 +106,7 @@ class MemoryCompression:
         new_episodes: list[Episode] = []
         for idx in reversed(to_archive):
             entry = wm.entries.pop(idx)
-            new_episodes.append(Episode(content=entry.content, tick=wm.last_tick))
+            new_episodes.append(Episode(content=entry.content, tick=wm.last_tick, last_accessed=wm.last_tick))
         new_episodes.reverse()
 
         if self._embedder and new_episodes:

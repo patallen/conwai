@@ -175,6 +175,21 @@ class TestMemoryCompression:
         assert len(entries) == 1
         assert not any(e.kind == "tick_summary" for e in entries)
 
+    def test_archive_sets_last_accessed(self):
+        wm = [
+            WorkingMemoryEntry(content=f"[T{i}] summary {i}", kind="tick_summary")
+            for i in range(5)
+        ]
+        ctx = _make_ctx(working_memory=wm, last_tick=42)
+        mc = MemoryCompression(recent_ticks=3)
+
+        asyncio.run(mc.run(ctx))
+
+        eps = ctx.state.get(Episodes).entries
+        assert len(eps) == 2
+        for ep in eps:
+            assert ep.last_accessed == 42
+
     def test_collapse_truncates_reasoning(self):
         long_reasoning = "x" * 400
         wm = [
@@ -434,6 +449,40 @@ class TestInferenceProcess:
         reasoning = [e for e in wm.entries if e.kind == "reasoning"]
         assert len(reasoning) == 1
         assert reasoning[0].content == "thinking out loud"
+
+
+# ===========================================================================
+# Episode access-tracking fields
+# ===========================================================================
+
+
+class TestEpisodeFields:
+    def test_episode_default_access_fields(self):
+        ep = Episode(content="test")
+        assert ep.last_accessed == 0
+        assert ep.access_count == 0
+
+    def test_episode_from_dict_missing_access_fields(self):
+        data = {"entries": [{"content": "old episode", "tick": 5}]}
+        eps = Episodes.from_dict(data)
+        assert eps.entries[0].last_accessed == 0
+        assert eps.entries[0].access_count == 0
+
+    def test_episode_from_dict_with_access_fields(self):
+        data = {"entries": [{"content": "ep", "tick": 5, "last_accessed": 10, "access_count": 3}]}
+        eps = Episodes.from_dict(data)
+        assert eps.entries[0].last_accessed == 10
+        assert eps.entries[0].access_count == 3
+
+    def test_episode_round_trip_serialization(self):
+        from dataclasses import asdict
+        ep = Episode(content="test", tick=5, last_accessed=10, access_count=3)
+        data = asdict(ep)
+        restored = Episode(**data)
+        assert restored.last_accessed == 10
+        assert restored.access_count == 3
+        assert restored.content == "test"
+        assert restored.tick == 5
 
 
 # ===========================================================================
