@@ -2,6 +2,7 @@ import asyncio
 
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
+from conwai.event_bus import EventBus
 from conwai.events import EventLog
 from conwai.messages import MessageBus
 from conwai.world import World
@@ -23,7 +24,8 @@ from scenarios.bread_economy.systems import (
 
 
 def _setup(tick=1):
-    world = World()
+    bus = EventBus()
+    world = World(bus=bus)
     world.register(Economy)
     world.register(Inventory)
     world.register(Hunger)
@@ -32,11 +34,11 @@ def _setup(tick=1):
 
     world.set_resource(TickNumber(tick))
     board = BulletinBoard()
-    bus = MessageBus()
+    msg_bus = MessageBus()
     events = EventLog()
     perception = make_bread_perception()
     world.set_resource(board)
-    world.set_resource(bus)
+    world.set_resource(msg_bus)
     world.set_resource(events)
     world.set_resource(perception)
     return world

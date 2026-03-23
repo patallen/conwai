@@ -11,7 +11,7 @@ def board_posts(events: EventLog, limit: int = 30) -> list[dict]:
     rows = (
         events._conn()
         .execute(
-            "SELECT id, t, entity, type, data FROM events WHERE type = 'board_post' ORDER BY id DESC LIMIT ?",
+            "SELECT id, t, entity, type, data FROM events WHERE type = 'post_to_board' ORDER BY id DESC LIMIT ?",
             (limit,),
         )
         .fetchall()
@@ -27,7 +27,7 @@ def recent_conversations(
     rows = (
         events._conn()
         .execute(
-            "SELECT id, t, entity, type, data FROM events WHERE type = 'dm_sent' AND t > ? ORDER BY id",
+            "SELECT id, t, entity, type, data FROM events WHERE type = 'send_message' AND t > ? ORDER BY id",
             (since_t,),
         )
         .fetchall()
@@ -35,7 +35,7 @@ def recent_conversations(
     pairs: dict[str, list[dict]] = {}
     for r in rows:
         event = events._row_to_dict(r)
-        key = "-".join(sorted([r[2], event["data"].get("to", "")]))
+        key = "-".join(sorted([r[2], event["data"].get("to", "").lstrip("@")]))
         pairs.setdefault(key, []).append(event)
     return dict(sorted(pairs.items(), key=lambda x: len(x[1]), reverse=True))
 
@@ -62,15 +62,15 @@ def agent_stats(events: EventLog) -> list[dict]:
                 "dms_received": 0,
             }
         stats[entity]["events"] += cnt
-        if etype == "board_post":
+        if etype == "post_to_board":
             stats[entity]["posts"] += cnt
-        elif etype == "dm_sent":
+        elif etype == "send_message":
             stats[entity]["dms_sent"] += cnt
     # Count DMs received
     dm_rows = (
         events._conn()
         .execute(
-            "SELECT json_extract(data, '$.to'), COUNT(*) FROM events WHERE type = 'dm_sent' GROUP BY json_extract(data, '$.to')"
+            "SELECT json_extract(data, '$.to'), COUNT(*) FROM events WHERE type = 'send_message' GROUP BY json_extract(data, '$.to')"
         )
         .fetchall()
     )
@@ -84,7 +84,7 @@ def economy_counts(events: EventLog) -> dict:
     rows = (
         events._conn()
         .execute(
-            "SELECT type, COUNT(*) FROM events WHERE type IN ('bake', 'give', 'payment', 'forage', 'trade', 'offer') GROUP BY type"
+            "SELECT type, COUNT(*) FROM events WHERE type IN ('bake', 'give', 'pay', 'forage', 'trade', 'offer') GROUP BY type"
         )
         .fetchall()
     )
@@ -115,7 +115,7 @@ def agent_dms(events: EventLog, handle: str, limit: int = 30) -> list[dict]:
     rows = (
         events._conn()
         .execute(
-            "SELECT id, t, entity, type, data FROM events WHERE type = 'dm_sent' AND (entity = ? OR json_extract(data, '$.to') = ?) ORDER BY id DESC LIMIT ?",
+            "SELECT id, t, entity, type, data FROM events WHERE type = 'send_message' AND (entity = ? OR json_extract(data, '$.to') = ?) ORDER BY id DESC LIMIT ?",
             (handle, handle, limit),
         )
         .fetchall()

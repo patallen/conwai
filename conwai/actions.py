@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from conwai.component import Component
 
+from conwai.brain import Decision
+
 if TYPE_CHECKING:
-    from conwai.brain import Decision
     from conwai.world import World
 
 
@@ -25,12 +26,24 @@ class PendingActions(Component):
 
     entries: list[Decision] = field(default_factory=list)
 
+    @classmethod
+    def from_dict(cls, data: dict) -> PendingActions:
+        return cls(
+            entries=[Decision(**e) if isinstance(e, dict) else e for e in data.get("entries", [])]
+        )
+
 
 @dataclass
 class ActionFeedback(Component):
     """Results of executed actions. Written by ActionSystem, read by perception."""
 
     entries: list[ActionResult] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> ActionFeedback:
+        return cls(
+            entries=[ActionResult(**e) if isinstance(e, dict) else e for e in data.get("entries", [])]
+        )
 
 
 @dataclass
@@ -73,5 +86,18 @@ class ActionRegistry:
         if ts.get("blocked"):
             return ts["blocked"]
 
-        result = action.handler(entity_id, world, args)
-        return result or "ok"
+        raw = action.handler(entity_id, world, args)
+        if isinstance(raw, tuple):
+            result, data = raw
+        else:
+            result = raw or "ok"
+            data = {}
+
+        bus = world.bus
+        if bus:
+            from conwai.event_types import ActionExecuted
+            bus.emit(ActionExecuted(
+                entity=entity_id, action=name, args=args, result=result, data=data
+            ))
+
+        return result

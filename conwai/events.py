@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import json
 import sqlite3
 import threading
 from pathlib import Path
 from time import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from conwai.event_bus import EventBus
 
 
 class EventLog:
@@ -77,6 +83,25 @@ class EventLog:
             )
             .fetchone()[0]
         )
+
+    def subscribe_to(self, bus: EventBus) -> None:
+        """Subscribe to an EventBus to auto-persist lifecycle and action events."""
+        from conwai.event_types import ActionExecuted, EntityDestroyed, EntitySpawned
+
+        def on_action(event: ActionExecuted):
+            log_data = dict(event.args)
+            log_data.update(event.data)
+            self.log(event.entity, event.action, log_data)
+
+        def on_spawned(event: EntitySpawned):
+            self.log(event.entity, "entity_spawned", {})
+
+        def on_destroyed(event: EntityDestroyed):
+            self.log(event.entity, "entity_destroyed", {})
+
+        bus.subscribe(ActionExecuted, on_action)
+        bus.subscribe(EntitySpawned, on_spawned)
+        bus.subscribe(EntityDestroyed, on_destroyed)
 
     def agent_events(
         self, handle: str, event_type: str | None = None, limit: int = 50

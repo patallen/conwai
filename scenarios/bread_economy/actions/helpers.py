@@ -23,5 +23,6 @@ def charge(world: World, entity_id: str, amount: int, reason: str) -> str | None
     eco = world.get(entity_id, Economy)
     if amount > eco.coins:
         return f"not enough coins for {reason} ({amount} needed, have {int(eco.coins)})"
-    eco.coins -= amount
+    with world.mutate(entity_id, Economy) as eco:
+        eco.coins -= amount
     return None

@@ -41,7 +41,7 @@ class BrainSystem:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for handle, result in zip(handles, results):
             if isinstance(result, Exception):
-                log.error(f"[{handle}] brain error: {result}")
+                log.error(f"[{handle}] brain error: {result}", exc_info=result)
 
     async def _tick_agent(self, handle: str, world: World) -> None:
         start = time.monotonic()

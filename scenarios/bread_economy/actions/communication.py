@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from conwai.actions import ActionRegistry
 from conwai.bulletin_board import BulletinBoard
 from conwai.engine import TickNumber
-from conwai.events import EventLog
 from conwai.messages import MessageBus
 from scenarios.bread_economy.actions.helpers import charge
 from scenarios.bread_economy.components import AgentMemory, Economy
@@ -34,14 +33,14 @@ def _post_to_board(entity_id: str, world: World, args: dict) -> str:
     content = args.get("message", "")
     board = world.get_resource(BulletinBoard)
     board.post(entity_id, content)
-    mem.last_board_post = tick
-    world.get_resource(EventLog).log(entity_id, "board_post", {"content": content})
+    with world.mutate(entity_id, AgentMemory) as mem:
+        mem.last_board_post = tick
     log.info(f"[{entity_id}] posted: {content}")
     perception = world.get_resource(BreadPerceptionBuilder)
     for other in world.entities():
         if other != entity_id and f"@{other}" in content:
-            other_eco = world.get(other, Economy)
-            other_eco.coins += cfg.energy_gain["referenced"]
+            with world.mutate(other, Economy) as other_eco:
+                other_eco.coins += cfg.energy_gain["referenced"]
             perception.notify(
                 other,
                 f"+{cfg.energy_gain['referenced']} coins (referenced on board)",
@@ -65,14 +64,11 @@ def _send_message(entity_id: str, world: World, args: dict) -> str:
         log.info(f"[{entity_id}] SEND FAILED: {err}")
         return f"DM failed: {err}"
     action_reg.set_tick_state(entity_id, "dm_sent", dm_sent + 1)
-    world.get_resource(EventLog).log(
-        entity_id, "dm_sent", {"to": to, "content": message}
-    )
     log.info(f"[{entity_id}] -> [{to}]: {message}")
     alive = set(world.entities())
     if to in alive:
-        rec_eco = world.get(to, Economy)
-        rec_eco.coins += cfg.energy_gain["dm_received"]
+        with world.mutate(to, Economy) as rec_eco:
+            rec_eco.coins += cfg.energy_gain["dm_received"]
         world.get_resource(BreadPerceptionBuilder).notify(
             to,
             f"+{cfg.energy_gain['dm_received']} coins (received DM)",

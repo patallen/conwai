@@ -4,25 +4,35 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import deepcopy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from conwai.component import Component
 
 if TYPE_CHECKING:
+    from conwai.event_bus import EventBus
     from conwai.storage import Storage
 
 log = logging.getLogger("conwai")
 
+T = TypeVar("T", bound=Component)
+
 
 class World:
-    def __init__(self, storage: Storage | None = None):
+    def __init__(self, storage: Storage | None = None, bus: EventBus | None = None):
         self._entities: set[str] = set()
         self._components: dict[str, dict[type, Component]] = {}
         self._defaults: dict[type, Component] = {}
         self._types: dict[str, type[Component]] = {}
         self._resources: dict[type, object] = {}
         self._storage = storage
+        self._bus = bus
+        self._suppress_events = False
+
+    @property
+    def bus(self) -> EventBus | None:
+        return self._bus
 
     # -- Registration --------------------------------------------------------
 
@@ -45,13 +55,23 @@ class World:
         self._entities.add(entity_id)
         self._components[entity_id] = {}
         if defaults:
-            override_map = {type(c): c for c in (overrides or [])}
-            for comp_type, default in self._defaults.items():
-                comp = override_map.get(comp_type, deepcopy(default))
-                self.set(entity_id, comp)
+            self._suppress_events = True
+            try:
+                override_map = {type(c): c for c in (overrides or [])}
+                for comp_type, default in self._defaults.items():
+                    comp = override_map.get(comp_type, deepcopy(default))
+                    self.set(entity_id, comp)
+            finally:
+                self._suppress_events = False
+        if self._bus:
+            from conwai.event_types import EntitySpawned
+            self._bus.emit(EntitySpawned(entity=entity_id))
         return entity_id
 
     def destroy(self, entity_id: str) -> None:
+        if self._bus and entity_id in self._entities:
+            from conwai.event_types import EntityDestroyed
+            self._bus.emit(EntityDestroyed(entity=entity_id))
         self._entities.discard(entity_id)
         self._components.pop(entity_id, None)
         if self._storage:
@@ -68,10 +88,38 @@ class World:
     def set(self, entity: str, comp: Component) -> None:
         if entity not in self._entities:
             raise KeyError(f"Entity {entity!r} does not exist")
+        old = self._components[entity].get(type(comp))
         self._components[entity][type(comp)] = comp
+        if self._bus and not self._suppress_events:
+            from conwai.event_types import ComponentChanged
+            self._bus.emit(ComponentChanged(
+                entity=entity,
+                comp_type=type(comp),
+                old=deepcopy(old) if old is not None else None,
+                new=deepcopy(comp),
+            ))
 
     def has(self, entity: str, comp: type[Component]) -> bool:
         return entity in self._components and comp in self._components[entity]
+
+    @contextmanager
+    def mutate(self, entity: str, comp_type: type[T]) -> Iterator[T]:
+        """Yield the component for in-place mutation; emit ComponentChanged if it changed."""
+        comp = self._components[entity][comp_type]
+        snapshot = deepcopy(comp)
+        try:
+            yield comp  # type: ignore[misc]
+        except Exception:
+            raise
+        else:
+            if self._bus and comp != snapshot:
+                from conwai.event_types import ComponentChanged
+                self._bus.emit(ComponentChanged(
+                    entity=entity,
+                    comp_type=comp_type,
+                    old=snapshot,
+                    new=deepcopy(comp),
+                ))
 
     # -- Resources -----------------------------------------------------------
 

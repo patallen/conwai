@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING
 
 from conwai.engine import TickNumber
-from conwai.events import EventLog
 from scenarios.bread_economy.actions.helpers import _capped_add
 from scenarios.bread_economy.components import Economy, Inventory
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
@@ -65,13 +64,13 @@ def _pay(entity_id: str, world: World, args: dict) -> str:
         return f"unknown agent: {to}"
     if to == entity_id:
         return "cannot pay yourself"
-    eco.coins -= amount
-    other_eco = world.get(to, Economy)
-    other_eco.coins += amount
+    with world.mutate(entity_id, Economy) as eco:
+        eco.coins -= amount
+    with world.mutate(to, Economy) as other_eco:
+        other_eco.coins += amount
     perception = world.get_resource(BreadPerceptionBuilder)
     perception.notify(entity_id, f"-{amount} coins (paid to @{to})")
     perception.notify(to, f"+{amount} coins (payment from @{entity_id})")
-    world.get_resource(EventLog).log(entity_id, "payment", {"to": to, "amount": amount})
     log.info(f"[{entity_id}] paid {amount} coins to {to}")
     return f"paid {amount} coins to {to}"
 
@@ -96,14 +95,12 @@ def _give(entity_id: str, world: World, args: dict) -> str:
         return f"unknown agent: {to}"
     if to == entity_id:
         return "cannot give to yourself"
-    setattr(inv, resource, getattr(inv, resource) - amount)
-    other_inv = world.get(to, Inventory)
-    _capped_add(other_inv, resource, amount)
+    with world.mutate(entity_id, Inventory) as inv:
+        setattr(inv, resource, getattr(inv, resource) - amount)
+    with world.mutate(to, Inventory) as other_inv:
+        _capped_add(other_inv, resource, amount)
     perception = world.get_resource(BreadPerceptionBuilder)
     perception.notify(to, f"received {amount} {resource} from @{entity_id}")
-    world.get_resource(EventLog).log(
-        entity_id, "give", {"to": to, "resource": resource, "amount": amount}
-    )
     log.info(f"[{entity_id}] gave {amount} {resource} to {to}")
     return f"gave {amount} {resource} to {to}"
 
@@ -167,22 +164,13 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             f"Trade offer #{oid} from @{entity_id}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
         )
 
-        world.get_resource(EventLog).log(
-            entity_id,
-            "offer",
-            {
-                "id": oid,
-                "to": to,
-                "give_type": give_type,
-                "give_amount": give_amount,
-                "want_type": want_type,
-                "want_amount": want_amount,
-            },
-        )
         log.info(
             f"[{entity_id}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}"
         )
-        return f"Offer #{oid} sent to {to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks."
+        return (
+            f"Offer #{oid} sent to {to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks.",
+            {"id": oid},
+        )
 
     def _accept(entity_id: str, world: World, args: dict) -> str:
         tick = world.get_resource(TickNumber).value
@@ -233,27 +221,27 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         # Execute the swap atomically
         # Offerer gives give_type, accepter receives it
         if give_type == "coins":
-            off_eco = world.get(offerer, Economy)
-            off_eco.coins -= give_amount
-            acc_eco = world.get(entity_id, Economy)
-            acc_eco.coins += give_amount
+            with world.mutate(offerer, Economy) as off_eco:
+                off_eco.coins -= give_amount
+            with world.mutate(entity_id, Economy) as acc_eco:
+                acc_eco.coins += give_amount
         else:
-            off_inv = world.get(offerer, Inventory)
-            setattr(off_inv, give_type, getattr(off_inv, give_type) - give_amount)
-            acc_inv = world.get(entity_id, Inventory)
-            _capped_add(acc_inv, give_type, give_amount)
+            with world.mutate(offerer, Inventory) as off_inv:
+                setattr(off_inv, give_type, getattr(off_inv, give_type) - give_amount)
+            with world.mutate(entity_id, Inventory) as acc_inv:
+                _capped_add(acc_inv, give_type, give_amount)
 
         # Accepter gives want_type, offerer receives it
         if want_type == "coins":
-            acc_eco = world.get(entity_id, Economy)
-            acc_eco.coins -= want_amount
-            off_eco = world.get(offerer, Economy)
-            off_eco.coins += want_amount
+            with world.mutate(entity_id, Economy) as acc_eco:
+                acc_eco.coins -= want_amount
+            with world.mutate(offerer, Economy) as off_eco:
+                off_eco.coins += want_amount
         else:
-            acc_inv = world.get(entity_id, Inventory)
-            setattr(acc_inv, want_type, getattr(acc_inv, want_type) - want_amount)
-            off_inv = world.get(offerer, Inventory)
-            _capped_add(off_inv, want_type, want_amount)
+            with world.mutate(entity_id, Inventory) as acc_inv:
+                setattr(acc_inv, want_type, getattr(acc_inv, want_type) - want_amount)
+            with world.mutate(offerer, Inventory) as off_inv:
+                _capped_add(off_inv, want_type, want_amount)
 
         offer_book.remove(oid)
 
@@ -267,31 +255,20 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             f"Accepted offer #{oid} from @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}",
         )
 
-        events = world.get_resource(EventLog)
-        events.log(
-            entity_id,
-            "trade",
-            {
-                "id": oid,
-                "with": offerer,
-                "received_type": give_type,
-                "received_amount": give_amount,
-                "gave_type": want_type,
-                "gave_amount": want_amount,
-            },
-        )
-        events.log(
-            offerer,
-            "trade",
-            {
-                "id": oid,
-                "with": entity_id,
-                "received_type": want_type,
-                "received_amount": want_amount,
-                "gave_type": give_type,
-                "gave_amount": give_amount,
-            },
-        )
+        if world.bus:
+            from conwai.event_types import ActionExecuted
+            world.bus.emit(ActionExecuted(
+                entity=entity_id, action="trade",
+                data={"id": oid, "with": offerer, "received_type": give_type,
+                      "received_amount": give_amount, "gave_type": want_type,
+                      "gave_amount": want_amount},
+            ))
+            world.bus.emit(ActionExecuted(
+                entity=offerer, action="trade",
+                data={"id": oid, "with": entity_id, "received_type": want_type,
+                      "received_amount": want_amount, "gave_type": give_type,
+                      "gave_amount": give_amount},
+            ))
         log.info(
             f"[TRADE] #{oid}: {offerer} gave {give_amount} {give_type}, {entity_id} gave {want_amount} {want_type}"
         )

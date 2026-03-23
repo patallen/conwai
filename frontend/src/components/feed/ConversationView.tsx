@@ -59,7 +59,7 @@ export function ConversationView() {
                 border: '1px solid var(--border)', borderRadius: 6,
                 padding: '6px 10px', maxWidth: '70%', fontSize: 12,
               }}>
-                {msg.data.content}
+                {msg.data.message}
               </div>
             </div>
           )
