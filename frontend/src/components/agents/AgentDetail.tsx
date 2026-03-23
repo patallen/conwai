@@ -16,11 +16,11 @@ export function AgentDetail() {
 
   // Agent's recent events
   const agentEvents = events
-    .filter(e => e.entity === selectedAgent || (e.type === 'dm_sent' && e.data.to === selectedAgent))
+    .filter(e => e.entity === selectedAgent || (e.type === 'send_message' && e.data.to === selectedAgent))
     .slice(-50)
 
-  const boardPosts = agentEvents.filter(e => e.type === 'board_post').slice(-10)
-  const dms = agentEvents.filter(e => e.type === 'dm_sent').slice(-20)
+  const boardPosts = agentEvents.filter(e => e.type === 'post_to_board').slice(-10)
+  const dms = agentEvents.filter(e => e.type === 'send_message').slice(-20)
 
   // Trade history: gives + atomic trades where this agent is involved (deduplicate by trade id)
   const seenTradeIds = new Set<number>()
