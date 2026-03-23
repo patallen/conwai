@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 from scenarios.bread_economy.components import AgentMemory, Economy, Inventory
 
-log = logging.getLogger("conwai")
+log = logging.getLogger("conwai.strategic_review")
 
 _PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -89,9 +89,12 @@ class StrategicReview:
 
         strategy = resp.text.strip()
         if not strategy:
+            log.error(f"[@{agent_id}] strategic review failed: no strategy returned")
             return
 
-        strategy = strategy[:500]
+        log.info(f"[@{agent_id}] morning review:\n{strategy}")
+
+        strategy = strategy[:700]
 
         if self.store.has(agent_id, AgentMemory):
             mem = self.store.get(agent_id, AgentMemory)
@@ -100,4 +103,4 @@ class StrategicReview:
         mem.strategy = strategy
         self.store.set(agent_id, mem)
 
-        log.info(f"[@{agent_id}] morning review: {strategy[:100]}...")
+        log.info(f"[@{agent_id}] strategy saved ({len(strategy)} chars)")
