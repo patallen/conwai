@@ -74,4 +74,13 @@ class ActionRegistry:
             return ts["blocked"]
 
         result = action.handler(entity_id, world, args)
-        return result or "ok"
+        result = result or "ok"
+
+        bus = getattr(world, "_bus", None)
+        if bus:
+            from conwai.event_types import ActionExecuted
+            bus.emit(ActionExecuted(
+                entity=entity_id, action=name, args=args, result=result
+            ))
+
+        return result
