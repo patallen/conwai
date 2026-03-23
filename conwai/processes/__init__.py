@@ -8,6 +8,7 @@ or rule-based processes in any pipeline.
 from conwai.processes.activation_recall import ActivationRecall
 from conwai.processes.compression import MemoryCompression
 from conwai.processes.context import ContextAssembly
+from conwai.processes.importance import ImportanceScoring
 from conwai.processes.inference import InferenceProcess
 from conwai.processes.recall import MemoryRecall
 from conwai.processes.types import (
@@ -31,6 +32,7 @@ __all__ = [
     "Episode",
     "Episodes",
     "Identity",
+    "ImportanceScoring",
     "InferenceProcess",
     "LLMSnapshot",
     "MemoryCompression",

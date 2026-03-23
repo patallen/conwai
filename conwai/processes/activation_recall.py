@@ -21,16 +21,17 @@ _HANDLE_RE = re.compile(r"@(\w+)")
 
 
 class ActivationRecall:
-    """Surface episodes using activation scoring: recency + frequency + cosine similarity."""
+    """Surface episodes using activation scoring: recency + frequency + cosine similarity + importance."""
 
     def __init__(
         self,
         recall_limit: int = 5,
         reflection_limit: int = 2,
         embedder: Embedder | None = None,
-        alpha: float = 0.35,
+        alpha: float = 0.25,
         beta: float = 0.05,
-        gamma: float = 0.6,
+        gamma: float = 0.5,
+        delta: float = 0.2,
         decay_rate: float = 0.01,
         freq_cap: int = 20,
     ):
@@ -40,6 +41,7 @@ class ActivationRecall:
         self._alpha = alpha
         self._beta = beta
         self._gamma = gamma
+        self._delta = delta
         self._decay_rate = decay_rate
         self._freq_cap = freq_cap
         self._log_freq_denom = log(1 + freq_cap)
@@ -94,7 +96,8 @@ class ActivationRecall:
             age = max(0, current_tick - ep.last_accessed)
             recency = 1.0 / (1.0 + self._decay_rate * age)
             freq = log(1 + min(ep.access_count, self._freq_cap)) / self._log_freq_denom
-            scores[i] = self._alpha * recency + self._beta * freq + self._gamma * cosine_sims[i]
+            imp = ep.importance / 10.0 if ep.importance > 0 else 0.5
+            scores[i] = self._alpha * recency + self._beta * freq + self._gamma * cosine_sims[i] + self._delta * imp
 
         top_indices = list(np.argsort(scores)[-limit:][::-1])
         recalled = []
@@ -108,10 +111,11 @@ class ActivationRecall:
             freq = log(1 + min(ep.access_count, self._freq_cap)) / self._log_freq_denom
             cosine = float(cosine_sims[idx])
 
+            imp = ep.importance / 10.0 if ep.importance > 0 else 0.5
             content_preview = ep.content[:60].replace("\n", " ")
             logger.info(
                 f"[{agent_id}] recall: \"{content_preview}\" "
-                f"(score={scores[idx]:.2f}: recency={recency:.2f}, freq={freq:.2f}, cosine={cosine:.2f})"
+                f"(score={scores[idx]:.2f}: recency={recency:.2f}, freq={freq:.2f}, cosine={cosine:.2f}, imp={imp:.2f})"
             )
 
             ep.access_count += 1

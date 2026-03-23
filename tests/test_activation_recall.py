@@ -202,6 +202,23 @@ class TestActivationRecall:
 
         assert ctx.bb.get(RecalledMemories) is None
 
+    def test_importance_dominance(self):
+        """Higher-importance episode wins when other scores are equal."""
+        episodes = [
+            Episode(content="traded flour routine", tick=90, last_accessed=90,
+                    access_count=0, importance=2, embedding=[1.0, 0.0, 0.0]),
+            Episode(content="traded flour critical", tick=90, last_accessed=90,
+                    access_count=0, importance=9, embedding=[1.0, 0.0, 0.0]),
+        ]
+        ctx, _ = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+
+        recall = ActivationRecall(recall_limit=1, embedder=FakeEmbedder())
+        asyncio.run(recall.run(ctx))
+
+        recalled = ctx.bb.get(RecalledMemories)
+        assert len(recalled.entries) == 1
+        assert "critical" in recalled.entries[0]
+
     def test_skips_episodes_without_embeddings(self):
         """Episodes without embeddings should be excluded from activation scoring."""
         episodes = [

@@ -38,11 +38,11 @@ from scenarios.bread_economy.perception import (
     tick_to_timestamp,
 )
 from conwai.processes.activation_recall import ActivationRecall
+from conwai.processes.importance import ImportanceScoring
 from scenarios.bread_economy.processes import (
     ContextAssembly,
     InferenceProcess,
     MemoryCompression,
-
 )
 from scenarios.bread_economy.systems import (
     ConsumptionSystem,
@@ -290,6 +290,7 @@ async def run():
                     embedder=embedder,
                     noise_actions={"update_journal", "wait"},
                 ),
+                ImportanceScoring(articulator=articulator),
                 ConsolidationProcess(
                     interval=24,
                     articulator=articulator,

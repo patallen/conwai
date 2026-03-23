@@ -60,6 +60,7 @@ class Episode:
     embedding: list[float] | None = None
     last_accessed: int = 0
     access_count: int = 0
+    importance: int = 0
 
 
 @dataclass

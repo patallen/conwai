@@ -457,16 +457,18 @@ class TestInferenceProcess:
 
 
 class TestEpisodeFields:
-    def test_episode_default_access_fields(self):
+    def test_episode_default_fields(self):
         ep = Episode(content="test")
         assert ep.last_accessed == 0
         assert ep.access_count == 0
+        assert ep.importance == 0
 
-    def test_episode_from_dict_missing_access_fields(self):
+    def test_episode_from_dict_missing_fields(self):
         data = {"entries": [{"content": "old episode", "tick": 5}]}
         eps = Episodes.from_dict(data)
         assert eps.entries[0].last_accessed == 0
         assert eps.entries[0].access_count == 0
+        assert eps.entries[0].importance == 0
 
     def test_episode_from_dict_with_access_fields(self):
         data = {"entries": [{"content": "ep", "tick": 5, "last_accessed": 10, "access_count": 3}]}

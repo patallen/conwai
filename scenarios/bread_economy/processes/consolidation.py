@@ -25,6 +25,40 @@ if TYPE_CHECKING:
 _MIN_ENTRIES = 15
 _N_QUESTIONS = 3
 _RETRIEVE_K = 5
+_DECAY_RATE = 0.01
+
+
+def _top_by_importance(
+    episodes: list[Episode], current_tick: int, n: int = 50
+) -> list[Episode]:
+    """Select top N episodes by importance * recency."""
+    scored = []
+    for ep in episodes:
+        imp = ep.importance / 10.0 if ep.importance > 0 else 0.5
+        age = max(0, current_tick - ep.tick)
+        recency = 1.0 / (1.0 + _DECAY_RATE * age)
+        scored.append((imp * recency, ep))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [ep for _, ep in scored[:n]]
+
+
+def _importance_weighted_topk(
+    query_vec: list[float],
+    candidate_vecs: list[list[float]],
+    episodes: list[Episode],
+    k: int = 5,
+) -> list[int]:
+    """Top-k by cosine similarity weighted by importance."""
+    import numpy as np
+
+    qv = np.array(query_vec)
+    cv = np.array(candidate_vecs)
+    sims = cv @ qv / (np.linalg.norm(cv, axis=1) * np.linalg.norm(qv) + 1e-10)
+    for i, ep in enumerate(episodes):
+        imp = ep.importance / 10.0 if ep.importance > 0 else 0.5
+        sims[i] *= 0.5 + 0.5 * imp
+    top = list(np.argsort(sims)[-k:][::-1])
+    return [int(i) for i in top if sims[i] > 0]
 
 
 class ConsolidationProcess:
@@ -68,7 +102,8 @@ class ConsolidationProcess:
         if len(entries_with_emb) < _MIN_ENTRIES:
             return
 
-        recent = entries_with_emb[-50:]
+        # Select top 50 by importance * recency (not just most recent)
+        recent = _top_by_importance(entries_with_emb, tick, n=50)
         numbered = "\n".join(
             f"{i + 1}. {e.content[:200]}" for i, e in enumerate(recent)
         )
@@ -80,14 +115,14 @@ class ConsolidationProcess:
         for q in questions:
             log.info(f"[@{agent_id}]   focal question: {q[:80]}")
 
-        from conwai.embeddings import cosine_topk
-
         vectors = [e.embedding for e in entries_with_emb]
         insights = []
 
         for question in questions:
             q_vec = self._embedder.embed([question])[0]
-            top_indices = cosine_topk(q_vec, vectors, k=_RETRIEVE_K)
+            top_indices = _importance_weighted_topk(
+                q_vec, vectors, entries_with_emb, k=_RETRIEVE_K
+            )
             evidence = [entries_with_emb[i].content[:200] for i in top_indices]
 
             insight = await self._generate_insight(question, evidence, agent_id)
