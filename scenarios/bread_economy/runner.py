@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import random
 import time
@@ -38,11 +37,12 @@ from scenarios.bread_economy.perception import (
     make_bread_perception,
     tick_to_timestamp,
 )
+from conwai.processes.activation_recall import ActivationRecall
 from scenarios.bread_economy.processes import (
     ContextAssembly,
     InferenceProcess,
     MemoryCompression,
-    MemoryRecall,
+
 )
 from scenarios.bread_economy.systems import (
     ConsumptionSystem,
@@ -240,8 +240,8 @@ async def run():
     # --- LLM clients ---
     clients = [
         LLMClient(
-            base_url="http://ai-lab.lan:8081/v1",
-            model="/mnt/models/Qwen3.5-27B-GPTQ-Int4",
+            base_url="https://o9hgcgopc1wg97-8000.proxy.runpod.net/v1",
+            model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
             max_tokens=2048,
             api_key="none",
         ),
@@ -277,7 +277,7 @@ async def run():
 
     _brain_counter = 0
 
-    def make_brain(first_person: bool = True) -> Brain:
+    def make_brain() -> Brain:
         nonlocal _brain_counter
         client = clients[_brain_counter % len(clients)]
         _brain_counter += 1
@@ -294,9 +294,9 @@ async def run():
                     interval=24,
                     articulator=articulator,
                     embedder=embedder,
-                    first_person=first_person,
+                    first_person=True,
                 ),
-                MemoryRecall(recall_limit=5, embedder=embedder),
+                ActivationRecall(recall_limit=5, reflection_limit=2, embedder=embedder),
                 ContextAssembly(
                     context_window=get_config().context_window,
                     system_prompt=perception.build_system_prompt(),
@@ -310,72 +310,35 @@ async def run():
         )
 
     # --- Agents + Brains ---
-    # A/B test: first-person vs third-person reflections
     brains: dict[str, Brain] = {}
-    first_person_group: set[str] = set()
-    # 20 agents: indices 0-9 = first-person, 10-19 = third-person
-    # Each group: 5 flour + 5 water, all same neutral personality
-    ab_roles = (
-        ["flour_forager"] * 2
-        + ["water_forager"] * 2  # first-person
-        + ["flour_forager"] * 1
-        + ["water_forager"] * 1  # third-person
+    agent_roles = (
+        ["flour_forager"] * 7
+        + ["water_forager"] * 7
     )
-    ab_personality = "practical, observant"
-
-    # Restore A/B group assignments from events DB if resuming
-    saved_groups: dict[str, str] = {}
-    try:
-        import sqlite3 as _sql
-
-        _edb = _sql.connect("data/events.db")
-        for entity, data in _edb.execute(
-            "SELECT entity, data FROM events WHERE type='ab_group'"
-        ).fetchall():
-            saved_groups[entity] = json.loads(data)["group"]
-        _edb.close()
-    except Exception:
-        pass
+    agent_personality = "practical, observant"
 
     # Load all existing agents (already loaded via world.load_all())
     loaded_handles = list(storage.list_entities())
     for handle in loaded_handles:
         if handle in set(world.entities()):
-            if handle in saved_groups:
-                fp = saved_groups[handle] == "first_person"
-            else:
-                fp = len(first_person_group) < 4
-            brains[handle] = make_brain(first_person=fp)
-            if fp:
-                first_person_group.add(handle)
+            brains[handle] = make_brain()
 
     # Create new agents to fill up to target population
-    target = len(ab_roles)
+    target = len(agent_roles)
     alive_count = len(world.entities())
     existing_handles = set(world.entities())
     for i in range(alive_count, target):
-        role = ab_roles[i]
+        role = agent_roles[i]
         handle = fake.first_name()
         while handle in existing_handles:
             handle = fake.first_name()
         existing_handles.add(handle)
         world.spawn(
-            handle, overrides=[AgentInfo(role=role, personality=ab_personality)]
+            handle, overrides=[AgentInfo(role=role, personality=agent_personality)]
         )
-        fp = len(first_person_group) < 4
-        brains[handle] = make_brain(first_person=fp)
-        if fp:
-            first_person_group.add(handle)
+        brains[handle] = make_brain()
 
-    log.info(f"[WORLD] A/B test: FIRST PERSON for {sorted(first_person_group)}")
-    log.info(
-        f"[WORLD] A/B test: THIRD PERSON for {sorted(set(brains.keys()) - first_person_group)}"
-    )
-    # Only log ab_group events for new agents (avoid duplicates on resume)
-    for handle in brains:
-        if handle not in saved_groups:
-            group = "first_person" if handle in first_person_group else "third_person"
-            events.log(handle, "ab_group", {"group": group})
+    log.info(f"[WORLD] {len(brains)} agents: {sorted(brains.keys())}")
 
     for handle in brains:
         bus.register(handle)
@@ -408,15 +371,8 @@ async def run():
                 "replaced": dead_entity_id,
             },
         )
-        was_fp = dead_entity_id in first_person_group
-        if was_fp:
-            first_person_group.discard(dead_entity_id)
-            first_person_group.add(handle)
-        brains[handle] = make_brain(first_person=was_fp)
-        group_label = "1P" if was_fp else "3P"
-        log.info(
-            f"[{handle}] spawned as {role} (replacing {dead_entity_id}, {group_label})"
-        )
+        brains[handle] = make_brain()
+        log.info(f"[{handle}] spawned as {role} (replacing {dead_entity_id})")
 
     # --- Brain system ---
     brain_system = BrainSystem(brains=brains, perception=perception.build)
