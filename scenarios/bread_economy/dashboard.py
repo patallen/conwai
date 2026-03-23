@@ -249,7 +249,10 @@ def api_agent_context(handle: str):
     data = _storage.load_component(handle, "brain_state")
     if not data:
         return {"error": "no context available"}
-    return data
+    snap = data.get("_llm_snapshot")
+    if not snap:
+        return {"error": "no context available"}
+    return snap
 
 
 @app.get("/api/agent/{handle}/memory")

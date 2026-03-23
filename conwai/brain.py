@@ -54,6 +54,7 @@ class Brain:
         self.processes = processes
         self.state = State()
         self._state_registry = {t.__name__: t for t in (state_types or [])}
+        self._last_snapshot: dict | None = None
 
     async def think(self, percept: Percept) -> list[Decision]:
         ctx = BrainContext(percept=percept, state=self.state, bb=Blackboard())
@@ -61,12 +62,24 @@ class Brain:
         for process in self.processes:
             await process.run(ctx)
 
+        from conwai.processes.types import LLMSnapshot
+
+        snap = ctx.bb.get(LLMSnapshot)
+        if snap:
+            self._last_snapshot = {
+                "system": snap.system_prompt,
+                "messages": snap.messages,
+            }
+
         decisions = ctx.bb.get(Decisions)
         return decisions.entries if decisions else []
 
     def save_state(self) -> dict:
         """Serialize persistent state for storage."""
-        return self.state.serialize()
+        data = self.state.serialize()
+        if self._last_snapshot:
+            data["_llm_snapshot"] = self._last_snapshot
+        return data
 
     def load_state(self, data: dict) -> None:
         """Restore persistent state from storage."""
