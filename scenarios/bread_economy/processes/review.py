@@ -92,7 +92,7 @@ class StrategicReview:
             log.error(f"[@{agent_id}] strategic review failed: no strategy returned")
             return
 
-        log.info(f"[@{agent_id}] morning review:\n{strategy}")
+        log.info(f"[@{agent_id}] morning ({len(strategy)}):\n{strategy}...")
 
         strategy = strategy[:700]
 
@@ -103,4 +103,4 @@ class StrategicReview:
         mem.strategy = strategy
         self.store.set(agent_id, mem)
 
-        log.info(f"[@{agent_id}] strategy saved ({len(strategy)} chars)")
+        log.info(f"[@{agent_id}] morning review (len: {len(strategy)})")

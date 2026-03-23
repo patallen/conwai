@@ -5,7 +5,6 @@ import random
 from typing import TYPE_CHECKING
 
 from conwai.actions import ActionRegistry
-from conwai.events import EventLog
 from scenarios.bread_economy.actions.helpers import _capped_add
 from scenarios.bread_economy.components import AgentInfo, Inventory
 from scenarios.bread_economy.config import get_config
@@ -30,9 +29,6 @@ def _forage(entity_id: str, world: World, args: dict) -> str:
     world.get_resource(ActionRegistry).block(
         entity_id, "You are foraging this tick and cannot take other actions."
     )
-    world.get_resource(EventLog).log(
-        entity_id, "forage", {"flour": flour, "water": water}
-    )
     log.info(f"[{entity_id}] foraged {flour} flour, {water} water")
     parts = []
     if flour > 0:
@@ -40,8 +36,8 @@ def _forage(entity_id: str, world: World, args: dict) -> str:
     if water > 0:
         parts.append(f"{water} water")
     if parts:
-        return f"foraged {', '.join(parts)}"
-    return "found nothing"
+        return f"foraged {', '.join(parts)}", {"flour": flour, "water": water}
+    return "found nothing", {"flour": 0, "water": 0}
 
 
 def _bake(entity_id: str, world: World, args: dict) -> str:
@@ -57,10 +53,8 @@ def _bake(entity_id: str, world: World, args: dict) -> str:
         inv.flour -= flour_needed
         inv.water -= water_needed
         bread_yield = _capped_add(inv, "bread", bread_yield)
-    world.get_resource(EventLog).log(
-        entity_id,
-        "bake",
+    log.info(f"[{entity_id}] baked {bread_yield} bread")
+    return (
+        f"baked {bread_yield} bread (flour: {inv.flour}, water: {inv.water}, bread: {inv.bread})",
         {"bread": bread_yield, "flour": inv.flour, "water": inv.water},
     )
-    log.info(f"[{entity_id}] baked {bread_yield} bread")
-    return f"baked {bread_yield} bread (flour: {inv.flour}, water: {inv.water}, bread: {inv.bread})"

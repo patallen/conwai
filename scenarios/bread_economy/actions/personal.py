@@ -30,7 +30,6 @@ def _update_soul(entity_id: str, world: World, args: dict) -> str:
     content = args.get("content", "")
     with world.mutate(entity_id, AgentMemory) as mem:
         mem.soul = content
-    world.get_resource(EventLog).log(entity_id, "soul_updated", {"content": content})
     log.info(f"[{entity_id}] soul updated")
     return "soul updated"
 
@@ -45,13 +44,10 @@ def _update_journal(entity_id: str, world: World, args: dict) -> str:
         content = content[:max_len]
     with world.mutate(entity_id, AgentMemory) as mem:
         mem.memory = content
-    world.get_resource(EventLog).log(
-        entity_id, "journal_updated", {"chars": len(content)}
-    )
     log.info(f"[{entity_id}] journal updated")
     if lost > 0:
-        return f"journal updated ({lost} chars truncated)"
-    return "journal updated"
+        return f"journal updated ({lost} chars truncated)", {"chars": len(content)}
+    return "journal updated", {"chars": len(content)}
 
 
 def _inspect(entity_id: str, world: World, args: dict) -> str:
@@ -64,8 +60,8 @@ def _inspect(entity_id: str, world: World, args: dict) -> str:
     inv = world.get(handle, Inventory)
     hun = world.get(handle, Hunger)
     events = world.get_resource(EventLog)
-    posts = events.count_by_entity_type(handle, "board_post")
-    dms = events.count_by_entity_type(handle, "dm_sent")
+    posts = events.count_by_entity_type(handle, "post_to_board")
+    dms = events.count_by_entity_type(handle, "send_message")
     role_labels = {
         "flour_forager": "flour forager",
         "water_forager": "water forager",
@@ -84,12 +80,10 @@ def _inspect(entity_id: str, world: World, args: dict) -> str:
     if mem.soul:
         lines.append(f"Soul: {mem.soul[:200]}")
     lines.append(f"Activity: {posts} posts, {dms} DMs sent")
-    events.log(entity_id, "inspect", {"target": handle})
     log.info(f"[{entity_id}] inspected {handle}")
     return f"Inspect {handle}:\n" + "\n".join(lines)
 
 
 def _wait(entity_id: str, world: World, args: dict) -> str:
-    world.get_resource(EventLog).log(entity_id, "wait", {})
     log.info(f"[{entity_id}] waiting")
     return "waiting"

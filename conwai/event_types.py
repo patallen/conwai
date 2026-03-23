@@ -36,6 +36,7 @@ class ActionExecuted(Event):
     action: str = ""
     args: dict = field(default_factory=dict)
     result: str = ""
+    data: dict = field(default_factory=dict)
 
 
 @dataclass

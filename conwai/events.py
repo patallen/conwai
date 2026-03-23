@@ -85,8 +85,13 @@ class EventLog:
         )
 
     def subscribe_to(self, bus: EventBus) -> None:
-        """Subscribe to an EventBus to auto-persist lifecycle events."""
-        from conwai.event_types import EntityDestroyed, EntitySpawned
+        """Subscribe to an EventBus to auto-persist lifecycle and action events."""
+        from conwai.event_types import ActionExecuted, EntityDestroyed, EntitySpawned
+
+        def on_action(event: ActionExecuted):
+            log_data = dict(event.args)
+            log_data.update(event.data)
+            self.log(event.entity, event.action, log_data)
 
         def on_spawned(event: EntitySpawned):
             self.log(event.entity, "entity_spawned", {})
@@ -94,6 +99,7 @@ class EventLog:
         def on_destroyed(event: EntityDestroyed):
             self.log(event.entity, "entity_destroyed", {})
 
+        bus.subscribe(ActionExecuted, on_action)
         bus.subscribe(EntitySpawned, on_spawned)
         bus.subscribe(EntityDestroyed, on_destroyed)
 
