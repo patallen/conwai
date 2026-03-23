@@ -377,6 +377,8 @@ async def run():
             group = "first_person" if handle in first_person_group else "third_person"
             events.log(handle, "ab_group", {"group": group})
 
+    for handle in brains:
+        bus.register(handle)
     bus.register("HANDLER")
     bus.register("WORLD")
 
@@ -389,6 +391,7 @@ async def run():
             handle = fake.first_name()
         personality = ", ".join(assign_traits())
         world.spawn(handle, overrides=[AgentInfo(role=role, personality=personality)])
+        bus.register(handle)
         board.post("WORLD", f"{dead_entity_id} has died of starvation.")
         board.post("WORLD", f"A new agent {handle} ({role}) has arrived.")
         events.log(
