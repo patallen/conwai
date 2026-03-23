@@ -76,7 +76,7 @@ class ActionRegistry:
         result = action.handler(entity_id, world, args)
         result = result or "ok"
 
-        bus = getattr(world, "_bus", None)
+        bus = world.bus
         if bus:
             from conwai.event_types import ActionExecuted
             bus.emit(ActionExecuted(

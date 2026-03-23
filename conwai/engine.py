@@ -38,7 +38,7 @@ class Engine:
         tick.value += 1
         log.info(f"[ENGINE] tick {tick.value}")
 
-        bus = self.world._bus
+        bus = self.world.bus
 
         if bus:
             from conwai.event_types import TickStarted

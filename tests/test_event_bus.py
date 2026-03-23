@@ -90,6 +90,19 @@ def test_pending_counts_queued_events():
     assert bus.pending() == 0
 
 
+def test_drain_cascade_guard():
+    """drain() raises on runaway cascades."""
+    bus = EventBus()
+
+    class Loop(Event):
+        pass
+
+    bus.subscribe(Loop, lambda _: bus.emit(Loop()))
+    bus.emit(Loop())
+    with pytest.raises(RuntimeError, match="exceeded"):
+        bus.drain(max_iterations=100)
+
+
 def test_multiple_subscribers_same_type():
     """All subscribers for a type receive the event."""
     bus = EventBus()

@@ -38,9 +38,9 @@ class TaxSystem:
         if tick % self.interval != 0:
             return
         perception = world.get_resource(BreadPerceptionBuilder)
-        for entity, eco in world.query(Economy):
-            if eco.coins > 0:
-                tax = max(1, int(eco.coins * self.rate))
+        for entity, _eco in world.query(Economy):
+            if _eco.coins > 0:
+                tax = max(1, int(_eco.coins * self.rate))
                 with world.mutate(entity, Economy) as eco:
                     eco.coins -= tax
                 perception.notify(entity, f"coins -{tax} (daily tax)")
@@ -58,9 +58,9 @@ class SpoilageSystem:
         if tick % cfg.bread_spoil_interval != 0:
             return
         perception = world.get_resource(BreadPerceptionBuilder)
-        for entity, inv in world.query(Inventory):
-            if inv.bread > 0:
-                spoiled = min(inv.bread, cfg.bread_spoil_amount)
+        for entity, _inv in world.query(Inventory):
+            if _inv.bread > 0:
+                spoiled = min(_inv.bread, cfg.bread_spoil_amount)
                 with world.mutate(entity, Inventory) as inv:
                     inv.bread -= spoiled
                 perception.notify(
@@ -77,13 +77,13 @@ class AutoForageSystem:
         import random
 
         cfg = get_config()
-        for entity, info, inv in world.query(AgentInfo, Inventory):
+        for entity, info, _inv in world.query(AgentInfo, Inventory):
             skills = cfg.forage_skill_by_role.get(info.role, {"flour": 1, "water": 1})
             cap = cfg.inventory_cap
             flour = random.randint(0, skills["flour"])
             water = random.randint(0, skills["water"])
-            flour = min(flour, max(0, cap - inv.flour))
-            water = min(water, max(0, cap - inv.water))
+            flour = min(flour, max(0, cap - _inv.flour))
+            water = min(water, max(0, cap - _inv.water))
             with world.mutate(entity, Inventory) as inv:
                 inv.flour += flour
                 inv.water += water

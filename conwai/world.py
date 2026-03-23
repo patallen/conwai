@@ -30,6 +30,10 @@ class World:
         self._bus = bus
         self._suppress_events = False
 
+    @property
+    def bus(self) -> EventBus | None:
+        return self._bus
+
     # -- Registration --------------------------------------------------------
 
     def register[T: Component](
@@ -92,7 +96,7 @@ class World:
                 entity=entity,
                 comp_type=type(comp),
                 old=deepcopy(old) if old is not None else None,
-                new=comp,
+                new=deepcopy(comp),
             ))
 
     def has(self, entity: str, comp: type[Component]) -> bool:

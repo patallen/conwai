@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Callable
 
@@ -30,7 +30,7 @@ class EventBus:
 
     def __init__(self) -> None:
         self._handlers: dict[type[Event], list[Handler]] = defaultdict(list)
-        self._queue: list[Event] = []
+        self._queue: deque[Event] = deque()
 
     def subscribe(self, event_type: type[Event], handler: Handler) -> None:
         """Register *handler* to be called whenever *event_type* is drained."""
@@ -51,7 +51,7 @@ class EventBus:
                     f"EventBus.drain() exceeded {max_iterations} iterations "
                     f"(likely cascade loop, {len(self._queue)} events still queued)"
                 )
-            event = self._queue.pop(0)
+            event = self._queue.popleft()
             handlers = self._handlers.get(type(event), [])
             logger.debug(
                 "delivering %s to %d handler(s)", type(event).__name__, len(handlers)

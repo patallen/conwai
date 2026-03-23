@@ -31,7 +31,7 @@ class EntityDestroyed(Event):
 
 @dataclass
 class ActionExecuted(Event):
-    """An action was executed by an entity."""
+    """An entity executed an action."""
     entity: str = ""
     action: str = ""
     args: dict = field(default_factory=dict)

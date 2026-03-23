@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import json
 import sqlite3
 import threading
 from pathlib import Path
 from time import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from conwai.event_bus import EventBus
 
 
 class EventLog:
@@ -78,7 +84,7 @@ class EventLog:
             .fetchone()[0]
         )
 
-    def subscribe_to(self, bus) -> None:
+    def subscribe_to(self, bus: EventBus) -> None:
         """Subscribe to an EventBus to auto-persist lifecycle events."""
         from conwai.event_types import EntityDestroyed, EntitySpawned
 
