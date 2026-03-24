@@ -57,7 +57,7 @@ class ImportanceScoring:
 
         batch = unscored[: self._batch_size]
         event_lines = "\n".join(
-            f"{n + 1}. {ep.content}" for n, (_, ep) in enumerate(batch)
+            f"{n + 1}. {ep.content.split(chr(10))[0]}" for n, (_, ep) in enumerate(batch)
         )
         user_msg = self._prompt.format(events=event_lines)
 
@@ -81,27 +81,26 @@ class ImportanceScoring:
 
     @staticmethod
     def _parse(text: str, count: int) -> list[int]:
+        _BARE_SCORE = re.compile(r"^\s*(\d+)\s*$")
         parsed: dict[int, int] = {}
+        bare_scores: list[int] = []
         for line in text.splitlines():
             m = _SCORE_RE.search(line)
-            if not m:
-                if line.strip():
-                    log.warning(f"ImportanceScoring: unparseable line: {line!r}")
+            if m:
+                idx = int(m.group(1)) - 1  # 1-based -> 0-based
+                raw = int(m.group(2))
+                parsed[idx] = max(1, min(10, raw))
                 continue
-            idx = int(m.group(1)) - 1  # 1-based -> 0-based
-            raw = int(m.group(2))
-            clamped = max(1, min(10, raw))
-            if clamped != raw:
-                log.warning(
-                    f"ImportanceScoring: score {raw} out of range, clamped to {clamped}"
-                )
-            parsed[idx] = clamped
+            bare = _BARE_SCORE.match(line)
+            if bare:
+                bare_scores.append(max(1, min(10, int(bare.group(1)))))
+                continue
+            if line.strip():
+                log.warning(f"ImportanceScoring: unparseable line: {line!r}")
 
-        result: list[int] = []
-        for i in range(count):
-            if i in parsed:
-                result.append(parsed[i])
-            else:
-                log.warning(f"ImportanceScoring: no score for event {i + 1}, defaulting to 5")
-                result.append(5)
-        return result
+        # Prefer indexed format; fall back to bare scores in order
+        if parsed:
+            return [parsed.get(i, 5) for i in range(count)]
+        if bare_scores:
+            return [bare_scores[i] if i < len(bare_scores) else 5 for i in range(count)]
+        return [5] * count
