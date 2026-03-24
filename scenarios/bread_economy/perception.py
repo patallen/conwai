@@ -119,7 +119,23 @@ class BreadPerceptionBuilder:
             )
 
         if notifications:
-            parts.append("Coin changes: " + ". ".join(notifications))
+            parts.append("Notifications: " + ". ".join(notifications))
+
+        # Show pending trade offers directed at this agent
+        from scenarios.bread_economy.actions.economy import OfferBook
+        if world.has_resource(OfferBook):
+            offer_book = world.get_resource(OfferBook)
+            pending = offer_book.offers_for(entity_id, tick)
+            if pending:
+                offer_lines = []
+                for oid, o in pending:
+                    remaining = o["tick"] + offer_book.expiry - tick
+                    offer_lines.append(
+                        f"Offer #{oid} from @{o['from']}: {o['give_amount']} {o['give_type']} "
+                        f"for {o['want_amount']} {o['want_type']} "
+                        f"(expires in {remaining} ticks). Use accept(offer_id={oid}) to accept."
+                    )
+                parts.append("Pending trade offers for you:\n" + "\n".join(offer_lines))
 
         if mem.code_fragment:
             parts.append(f"YOUR CODE FRAGMENT: {mem.code_fragment}")

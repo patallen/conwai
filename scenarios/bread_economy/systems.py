@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Callable
 
 from conwai.engine import TickNumber
+from conwai.events import EventLog
 from scenarios.bread_economy.components import AgentInfo, Economy, Hunger, Inventory
 from scenarios.bread_economy.config import get_config
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
@@ -12,6 +13,22 @@ if TYPE_CHECKING:
     from conwai.world import World
 
 log = logging.getLogger("conwai")
+
+
+class Treasury:
+    """Central bank that collects fees and penalties for redistribution."""
+
+    def __init__(self) -> None:
+        self.balance: float = 0
+
+
+def deposit_to_treasury(world: World, amount: float) -> None:
+    """Deposit coins into the treasury for redistribution."""
+    if amount <= 0:
+        return
+    if not world.has_resource(Treasury):
+        return
+    world.get_resource(Treasury).balance += amount
 
 
 class DecaySystem:
@@ -38,13 +55,41 @@ class TaxSystem:
         if tick % self.interval != 0:
             return
         perception = world.get_resource(BreadPerceptionBuilder)
+
+        # Collect wealth tax into treasury
         for entity, _eco in world.query(Economy):
             if _eco.coins > 0:
                 tax = max(1, int(_eco.coins * self.rate))
                 with world.mutate(entity, Economy) as eco:
                     eco.coins -= tax
+                deposit_to_treasury(world, tax)
                 perception.notify(entity, f"coins -{tax} (daily tax)")
-        log.info(f"[WORLD] daily tax collected (tick {tick})")
+
+        # Redistribute entire treasury balance equally
+        treasury = world.get_resource(Treasury)
+        pool = treasury.balance
+        agents = [eid for eid, _ in world.query(Economy)]
+        events = world.get_resource(EventLog)
+        if agents and pool > 0:
+            per_agent = int(pool) // len(agents)
+            remainder = int(pool) - per_agent * len(agents)
+            for entity in agents:
+                dividend = per_agent + (1 if remainder > 0 else 0)
+                remainder -= 1 if remainder > 0 else 0
+                if dividend > 0:
+                    with world.mutate(entity, Economy) as eco:
+                        eco.coins += dividend
+                    perception.notify(entity, f"coins +{dividend} (tax dividend)")
+            treasury.balance = 0
+            events.log("WORLD", "tax_redistribution", {
+                "pool": int(pool),
+                "per_agent": per_agent,
+                "agents": len(agents),
+                "tick": tick,
+            })
+            log.info(f"[WORLD] daily tax: redistributed {int(pool)} coins to {len(agents)} agents (tick {tick})")
+        else:
+            log.info(f"[WORLD] daily tax: nothing to redistribute (tick {tick})")
 
 
 class SpoilageSystem:
@@ -155,7 +200,9 @@ class ConsumptionSystem:
                         )
 
                 if h.hunger == 0:
-                    eco.coins = max(0, eco.coins - cfg.hunger_starve_coin_penalty)
+                    penalty = min(eco.coins, cfg.hunger_starve_coin_penalty)
+                    eco.coins -= penalty
+                    deposit_to_treasury(world, penalty)
                     perception.notify(
                         entity, f"coins -{cfg.hunger_starve_coin_penalty} (starving)"
                     )
@@ -174,7 +221,9 @@ class ConsumptionSystem:
                         )
 
                 if h.thirst == 0:
-                    eco.coins = max(0, eco.coins - cfg.thirst_dehydration_coin_penalty)
+                    penalty = min(eco.coins, cfg.thirst_dehydration_coin_penalty)
+                    eco.coins -= penalty
+                    deposit_to_treasury(world, penalty)
                     perception.notify(
                         entity, f"coins -{cfg.thirst_dehydration_coin_penalty} (dehydrated)"
                     )

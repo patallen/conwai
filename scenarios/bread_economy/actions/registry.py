@@ -4,7 +4,7 @@ from conwai.actions import Action, ActionRegistry
 from conwai.contrib.llm import tool_schema
 from scenarios.bread_economy.actions.communication import _post_to_board, _send_message
 from scenarios.bread_economy.actions.crafting import _bake, _forage
-from scenarios.bread_economy.actions.economy import _give, _pay, make_offer_handlers
+from scenarios.bread_economy.actions.economy import OfferBook, _give, _pay, make_offer_handlers
 from scenarios.bread_economy.actions.personal import (
     _inspect,
     _update_journal,
@@ -53,7 +53,7 @@ _TOOL_SCHEMAS = [
     ),
     tool_schema(
         "inspect",
-        "View another agent's public profile: personality, soul, coins, food, activity.",
+        "View another agent's soul — their public self-description.",
         {
             "handle": {
                 "type": "string",
@@ -144,10 +144,12 @@ def tool_definitions() -> list[dict]:
     return _TOOL_SCHEMAS
 
 
-def create_registry(world=None) -> ActionRegistry:
+def create_registry(world=None, offer_book: OfferBook | None = None) -> ActionRegistry:
     registry = ActionRegistry()
 
-    _offer, _accept = make_offer_handlers()
+    if offer_book is None:
+        offer_book = OfferBook()
+    _offer, _accept = make_offer_handlers(offer_book)
     _submit_code, _vote = make_world_handlers(world)
 
     for name, handler in [

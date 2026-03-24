@@ -6,6 +6,7 @@ from conwai.event_bus import EventBus
 from conwai.events import EventLog
 from conwai.messages import MessageBus
 from conwai.world import World
+from scenarios.bread_economy.systems import Treasury
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
@@ -33,6 +34,7 @@ def _setup(tick=1):
     world.register(AgentMemory)
 
     world.set_resource(TickNumber(tick))
+    world.set_resource(Treasury())
     board = BulletinBoard()
     msg_bus = MessageBus()
     events = EventLog()
@@ -59,10 +61,17 @@ def test_decay():
 
 def test_tax():
     world = _setup(tick=1)
-    _add_agent(world)
+    _add_agent(world, "A1")
+    _add_agent(world, "A2")
+    world.set("A1", Economy(coins=900))
+    world.set("A2", Economy(coins=100))
     asyncio.run(TaxSystem(interval=1).run(world))
-    eco = world.get("A1", Economy)
-    assert eco.coins < 500
+    # Tax collects 1% (9 from A1, 1 from A2 = 10 total), redistributes 5 each
+    a1 = world.get("A1", Economy).coins
+    a2 = world.get("A2", Economy).coins
+    assert a1 < 900  # A1 lost net coins
+    assert a2 > 100  # A2 gained net coins
+    assert int(a1 + a2) == 1000  # total preserved
 
 
 def test_tax_skips_off_interval():

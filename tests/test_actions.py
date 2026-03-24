@@ -94,10 +94,11 @@ def test_inspect():
     world, board, bus, registry = _setup()
     _add(world, "A1", "baker")
     _add(world, "A2", "flour_forager")
+    world.set("A2", AgentMemory(soul="reliable trader"))
     registry.begin_tick(world, ["A1", "A2"])
     result = registry.execute("A1", "inspect", {"handle": "A2"}, world)
     assert "A2" in result
-    assert "flour forager" in result
+    assert "reliable trader" in result
 
 
 def test_update_soul():

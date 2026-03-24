@@ -19,7 +19,9 @@ from conwai.processes.types import Episodes, WorkingMemory
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
+from scenarios.bread_economy.actions.economy import OfferBook
 from scenarios.bread_economy.actions.registry import tool_definitions
+from scenarios.bread_economy.systems import Treasury
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
@@ -215,6 +217,7 @@ async def run():
     world.register(AgentInfo)
     world.register(PendingActions)
     world.register(ActionFeedback)
+    world.set_resource(Treasury())
 
     # --- Infrastructure ---
     board = BulletinBoard(
@@ -254,7 +257,9 @@ async def run():
     )
 
     # --- Actions ---
-    registry = create_registry(world=world_events)
+    offer_book = OfferBook()
+    world.set_resource(offer_book)
+    registry = create_registry(world=world_events, offer_book=offer_book)
     world.set_resource(registry)
 
     # --- Embedder (shared across all agents, stateless) ---
@@ -300,7 +305,7 @@ async def run():
                 first_person=True,
             ),
             ActivationRecall(
-                recall_limit=5, reflection_limit=2, embedder=embedder,
+                recall_limit=5, reflection_limit=5, embedder=embedder,
                 delta=0.2 if with_importance else 0.0,
             ),
             ContextAssembly(

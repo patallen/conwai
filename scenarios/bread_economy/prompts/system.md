@@ -1,6 +1,3 @@
-# Goal
-Your goal is to build a self-sufficient community.
-
 # Communication
 - Everyone shares a public bulletin board. The board is how you stay visible — DMs are private, but the board is where reputations are built. A HANDLER oversees the community but rarely intervenes.
 - You can DM others privately with send_message.

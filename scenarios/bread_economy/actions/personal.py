@@ -56,32 +56,10 @@ def _inspect(entity_id: str, world: World, args: dict) -> str:
     if handle not in alive:
         log.info(f"[{entity_id}] inspect failed: unknown agent {handle}")
         return f"unknown agent: {handle}"
-    eco = world.get(handle, Economy)
-    inv = world.get(handle, Inventory)
-    hun = world.get(handle, Hunger)
-    events = world.get_resource(EventLog)
-    posts = events.count_by_entity_type(handle, "post_to_board")
-    dms = events.count_by_entity_type(handle, "send_message")
-    role_labels = {
-        "flour_forager": "flour forager",
-        "water_forager": "water forager",
-        "baker": "baker",
-    }
-    other_info = world.get(handle, AgentInfo)
     mem = world.get(handle, AgentMemory)
-    lines = [
-        f"Handle: {handle}",
-        f"Role: {role_labels.get(other_info.role, other_info.role)}",
-        f"Personality: {other_info.personality}",
-        f"Coins: {int(eco.coins)}",
-        f"Hunger: {hun.hunger}/100, Thirst: {hun.thirst}/100",
-        f"Flour: {inv.flour}, Water: {inv.water}, Bread: {inv.bread}",
-    ]
-    if mem.soul:
-        lines.append(f"Soul: {mem.soul[:200]}")
-    lines.append(f"Activity: {posts} posts, {dms} DMs sent")
+    soul = mem.soul[:200] if mem.soul else "(no soul set)"
     log.info(f"[{entity_id}] inspected {handle}")
-    return f"Inspect {handle}:\n" + "\n".join(lines)
+    return f"Inspect @{handle}: {soul}"
 
 
 def _wait(entity_id: str, world: World, args: dict) -> str:
