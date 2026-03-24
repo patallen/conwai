@@ -46,6 +46,13 @@ class OfferBook:
     def count_by_agent(self, handle: str) -> int:
         return sum(1 for o in self._offers.values() if o["from"] == handle)
 
+    def offers_for(self, handle: str, tick: int) -> list[tuple[int, dict]]:
+        """Return all pending offers directed at this agent."""
+        return [
+            (oid, o) for oid, o in self._offers.items()
+            if o["to"] == handle and tick - o["tick"] < self.expiry
+        ]
+
 
 def _pay(entity_id: str, world: World, args: dict) -> str:
     to = args.get("to", "").lstrip("@")
@@ -168,7 +175,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             f"[{entity_id}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}"
         )
         return (
-            f"Offer #{oid} sent to {to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks.",
+            f"Offer sent to @{to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks.",
             {"id": oid},
         )
 
@@ -182,9 +189,9 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             return f"Invalid offer_id: {args.get('offer_id')}. Use the numeric offer ID (e.g. 5)."
         offer = offer_book.get(oid)
         if not offer:
-            return f"Offer #{oid} not found or expired."
+            return "That offer is no longer available."
         if offer["to"] != entity_id:
-            return f"Offer #{oid} is not for you."
+            return "That offer is not for you."
 
         offerer = offer["from"]
         give_type = offer["give_type"]
@@ -197,16 +204,12 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             off_eco = world.get(offerer, Economy)
             if give_amount > off_eco.coins:
                 offer_book.remove(oid)
-                return (
-                    f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
-                )
+                return f"Trade failed: @{offerer} no longer has enough {give_type}."
         else:
             off_inv = world.get(offerer, Inventory)
             if give_amount > getattr(off_inv, give_type):
                 offer_book.remove(oid)
-                return (
-                    f"Offer #{oid} failed: {offerer} no longer has enough {give_type}."
-                )
+                return f"Trade failed: @{offerer} no longer has enough {give_type}."
 
         # Verify accepter has the wanted resources
         if want_type == "coins":
@@ -248,11 +251,11 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         perception = world.get_resource(BreadPerceptionBuilder)
         perception.notify(
             offerer,
-            f"Offer #{oid} accepted by @{entity_id}: gave {give_amount} {give_type}, received {want_amount} {want_type}",
+            f"Trade with @{entity_id}: gave {give_amount} {give_type}, received {want_amount} {want_type}",
         )
         perception.notify(
             entity_id,
-            f"Accepted offer #{oid} from @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}",
+            f"Trade with @{offerer}: received {give_amount} {give_type}, gave {want_amount} {want_type}",
         )
 
         if world.bus:
