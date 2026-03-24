@@ -117,6 +117,7 @@ class ConsolidationProcess:
 
         vectors = [e.embedding for e in entries_with_emb]
         insights = []
+        consumed: set[int] = set()  # indices into entries_with_emb
 
         for question in questions:
             q_vec = self._embedder.embed([question])[0]
@@ -128,6 +129,7 @@ class ConsolidationProcess:
             insight = await self._generate_insight(question, evidence, agent_id)
             if insight:
                 insights.append(insight)
+                consumed.update(top_indices)
 
         existing_reflections = set()
         for e in eps.entries:
@@ -137,6 +139,10 @@ class ConsolidationProcess:
 
         new_insights = [ins for ins in insights if ins not in existing_reflections]
         if new_insights:
+            # Remove episodes that were consumed by reflections
+            consumed_episodes = {id(entries_with_emb[i]) for i in consumed}
+            eps.entries = [e for e in eps.entries if id(e) not in consumed_episodes]
+
             insight_vecs = self._embedder.embed(new_insights)
             for text, vec in zip(new_insights, insight_vecs):
                 eps.entries.append(
@@ -150,7 +156,7 @@ class ConsolidationProcess:
             ctx.state.set(eps)
 
             log.info(
-                f"[@{agent_id}] reflection: {len(entries_with_emb)} entries -> "
+                f"[@{agent_id}] reflection: consolidated {len(consumed)} episodes -> "
                 f"{len(new_insights)} insights ({len(insights) - len(new_insights)} dupes skipped)"
             )
             for ins in new_insights:
