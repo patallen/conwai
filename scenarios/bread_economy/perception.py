@@ -131,8 +131,9 @@ class BreadPerceptionBuilder:
                 for oid, o in pending:
                     remaining = o["tick"] + offer_book.expiry - tick
                     offer_lines.append(
-                        f"Offer #{oid} from @{o['from']}: {o['give_amount']} {o['give_type']} "
-                        f"for {o['want_amount']} {o['want_type']} "
+                        f"Offer #{oid} from @{o['from']}: "
+                        f"you give {o['want_amount']} {o['want_type']}, "
+                        f"you receive {o['give_amount']} {o['give_type']} "
                         f"(expires in {remaining} ticks). Use accept(offer_id={oid}) to accept."
                     )
                 parts.append("Pending trade offers for you:\n" + "\n".join(offer_lines))

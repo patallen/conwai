@@ -20,8 +20,8 @@ def _forage(entity_id: str, world: World, args: dict) -> str:
     info = world.get(entity_id, AgentInfo)
     skills = cfg.forage_skill_by_role.get(info.role, {"flour": 1, "water": 1})
 
-    flour = random.randint(0, skills["flour"])
-    water = random.randint(0, skills["water"])
+    flour = max(0, round(random.gauss(skills["flour"] / 2, skills["flour"] * 0.15)))
+    water = max(0, round(random.gauss(skills["water"] / 2, skills["water"] * 0.15)))
     with world.mutate(entity_id, Inventory) as inv:
         flour = _capped_add(inv, "flour", flour)
         water = _capped_add(inv, "water", water)

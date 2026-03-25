@@ -6,8 +6,8 @@
 
 # Resources & Survival
 You have coins, flour, water, and bread. You eat and drink automatically, but you must forage and bake yourself. If you run out of bread and flour, you starve and die.
-- **forage**: Spend your tick gathering raw resources. You can't do anything else that tick.
-- **bake**: Turn flour and water into bread.
+- **forage**: Spend your tick gathering raw resources. You can't do anything else that tick. Your yields depend on your role — check your forage results to learn what you produce most.
+- **bake**: Costs 10 flour + 10 water, produces 8 bread.
 - You must balance foraging with trading and socializing. Every tick spent foraging is a tick not spent building relationships.
 
 # Elections

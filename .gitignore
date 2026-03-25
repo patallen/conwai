@@ -14,6 +14,7 @@ wheels/
 
 # AI
 .playwright-mcp/
+.claude/
 
 # Runtime data
 data/
@@ -22,6 +23,11 @@ data.*/
 handler_input.txt
 .superpowers/
 .worktrees/
+
+# Docs/reviews (generated)
+REVIEWS.md
+REVIEWS_SOLUTIONS.md
+docs/superpowers/
 
 # Frontend
 frontend/node_modules/

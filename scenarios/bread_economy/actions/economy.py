@@ -168,7 +168,9 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         perception = world.get_resource(BreadPerceptionBuilder)
         perception.notify(
             to,
-            f"Trade offer #{oid} from @{entity_id}: {give_amount} {give_type} for {want_amount} {want_type}. Use accept(offer_id={oid}) to accept.",
+            f"Trade offer #{oid} from @{entity_id}: "
+            f"you give {want_amount} {want_type}, you receive {give_amount} {give_type}. "
+            f"Use accept(offer_id={oid}) to accept.",
         )
 
         log.info(
