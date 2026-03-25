@@ -1,0 +1,8 @@
+{
+    "pond_capacity": 100,
+    "pond_starting_population": 100,
+    "pond_collapse_threshold": 5,
+    "agent_count": 6,
+    "fish_max": 100,
+    "max_ticks": 1000
+}
