@@ -176,11 +176,10 @@ async def run():
     from conwai.scheduler import Scheduler
     from conwai.event_types import ActionExecuted
 
-    think_cost = cfg.think_cost if cfg.think_cost is not None else 0
     scheduler = Scheduler(
         bus=event_bus,
         resolution=cfg.tick_resolution,
-        default_cost=think_cost,
+        default_cost=cfg.activation_cost,
     )
 
     async def activate(handle):
