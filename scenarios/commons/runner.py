@@ -11,7 +11,7 @@ import scenarios.commons.config as config
 from conwai.actions import ActionFeedback, PendingActions
 from conwai.brain import Brain
 from conwai.bulletin_board import BulletinBoard
-from conwai.contrib.systems import ActionSystem, BrainSystem
+from conwai.scheduler import SchedulerSystem
 from conwai.engine import Engine, TickNumber
 from conwai.event_bus import EventBus
 from conwai.events import EventLog
@@ -166,20 +166,33 @@ async def run():
         bus.register(handle)
     bus.register("WORLD")
 
-    # --- Brain system ---
-    brain_system = BrainSystem(
-        brains=brains, perception=perception.build, percept_log="data/percepts.jsonl"
+    # --- Trigger function ---
+    def dm_trigger(result):
+        """Re-trigger DM recipients within a tick."""
+        if result.action == "send_message":
+            target = result.args.get("to", "").lstrip("@")
+            if target:
+                return [target]
+        return []
+
+    # --- Scheduler ---
+    scheduler = SchedulerSystem(
+        brains=brains,
+        perception=perception.build,
+        actions=registry,
+        resolution=cfg.tick_resolution,
+        think_cost=cfg.think_cost,
+        retrigger_cost=cfg.retrigger_cost,
+        trigger_fn=dm_trigger if cfg.tick_resolution > 1 else None,
     )
-    brain_system.load_brain_states(world)
-    action_system = ActionSystem(actions=registry)
+    scheduler.load_brain_states(world)
 
     # --- Engine ---
     engine = Engine(
         world,
         systems=[
             PondSystem(),
-            brain_system,
-            action_system,
+            scheduler,
         ],
     )
 

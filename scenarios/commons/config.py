@@ -29,6 +29,9 @@ class CommonsConfig:
     memory_max: int = 1000
     max_ticks: int = 1000
     seed: int | None = None
+    tick_resolution: int = 1
+    think_cost: int | None = None
+    retrigger_cost: int = 1
 
     @classmethod
     def from_file(cls, path: Path | None = None) -> CommonsConfig:
