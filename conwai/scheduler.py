@@ -89,8 +89,8 @@ class SchedulerSystem:
                 f"processing {len(due_handles)} agent(s)"
             )
 
-            # Process completions, collect re-triggers
-            triggered: list[str] = []
+            # Pass 1: process all completions, move everyone to idle
+            all_feedback: list[tuple[str, list[ActionResult]]] = []
             for handle, result in zip(due_handles, results):
                 del in_flight[handle]
 
@@ -107,9 +107,12 @@ class SchedulerSystem:
                 feedback = self._execute_actions(handle, decisions, world)
                 world.set(handle, ActionFeedback(entries=feedback))
                 idle.add(handle)
+                all_feedback.append((handle, feedback))
 
-                # Check for re-triggers (only if room remains in the tick)
-                if self.trigger_fn and subtick + self.retrigger_cost < self.resolution:
+            # Pass 2: check all triggers (order-independent)
+            triggered: list[str] = []
+            if self.trigger_fn and subtick + self.retrigger_cost < self.resolution:
+                for _, feedback in all_feedback:
                     for entry in feedback:
                         for target in self.trigger_fn(entry):
                             if target in idle and target not in in_flight:

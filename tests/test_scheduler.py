@@ -253,32 +253,28 @@ def _dm_trigger(result: ActionResult) -> list[str]:
 
 
 def test_dm_retriggers_idle_recipient():
-    """Sender DMs recipient. Recipient (idle) gets re-triggered and thinks again.
-
-    Agents resolve in sorted order within a subtick. The sender must sort
-    after the recipient so the recipient is already idle when the trigger fires.
-    """
-    think_count = {"sender": 0, "recipient": 0}
+    """Agent A sends DM to B. B (idle) gets re-triggered and thinks again."""
+    think_count = {"A": 0, "B": 0}
 
     class DMSender:
         async def run(self, ctx):
-            think_count["sender"] += 1
+            think_count["A"] += 1
             decisions = ctx.bb.get(Decisions) or Decisions()
             decisions.entries.append(
-                Decision("send_message", {"to": "@A_recip", "message": "hello"})
+                Decision("send_message", {"to": "@B", "message": "hello"})
             )
             ctx.bb.set(decisions)
 
     class Counter:
         async def run(self, ctx):
-            think_count["recipient"] += 1
+            think_count["B"] += 1
             decisions = ctx.bb.get(Decisions) or Decisions()
             decisions.entries.append(Decision("eat", {}))
             ctx.bb.set(decisions)
 
     world = _setup_world()
-    world.spawn("A_recip")
-    world.spawn("Z_sender")
+    world.spawn("A")
+    world.spawn("B")
 
     registry = ActionRegistry()
     registry.register(Action(name="eat", handler=lambda eid, w, a: "yum"))
@@ -290,14 +286,13 @@ def test_dm_retriggers_idle_recipient():
     )
 
     brains = {
-        "Z_sender": Brain(processes=[DMSender()]),
-        "A_recip": Brain(processes=[Counter()]),
+        "A": Brain(processes=[DMSender()]),
+        "B": Brain(processes=[Counter()]),
     }
 
     # resolution=5, think_cost=2, retrigger_cost=2
-    # Both resolve at subtick 1. Sorted order: A_recip, Z_sender.
-    # A_recip goes idle first. Z_sender's DM triggers A_recip.
-    # A_recip re-thinks, resolves at subtick 3.
+    # A and B resolve at subtick 1. A's DM triggers B.
+    # B re-thinks, resolves at subtick 3.
     scheduler = SchedulerSystem(
         brains=brains,
         perception=lambda eid, w: Percept(),
@@ -309,29 +304,29 @@ def test_dm_retriggers_idle_recipient():
     )
     asyncio.run(scheduler.run(world))
 
-    assert think_count["sender"] == 1      # sender thinks once
-    assert think_count["recipient"] == 2   # recipient thinks twice: initial + re-trigger
+    assert think_count["A"] == 1  # A thinks once
+    assert think_count["B"] == 2  # B thinks twice: initial + re-trigger
 
 
 def test_no_retrigger_at_resolution_1():
     """At resolution=1, no re-triggers fire -- backward compat."""
-    think_count = {"recipient": 0}
+    think_count = {"B": 0}
 
     class DMSender:
         async def run(self, ctx):
             decisions = ctx.bb.get(Decisions) or Decisions()
             decisions.entries.append(
-                Decision("send_message", {"to": "@A_recip", "message": "hi"})
+                Decision("send_message", {"to": "@B", "message": "hi"})
             )
             ctx.bb.set(decisions)
 
     class Counter:
         async def run(self, ctx):
-            think_count["recipient"] += 1
+            think_count["B"] += 1
 
     world = _setup_world()
-    world.spawn("A_recip")
-    world.spawn("Z_sender")
+    world.spawn("A")
+    world.spawn("B")
 
     registry = ActionRegistry()
     registry.register(
@@ -339,8 +334,8 @@ def test_no_retrigger_at_resolution_1():
     )
 
     brains = {
-        "Z_sender": Brain(processes=[DMSender()]),
-        "A_recip": Brain(processes=[Counter()]),
+        "A": Brain(processes=[DMSender()]),
+        "B": Brain(processes=[Counter()]),
     }
 
     scheduler = SchedulerSystem(
@@ -352,25 +347,21 @@ def test_no_retrigger_at_resolution_1():
     )
     asyncio.run(scheduler.run(world))
 
-    # Recipient thinks exactly once -- no re-trigger at resolution=1
-    assert think_count["recipient"] == 1
+    # B thinks exactly once -- no re-trigger at resolution=1
+    assert think_count["B"] == 1
 
 
 def test_cascade_retrigger():
-    """Z_sender DMs B_mid, B_mid DMs A_end -- cascading re-triggers within one tick.
-
-    Sorted processing order at subtick 1: A_end, B_mid, Z_sender.
-    Z_sender's DM triggers B_mid (already idle). B_mid re-triggers at subtick 3,
-    DMs A_end (already idle). A_end re-triggers at subtick 5.
-    """
-    think_count = {"sender": 0, "mid": 0, "end": 0}
+    """A DMs B, B DMs C -- cascading re-triggers within one tick."""
+    think_count = {"A": 0, "B": 0, "C": 0}
 
     class DMTo:
-        def __init__(self, target):
+        def __init__(self, target, key):
             self.target = target
+            self.key = key
 
         async def run(self, ctx):
-            think_count["sender"] += 1
+            think_count[self.key] += 1
             decisions = ctx.bb.get(Decisions) or Decisions()
             decisions.entries.append(
                 Decision(
@@ -381,17 +372,16 @@ def test_cascade_retrigger():
             ctx.bb.set(decisions)
 
     class CountAndDM:
-        """B_mid: count think, then DM A_end on re-trigger (2nd think)."""
+        """B: count think, then DM C on re-trigger (2nd think)."""
 
         async def run(self, ctx):
-            think_count["mid"] += 1
+            think_count["B"] += 1
             decisions = ctx.bb.get(Decisions) or Decisions()
-            if think_count["mid"] == 2:
-                # On re-trigger, DM A_end
+            if think_count["B"] == 2:
                 decisions.entries.append(
                     Decision(
                         "send_message",
-                        {"to": "@A_end", "message": "forwarding"},
+                        {"to": "@C", "message": "forwarding"},
                     )
                 )
             else:
@@ -406,9 +396,9 @@ def test_cascade_retrigger():
             think_count[self.key] += 1
 
     world = _setup_world()
-    world.spawn("A_end")
-    world.spawn("B_mid")
-    world.spawn("Z_sender")
+    world.spawn("A")
+    world.spawn("B")
+    world.spawn("C")
 
     registry = ActionRegistry()
     registry.register(Action(name="eat", handler=lambda eid, w, a: "yum"))
@@ -417,15 +407,15 @@ def test_cascade_retrigger():
     )
 
     brains = {
-        "Z_sender": Brain(processes=[DMTo("B_mid")]),
-        "B_mid": Brain(processes=[CountAndDM()]),
-        "A_end": Brain(processes=[CountOnly("end")]),
+        "A": Brain(processes=[DMTo("B", "A")]),
+        "B": Brain(processes=[CountAndDM()]),
+        "C": Brain(processes=[CountOnly("C")]),
     }
 
     # resolution=10, think_cost=2, retrigger_cost=2
-    # Subtick 1: A_end, B_mid, Z_sender resolve. Z_sender DMs B_mid -> B_mid re-triggered
-    # Subtick 3: B_mid resolves re-trigger, DMs A_end -> A_end re-triggered
-    # Subtick 5: A_end resolves re-trigger
+    # Subtick 1: A,B,C resolve. A DMs B -> B re-triggered
+    # Subtick 3: B resolves re-trigger, DMs C -> C re-triggered
+    # Subtick 5: C resolves re-trigger
     scheduler = SchedulerSystem(
         brains=brains,
         perception=lambda eid, w: Percept(),
@@ -437,6 +427,6 @@ def test_cascade_retrigger():
     )
     asyncio.run(scheduler.run(world))
 
-    assert think_count["sender"] == 1
-    assert think_count["mid"] == 2  # initial + re-trigger
-    assert think_count["end"] == 2  # initial + re-trigger from B_mid's cascade
+    assert think_count["A"] == 1
+    assert think_count["B"] == 2  # initial + re-trigger
+    assert think_count["C"] == 2  # initial + re-trigger from B's cascade
