@@ -1,198 +1,175 @@
-"""Tests for the generic sub-tick scheduler."""
+"""Tests for the sub-tick scheduler."""
 
 import asyncio
+from dataclasses import dataclass
 
-from conwai.scheduler import run_subticks
-
-
-def test_single_task():
-    """One task runs and returns its result."""
-    results = asyncio.run(
-        run_subticks(
-            keys=["a"],
-            make_task=lambda k: _async_return(f"done-{k}"),
-        )
-    )
-    assert results == {"a": "done-a"}
+from conwai.event_bus import Event, EventBus
+from conwai.scheduler import Scheduler
 
 
-def test_multiple_tasks():
-    """All tasks run concurrently and return results."""
-    results = asyncio.run(
-        run_subticks(
-            keys=["a", "b", "c"],
-            make_task=lambda k: _async_return(f"done-{k}"),
-        )
-    )
-    assert results == {"a": "done-a", "b": "done-b", "c": "done-c"}
+async def _val(v):
+    return v
+
+
+def test_schedule_and_run():
+    bus = EventBus()
+    s = Scheduler(bus, resolution=1)
+    s.schedule("a", lambda: _val("done"))
+    asyncio.run(s.run_tick())
+
+
+def test_multiple_tasks_concurrent():
+    bus = EventBus()
+    order = []
+
+    async def track(key):
+        order.append(key)
+
+    s = Scheduler(bus, resolution=1)
+    s.schedule("a", lambda: track("a"))
+    s.schedule("b", lambda: track("b"))
+    asyncio.run(s.run_tick())
+    assert set(order) == {"a", "b"}
 
 
 def test_error_does_not_crash_others():
-    """A failing task doesn't prevent other tasks from completing."""
+    bus = EventBus()
+    ran = []
 
-    async def maybe_fail(k):
-        if k == "bad":
-            raise RuntimeError("boom")
-        return f"done-{k}"
+    async def fail():
+        raise RuntimeError("boom")
 
-    results = asyncio.run(
-        run_subticks(keys=["bad", "good"], make_task=maybe_fail)
-    )
-    assert isinstance(results["bad"], RuntimeError)
-    assert results["good"] == "done-good"
+    async def ok():
+        ran.append(True)
 
-
-def test_empty_keys():
-    """No keys produces empty results."""
-    results = asyncio.run(
-        run_subticks(keys=[], make_task=lambda k: _async_return(k))
-    )
-    assert results == {}
+    s = Scheduler(bus, resolution=1)
+    s.schedule("bad", fail)
+    s.schedule("good", ok)
+    asyncio.run(s.run_tick())
+    assert ran == [True]
 
 
-def test_resolution_1_no_retriggers():
-    """At resolution=1, on_complete never fires (no room for re-triggers)."""
-    call_count = {"a": 0}
+def test_duplicate_key_ignored():
+    bus = EventBus()
+    count = {"a": 0}
 
-    async def tracked(k):
-        call_count[k] += 1
-        return "done"
+    async def track():
+        count["a"] += 1
 
-    def retrigger_all(key, result):
-        return ["a"]  # try to re-trigger
-
-    results = asyncio.run(
-        run_subticks(
-            keys=["a"],
-            make_task=tracked,
-            resolution=1,
-            on_complete=retrigger_all,
-        )
-    )
-    assert call_count["a"] == 1
+    s = Scheduler(bus, resolution=5)
+    s.schedule("a", track)
+    s.schedule("a", track)  # duplicate, ignored
+    asyncio.run(s.run_tick())
+    assert count["a"] == 1
 
 
-def test_retrigger_fires_with_room():
-    """on_complete can re-trigger a task when resolution allows it."""
-    call_count = {"a": 0, "b": 0}
+def test_event_driven_retrigger():
+    """Events from completed work trigger new work via the EventBus."""
+    bus = EventBus()
+    ran = []
 
-    async def tracked(k):
-        call_count[k] += 1
-        return f"done-{k}"
+    @dataclass
+    class Done(Event):
+        key: str = ""
 
-    def retrigger_b(key, result):
-        if key == "a":
-            return ["b"]
-        return []
+    s = Scheduler(bus, resolution=5, default_cost=0)
 
-    asyncio.run(
-        run_subticks(
-            keys=["a", "b"],
-            make_task=tracked,
-            resolution=5,
-            task_cost=2,
-            retrigger_cost=2,
-            on_complete=retrigger_b,
-        )
-    )
-    assert call_count["a"] == 1
-    assert call_count["b"] == 2  # initial + re-trigger
+    def on_done(event):
+        if event.key == "a":
+            s.schedule("b", lambda: _track("b"), cost=1)
 
+    bus.subscribe(Done, on_done)
 
-def test_cascade_retrigger():
-    """a -> b -> c cascading re-triggers within one tick."""
-    call_count = {"a": 0, "b": 0, "c": 0}
+    async def _track(key):
+        ran.append(key)
+        bus.emit(Done(key=key))
 
-    async def tracked(k):
-        call_count[k] += 1
-        return f"done-{k}-{call_count[k]}"
+    s.schedule("a", lambda: _track("a"))
+    asyncio.run(s.run_tick())
 
-    def cascade(key, result):
-        # a triggers b, b's second run triggers c
-        if key == "a":
-            return ["b"]
-        if key == "b" and "done-b-2" in str(result):
-            return ["c"]
-        return []
-
-    asyncio.run(
-        run_subticks(
-            keys=["a", "b", "c"],
-            make_task=tracked,
-            resolution=10,
-            task_cost=2,
-            retrigger_cost=2,
-            on_complete=cascade,
-        )
-    )
-    assert call_count["a"] == 1
-    assert call_count["b"] == 2
-    assert call_count["c"] == 2
+    assert ran == ["a", "b"]
 
 
-def test_task_cost_clamped_to_resolution():
-    """task_cost > resolution still resolves within the tick."""
-    results = asyncio.run(
-        run_subticks(
-            keys=["a"],
-            make_task=lambda k: _async_return("done"),
-            resolution=3,
-            task_cost=10,
-        )
-    )
-    assert results == {"a": "done"}
+def test_no_retrigger_at_resolution_1():
+    """At resolution=1, no room for re-triggered work."""
+    bus = EventBus()
+    ran = []
+
+    @dataclass
+    class Done(Event):
+        key: str = ""
+
+    s = Scheduler(bus, resolution=1, default_cost=0)
+
+    def on_done(event):
+        if event.key == "a":
+            s.schedule("b", lambda: _track("b"), cost=0)
+
+    bus.subscribe(Done, on_done)
+
+    async def _track(key):
+        ran.append(key)
+        bus.emit(Done(key=key))
+
+    s.schedule("a", lambda: _track("a"))
+    asyncio.run(s.run_tick())
+
+    assert ran == ["a"]
 
 
-def test_no_on_complete_means_no_retriggers():
-    """Without on_complete, tasks run exactly once."""
-    call_count = {"a": 0}
+def test_cascade():
+    """a -> b -> c cascade through events."""
+    bus = EventBus()
+    ran = []
 
-    async def tracked(k):
-        call_count[k] += 1
-        return "done"
+    @dataclass
+    class Done(Event):
+        key: str = ""
 
-    asyncio.run(
-        run_subticks(
-            keys=["a"],
-            make_task=tracked,
-            resolution=10,
-            task_cost=2,
-            on_complete=None,
-        )
-    )
-    assert call_count["a"] == 1
+    s = Scheduler(bus, resolution=10, default_cost=0)
 
+    def on_done(event):
+        if event.key == "a":
+            s.schedule("b", lambda: _track("b"), cost=2)
+        elif event.key == "b":
+            s.schedule("c", lambda: _track("c"), cost=2)
 
-def test_cannot_retrigger_inflight_task():
-    """on_complete can't re-trigger a task that's still in-flight."""
-    call_count = {"fast": 0, "slow": 0}
+    bus.subscribe(Done, on_done)
 
-    async def tracked(k):
-        call_count[k] += 1
-        return f"done-{k}"
+    async def _track(key):
+        ran.append(key)
+        bus.emit(Done(key=key))
 
-    def try_retrigger_slow(key, result):
-        if key == "fast":
-            return ["slow"]  # try to re-trigger slow, but it's in-flight
-        return []
+    s.schedule("a", lambda: _track("a"))
+    asyncio.run(s.run_tick())
 
-    asyncio.run(
-        run_subticks(
-            keys=["fast", "slow"],
-            make_task=tracked,
-            resolution=10,
-            task_cost=2,       # both resolve at subtick 1
-            retrigger_cost=1,  # re-trigger would resolve at subtick 2
-            on_complete=try_retrigger_slow,
-        )
-    )
-    # fast and slow both resolve at subtick 1 (same batch).
-    # After pass 1, both are idle. fast's on_complete tries to re-trigger slow.
-    # slow IS idle (two-pass), so it gets re-triggered. That's correct.
-    # The in-flight guard matters when tasks have DIFFERENT costs.
-    assert call_count["fast"] == 1
-    assert call_count["slow"] == 2  # initial + re-trigger
+    assert ran == ["a", "b", "c"]
 
 
-async def _async_return(val):
-    return val
+def test_cost_past_resolution_dropped():
+    """Work that would resolve past the tick is dropped."""
+    bus = EventBus()
+
+    s = Scheduler(bus, resolution=3, default_cost=0)
+    s.schedule("a", lambda: _val("ok"))
+    s.schedule("late", lambda: _val("nope"), cost=5)
+    asyncio.run(s.run_tick())
+    # "late" was dropped, only "a" ran
+
+
+def test_run_tick_resets_state():
+    """Each run_tick starts fresh."""
+    bus = EventBus()
+    count = {"a": 0}
+
+    async def track():
+        count["a"] += 1
+
+    s = Scheduler(bus, resolution=1)
+    s.schedule("a", track)
+    asyncio.run(s.run_tick())
+
+    s.schedule("a", track)
+    asyncio.run(s.run_tick())
+
+    assert count["a"] == 2

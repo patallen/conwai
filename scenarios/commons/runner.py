@@ -172,62 +172,60 @@ async def run():
             brain.load_state(data)
             log.info(f"[{handle}] loaded brain state")
 
-    # --- Scheduled brain + action system ---
-    from conwai.scheduler import run_subticks
+    # --- Scheduler ---
+    from conwai.scheduler import Scheduler
+    from conwai.event_types import ActionExecuted
 
-    class ScheduledAgents:
-        """Perceive, think, and act across sub-ticks."""
+    scheduler = Scheduler(
+        bus=event_bus,
+        resolution=cfg.tick_resolution,
+        default_cost=cfg.retrigger_cost,
+    )
+
+    async def activate(handle):
+        brain = brains[handle]
+        tick = world.get_resource(TickNumber)
+        percept = perception.build(handle, world)
+        decisions = await brain.think(percept)
+        world.save_raw(handle, "brain_state", brain.save_state())
+        feedback = []
+        for d in decisions:
+            result = registry.execute(handle, d.action, d.args, world)
+            feedback.append(ActionResult(
+                action=d.action, args=d.args, result=result,
+            ))
+        world.set(handle, ActionFeedback(entries=feedback))
+        log.info(f"[{handle}] tick {tick.value} complete")
+
+    # Event-driven re-triggering: DM recipients get scheduled
+    def on_action(event):
+        if event.action == "send_message":
+            target = event.args.get("to", "").lstrip("@")
+            if target in brains:
+                scheduler.schedule(target, lambda h=target: activate(h))
+
+    if cfg.tick_resolution > 1:
+        event_bus.subscribe(ActionExecuted, on_action)
+
+    class AgentSystem:
+        """Schedule all agents, then run the sub-tick scheduler."""
 
         name = "agents"
 
         async def run(self, world):
-            tick = world.get_resource(TickNumber)
             entities = set(world.entities())
             handles = sorted(h for h in brains if h in entities)
-            if not handles:
-                return
-
             registry.begin_tick(world, handles)
-
-            async def activate(handle):
-                brain = brains[handle]
-                percept = perception.build(handle, world)
-                decisions = await brain.think(percept)
-                world.save_raw(handle, "brain_state", brain.save_state())
-                feedback = []
-                for d in decisions:
-                    result = registry.execute(handle, d.action, d.args, world)
-                    feedback.append(ActionResult(
-                        action=d.action, args=d.args, result=result,
-                    ))
-                world.set(handle, ActionFeedback(entries=feedback))
-                log.info(f"[{handle}] tick {tick.value} complete")
-                return feedback
-
-            def on_complete(handle, feedback):
-                retriggers = []
-                for entry in feedback:
-                    if entry.action == "send_message":
-                        target = entry.args.get("to", "").lstrip("@")
-                        if target:
-                            retriggers.append(target)
-                return retriggers
-
-            await run_subticks(
-                keys=handles,
-                make_task=activate,
-                resolution=cfg.tick_resolution,
-                task_cost=cfg.think_cost,
-                retrigger_cost=cfg.retrigger_cost,
-                on_complete=on_complete if cfg.tick_resolution > 1 else None,
-            )
+            for handle in handles:
+                scheduler.schedule(handle, lambda h=handle: activate(h), cost=0)
+            await scheduler.run_tick()
 
     # --- Engine ---
     engine = Engine(
         world,
         systems=[
             PondSystem(),
-            ScheduledAgents(),
+            AgentSystem(),
         ],
     )
 
