@@ -108,8 +108,8 @@ def test_event_driven_retrigger():
     assert ran == ["a", "b"]
 
 
-def test_no_retrigger_at_resolution_1():
-    """At resolution=1, no room for re-triggered work."""
+def test_carries_over_at_resolution_1():
+    """At resolution=1, re-triggered work carries over and resolves next tick."""
     bus = EventBus()
     ran = []
 
@@ -131,10 +131,12 @@ def test_no_retrigger_at_resolution_1():
 
     async def go():
         s.schedule("a", lambda: _track("a"))
-        await s.run_tick()
+        await s.run_tick()  # a runs, b gets scheduled, carries over
+        assert ran == ["a"]
+        await s.run_tick()  # b resolves
+        assert ran == ["a", "b"]
 
     asyncio.run(go())
-    assert ran == ["a"]
 
 
 def test_cascade():
@@ -168,8 +170,8 @@ def test_cascade():
     assert ran == ["a", "b", "c"]
 
 
-def test_cost_past_resolution_dropped():
-    """Work that would resolve past the tick is dropped."""
+def test_cost_past_resolution_carries_over():
+    """Work past tick boundary carries over to next tick."""
     bus = EventBus()
     ran = []
 
@@ -180,11 +182,13 @@ def test_cost_past_resolution_dropped():
 
     async def go():
         s.schedule("a", lambda: _val("ok"))
-        s.schedule("late", lambda: track(), cost=5)  # past tick boundary
-        await s.run_tick()
+        s.schedule("late", lambda: track(), cost=5)  # resolves at subtick 5
+        await s.run_tick()  # tick has 3 subticks, "late" carries over
+        assert ran == []
+        await s.run_tick()  # "late" resolves (5 - 3 = subtick 2)
+        assert ran == [True]
 
     asyncio.run(go())
-    assert ran == []  # "late" was dropped
 
 
 def test_run_tick_resets_state():
