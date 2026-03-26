@@ -240,3 +240,61 @@ def test_negative_cost_raises():
             pass
 
     asyncio.run(go())
+
+
+def test_conversation_within_one_tick():
+    """Three-message conversation in a single tick.
+
+    Old system: each agent thinks once per tick. A DMs B, B sees it
+    next tick, replies, A sees reply the tick after. Three ticks.
+
+    With the scheduler: A DMs B, B re-triggers and replies, A
+    re-triggers and posts to board. One tick.
+    """
+    bus = EventBus()
+    transcript = []
+
+    @dataclass
+    class Message(Event):
+        sender: str = ""
+        recipient: str = ""
+
+    s = Scheduler(bus, resolution=10, default_cost=2)
+
+    inbox: dict[str, list[str]] = {"alice": [], "bob": []}
+
+    def on_message(event):
+        inbox[event.recipient].append(event.sender)
+        s.schedule(
+            event.recipient,
+            lambda r=event.recipient: agent_act(r),
+            cost=2,
+        )
+
+    bus.subscribe(Message, on_message)
+
+    async def agent_act(name):
+        if name == "alice" and not inbox["alice"]:
+            # First activation: alice DMs bob
+            transcript.append("alice -> bob: hey want to coordinate?")
+            bus.emit(Message(sender="alice", recipient="bob"))
+        elif name == "bob" and inbox["bob"]:
+            # Bob got a DM, replies
+            transcript.append("bob -> alice: yeah let's fish less")
+            bus.emit(Message(sender="bob", recipient="alice"))
+        elif name == "alice" and inbox["alice"]:
+            # Alice got reply, posts to board
+            transcript.append("alice -> board: we agreed to conserve")
+
+    async def go():
+        s.schedule("alice", lambda: agent_act("alice"))
+        s.schedule("bob", lambda: agent_act("bob"))
+        await s.run_tick()
+
+    asyncio.run(go())
+
+    assert transcript == [
+        "alice -> bob: hey want to coordinate?",
+        "bob -> alice: yeah let's fish less",
+        "alice -> board: we agreed to conserve",
+    ]
