@@ -14,8 +14,12 @@ async def _val(v):
 def test_schedule_and_run():
     bus = EventBus()
     s = Scheduler(bus, resolution=1)
-    s.schedule("a", lambda: _val("done"))
-    asyncio.run(s.run_tick())
+
+    async def go():
+        s.schedule("a", lambda: _val("done"))
+        await s.run_tick()
+
+    asyncio.run(go())
 
 
 def test_multiple_tasks_concurrent():
@@ -26,9 +30,13 @@ def test_multiple_tasks_concurrent():
         order.append(key)
 
     s = Scheduler(bus, resolution=1)
-    s.schedule("a", lambda: track("a"))
-    s.schedule("b", lambda: track("b"))
-    asyncio.run(s.run_tick())
+
+    async def go():
+        s.schedule("a", lambda: track("a"))
+        s.schedule("b", lambda: track("b"))
+        await s.run_tick()
+
+    asyncio.run(go())
     assert set(order) == {"a", "b"}
 
 
@@ -43,9 +51,13 @@ def test_error_does_not_crash_others():
         ran.append(True)
 
     s = Scheduler(bus, resolution=1)
-    s.schedule("bad", fail)
-    s.schedule("good", ok)
-    asyncio.run(s.run_tick())
+
+    async def go():
+        s.schedule("bad", fail)
+        s.schedule("good", ok)
+        await s.run_tick()
+
+    asyncio.run(go())
     assert ran == [True]
 
 
@@ -57,9 +69,13 @@ def test_duplicate_key_ignored():
         count["a"] += 1
 
     s = Scheduler(bus, resolution=5)
-    s.schedule("a", track)
-    s.schedule("a", track)  # duplicate, ignored
-    asyncio.run(s.run_tick())
+
+    async def go():
+        s.schedule("a", track)
+        s.schedule("a", track)  # duplicate, ignored
+        await s.run_tick()
+
+    asyncio.run(go())
     assert count["a"] == 1
 
 
@@ -84,9 +100,11 @@ def test_event_driven_retrigger():
         ran.append(key)
         bus.emit(Done(key=key))
 
-    s.schedule("a", lambda: _track("a"))
-    asyncio.run(s.run_tick())
+    async def go():
+        s.schedule("a", lambda: _track("a"))
+        await s.run_tick()
 
+    asyncio.run(go())
     assert ran == ["a", "b"]
 
 
@@ -111,9 +129,11 @@ def test_no_retrigger_at_resolution_1():
         ran.append(key)
         bus.emit(Done(key=key))
 
-    s.schedule("a", lambda: _track("a"))
-    asyncio.run(s.run_tick())
+    async def go():
+        s.schedule("a", lambda: _track("a"))
+        await s.run_tick()
 
+    asyncio.run(go())
     assert ran == ["a"]
 
 
@@ -140,21 +160,31 @@ def test_cascade():
         ran.append(key)
         bus.emit(Done(key=key))
 
-    s.schedule("a", lambda: _track("a"))
-    asyncio.run(s.run_tick())
+    async def go():
+        s.schedule("a", lambda: _track("a"))
+        await s.run_tick()
 
+    asyncio.run(go())
     assert ran == ["a", "b", "c"]
 
 
 def test_cost_past_resolution_dropped():
     """Work that would resolve past the tick is dropped."""
     bus = EventBus()
+    ran = []
+
+    async def track():
+        ran.append(True)
 
     s = Scheduler(bus, resolution=3, default_cost=0)
-    s.schedule("a", lambda: _val("ok"))
-    s.schedule("late", lambda: _val("nope"), cost=5)
-    asyncio.run(s.run_tick())
-    # "late" was dropped, only "a" ran
+
+    async def go():
+        s.schedule("a", lambda: _val("ok"))
+        s.schedule("late", lambda: track(), cost=5)  # past tick boundary
+        await s.run_tick()
+
+    asyncio.run(go())
+    assert ran == []  # "late" was dropped
 
 
 def test_run_tick_resets_state():
@@ -166,10 +196,30 @@ def test_run_tick_resets_state():
         count["a"] += 1
 
     s = Scheduler(bus, resolution=1)
-    s.schedule("a", track)
-    asyncio.run(s.run_tick())
 
-    s.schedule("a", track)
-    asyncio.run(s.run_tick())
+    async def go():
+        s.schedule("a", track)
+        await s.run_tick()
+        s.schedule("a", track)
+        await s.run_tick()
 
+    asyncio.run(go())
     assert count["a"] == 2
+
+
+def test_task_with_cost_resolves_later():
+    """Task scheduled with cost resolves at the right subtick."""
+    bus = EventBus()
+    resolved_at = {}
+
+    s = Scheduler(bus, resolution=5, default_cost=3)
+
+    async def track_resolve(key):
+        resolved_at[key] = s.current_subtick
+
+    async def go():
+        s.schedule("a", lambda: track_resolve("a"))  # cost=3, resolves at subtick 3
+        await s.run_tick()
+
+    asyncio.run(go())
+    assert resolved_at["a"] == 3
