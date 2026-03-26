@@ -108,8 +108,8 @@ def test_event_driven_retrigger():
     assert ran == ["a", "b"]
 
 
-def test_carries_over_at_resolution_1():
-    """At resolution=1, re-triggered work carries over and resolves next tick."""
+def test_same_time_retrigger():
+    """Work scheduled at the same sim_time resolves in the same step."""
     bus = EventBus()
     ran = []
 
@@ -131,9 +131,7 @@ def test_carries_over_at_resolution_1():
 
     async def go():
         s.schedule("a", lambda: _track("a"))
-        await s.run_tick()  # a runs, b gets scheduled, carries over
-        assert ran == ["a"]
-        await s.run_tick()  # b resolves
+        await s.run_tick()
         assert ran == ["a", "b"]
 
     asyncio.run(go())
@@ -219,7 +217,7 @@ def test_task_with_cost_resolves_later():
     s = Scheduler(bus, resolution=5, default_cost=3)
 
     async def track_resolve(key):
-        resolved_at[key] = s.current_subtick
+        resolved_at[key] = s.sim_time
 
     async def go():
         s.schedule("a", lambda: track_resolve("a"))  # cost=3, resolves at subtick 3
