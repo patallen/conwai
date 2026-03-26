@@ -91,6 +91,10 @@ def test_scheduler_handles_brain_error():
         resolution=1,
     )
     asyncio.run(scheduler.run(world))
+    # Errored agent gets empty feedback
+    fb_a1 = world.get("A1", ActionFeedback)
+    assert fb_a1.entries == []
+    # Healthy agent still succeeds
     fb = world.get("A2", ActionFeedback)
     assert len(fb.entries) == 1
 
@@ -152,3 +156,88 @@ def test_scheduler_load_brain_states():
     )
     scheduler.load_brain_states(world)
     # Verify no crash -- state loading is best-effort
+
+
+def test_subtick_agents_resolve_at_think_cost():
+    """Agents resolve at the sub-tick matching think_cost."""
+    world = _setup_world()
+    world.spawn("A1")
+    brain = Brain(processes=[FakeDecider()])
+    registry = _setup_registry()
+
+    # resolution=5, think_cost=3 -> agents resolve at sub-tick 2 (0-indexed)
+    scheduler = SchedulerSystem(
+        brains={"A1": brain},
+        perception=lambda eid, w: Percept(),
+        actions=registry,
+        resolution=5,
+        think_cost=3,
+    )
+    asyncio.run(scheduler.run(world))
+
+    fb = world.get("A1", ActionFeedback)
+    assert len(fb.entries) == 1
+    assert fb.entries[0].action == "eat"
+
+
+def test_subtick_think_cost_clamped_to_resolution():
+    """think_cost > resolution is clamped: agents still resolve within the tick."""
+    world = _setup_world()
+    world.spawn("A1")
+    brain = Brain(processes=[FakeDecider()])
+    registry = _setup_registry()
+
+    scheduler = SchedulerSystem(
+        brains={"A1": brain},
+        perception=lambda eid, w: Percept(),
+        actions=registry,
+        resolution=3,
+        think_cost=10,
+    )
+    asyncio.run(scheduler.run(world))
+
+    fb = world.get("A1", ActionFeedback)
+    assert len(fb.entries) == 1
+
+
+def test_subtick_no_trigger_fn_means_no_retriggers():
+    """Without a trigger_fn, no agent is ever re-triggered."""
+    think_count = {"B": 0}
+
+    class DMSender:
+        async def run(self, ctx):
+            decisions = ctx.bb.get(Decisions) or Decisions()
+            decisions.entries.append(
+                Decision("send_message", {"to": "@B", "message": "hi"})
+            )
+            ctx.bb.set(decisions)
+
+    class Counter:
+        async def run(self, ctx):
+            think_count["B"] += 1
+
+    world = _setup_world()
+    world.spawn("A")
+    world.spawn("B")
+
+    registry = ActionRegistry()
+    registry.register(
+        Action(name="send_message", handler=lambda eid, w, a: "sent")
+    )
+
+    brains = {
+        "A": Brain(processes=[DMSender()]),
+        "B": Brain(processes=[Counter()]),
+    }
+
+    scheduler = SchedulerSystem(
+        brains=brains,
+        perception=lambda eid, w: Percept(),
+        actions=registry,
+        resolution=10,
+        think_cost=2,
+        trigger_fn=None,  # no re-triggers
+    )
+    asyncio.run(scheduler.run(world))
+
+    assert think_count["B"] == 1
