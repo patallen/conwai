@@ -176,10 +176,11 @@ async def run():
     from conwai.scheduler import Scheduler
     from conwai.event_types import ActionExecuted
 
+    think_cost = cfg.think_cost if cfg.think_cost is not None else 0
     scheduler = Scheduler(
         bus=event_bus,
         resolution=cfg.tick_resolution,
-        default_cost=cfg.retrigger_cost,
+        default_cost=think_cost,
     )
 
     async def activate(handle):
@@ -202,10 +203,9 @@ async def run():
         if event.action == "send_message":
             target = event.args.get("to", "").lstrip("@")
             if target in brains:
-                scheduler.schedule(target, lambda h=target: activate(h))
+                scheduler.schedule(target, lambda h=target: activate(h), cost=cfg.retrigger_cost)
 
-    if cfg.tick_resolution > 1:
-        event_bus.subscribe(ActionExecuted, on_action)
+    event_bus.subscribe(ActionExecuted, on_action)
 
     class AgentSystem:
         """Schedule all agents, then run the sub-tick scheduler."""
@@ -217,7 +217,7 @@ async def run():
             handles = sorted(h for h in brains if h in entities)
             registry.begin_tick(world, handles)
             for handle in handles:
-                scheduler.schedule(handle, lambda h=handle: activate(h), cost=0)
+                scheduler.schedule(handle, lambda h=handle: activate(h))
             await scheduler.run_tick()
 
     # --- Engine ---

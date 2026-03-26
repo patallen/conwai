@@ -225,3 +225,18 @@ def test_task_with_cost_resolves_later():
 
     asyncio.run(go())
     assert resolved_at["a"] == 3
+
+
+def test_negative_cost_raises():
+    """Negative cost is rejected."""
+    bus = EventBus()
+    s = Scheduler(bus, resolution=5)
+
+    async def go():
+        try:
+            s.schedule("a", lambda: _val("x"), cost=-1)
+            assert False, "should have raised"
+        except ValueError:
+            pass
+
+    asyncio.run(go())
