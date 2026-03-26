@@ -69,11 +69,12 @@ class Scheduler:
             if self.bus:
                 self.bus.drain()
 
-        # Carry over unresolved work — shift resolve times into next tick
-        carried: dict[int, list[tuple[str, TaskFn]]] = defaultdict(list)
-        for resolve_at, entries in self._timeline.items():
-            new_resolve = max(0, resolve_at - self.resolution)
-            carried[new_resolve].extend(entries)
-            for key, _ in entries:
-                log.info(f"[SCHEDULER] {key} carrying over (resolves subtick {new_resolve})")
-        self._timeline = carried
+        # Carry over unresolved work to subtick 0 of next tick
+        if self._timeline:
+            leftover = []
+            for entries in self._timeline.values():
+                leftover.extend(entries)
+            self._timeline.clear()
+            self._timeline[0] = leftover
+            for key, _ in leftover:
+                log.info(f"[SCHEDULER] {key} carrying over to next tick")
