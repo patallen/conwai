@@ -293,12 +293,7 @@ async def main():
             f"You are {name}, a fisher at a shared pond.\n"
             f"Your private situation: {situations[name]}\n\n"
             f"Recent events:\n{h}\n\n"
-            f"The simulation has paused. Reflect honestly:\n"
-            f"1. What just happened?\n"
-            f"2. Who do you trust and why?\n"
-            f"3. What do you think the others are really thinking?\n"
-            f"4. What would you do next?\n"
-            f"Be honest with yourself. 3-5 sentences."
+            f"Write a detailed summary of your situation, what you've experienced, and your relationships."
         )
         resp = await llm.call("", [{"role": "user", "content": prompt}])
         print(f"--- {name} ---")
