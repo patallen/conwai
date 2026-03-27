@@ -66,15 +66,18 @@ class Scheduler:
 
             self.sim_time = resolve_time
 
-            # Create and run all tasks at this time step
+            # Clear keys from _active before running — tasks may re-schedule themselves
             keys = [k for k, _ in batch]
+            for key in keys:
+                self._active.discard(key)
+
+            # Create and run all tasks at this time step
             tasks = [asyncio.create_task(fn()) for _, fn in batch]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             log.info(f"[SCHEDULER] t={self.sim_time}: {keys}")
 
             for key, result in zip(keys, results):
-                self._active.discard(key)
                 if isinstance(result, Exception):
                     log.error(f"[SCHEDULER] {key} error: {result}", exc_info=result)
 
