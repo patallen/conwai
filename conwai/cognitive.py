@@ -1,53 +1,43 @@
 """Generator-based cognitive architecture.
 
-A CognitiveFunction is a generator that yields Work items with tick costs.
-The Brain's handle() method chains cognitive functions using yield from.
-The runner drives the generator, feeding results back via .send().
+The Mind yields Work items. The runner drives the generator, fulfilling
+each Work item however it wants (LLM call, rule engine, lookup table)
+and sending the result back via .send().
 
-The brain has no knowledge of the scheduler, async, or LLM clients.
-It just yields work and receives results.
+The framework only cares about Work.type and Work.tick_cost. Everything
+else is between the Mind implementation and its runner.
 """
 
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Generator
 
 from conwai.typemap import Percept, State
-
-log = logging.getLogger("conwai")
 
 
 @dataclass
 class Work:
     """A unit of work yielded by the mind.
 
-    type: what kind of thinking or action (triage, deliberate, react, command)
+    type: what kind of work (the mind and runner agree on valid types)
     tick_cost: how long this takes in simulated time
-    prompt: what to think about (for thinking work)
-    command: what to do (for action work)
     """
     type: str
-    tick_cost: int = 1
-    prompt: str | None = None
-    command: dict | None = None
+    tick_cost: int = 0
 
 
 @dataclass
 class WorkResult:
-    """Result delivered back to the generator via .send()."""
-    text: str = ""
-    tool_calls: list[dict] = field(default_factory=list)
-    data: dict = field(default_factory=dict)
+    """Result sent back to the mind via .send()."""
+    pass
 
 
-# Type alias for cognitive function generators
-CogGen = Generator[Work, WorkResult, Any]
+CogGen = Generator[Work, WorkResult, None]
 
 
 class Mind:
-    """Generator-based brain. Yields Work items, receives WorkResults.
+    """Generator-based brain. Yields Work items, receives results.
 
     The Mind owns persistent state that accumulates across cycles.
     Each handle() call produces a generator that the runner drives.
@@ -58,7 +48,7 @@ class Mind:
         self._state_registry = {t.__name__: t for t in (state_types or [])}
 
     def handle(self, percept: Percept) -> CogGen:
-        """Override this. Yield Work items, receive WorkResults."""
+        """Override this. Yield Work items, receive results."""
         raise NotImplementedError
 
     def save_state(self) -> dict:
