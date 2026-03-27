@@ -18,6 +18,24 @@ from conwai.scheduler import Scheduler
 from conwai.typemap import Percept
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
+
+
+# --- POC-specific Work/WorkResult with LLM fields ---
+
+@dataclass
+class Think(Work):
+    """Work that needs an LLM call."""
+    prompt: str = ""
+
+@dataclass
+class Command(Work):
+    """Work that executes an action."""
+    command: dict = field(default_factory=dict)
+
+@dataclass
+class ThinkResult(WorkResult):
+    """Result from an LLM call."""
+    text: str = ""
 log = logging.getLogger("conwai")
 
 HEARTBEAT = 3  # sim-time between activations
@@ -95,8 +113,8 @@ class FisherMind(Mind):
                "others": ", ".join(n for n in ["Alice", "Bob", "Charlie"] if n != name)}
 
         # Triage
-        result = yield Work(type="triage", tick_cost=1,
-                           prompt=TRIAGE_PROMPT.format(**ctx))
+        result = yield Think(type="triage", tick_cost=1,
+                            prompt=TRIAGE_PROMPT.format(**ctx))
         choice = result.text.strip().lower()[:1]
         log.info(f"  {name} triage -> {choice}")
 
@@ -105,12 +123,12 @@ class FisherMind(Mind):
 
         if choice == "c":
             ctx["depth"] = "Think carefully. What's really going on? Who benefits? What's your move?"
-            result = yield Work(type="deliberate", tick_cost=5,
-                               prompt=ACT_PROMPT.format(**ctx))
+            result = yield Think(type="deliberate", tick_cost=5,
+                                prompt=ACT_PROMPT.format(**ctx))
         else:
             ctx["depth"] = "Respond quickly."
-            result = yield Work(type="react", tick_cost=1,
-                               prompt=ACT_PROMPT.format(**ctx))
+            result = yield Think(type="react", tick_cost=1,
+                                prompt=ACT_PROMPT.format(**ctx))
 
         # Parse action
         text = result.text.strip()
@@ -118,15 +136,15 @@ class FisherMind(Mind):
             return
         elif text.upper().startswith("BOARD:"):
             msg = text[6:].strip()
-            yield Work(type="command", tick_cost=0,
-                      command={"post_board": True, "message": msg})
+            yield Command(type="command", tick_cost=0,
+                         command={"post_board": True, "message": msg})
         elif text.upper().startswith("DM"):
             rest = text[2:].strip()
             if ":" in rest:
                 target, msg = rest.split(":", 1)
                 target = target.strip().lstrip("@")
-                yield Work(type="command", tick_cost=0,
-                          command={"send_dm": target, "message": msg.strip()})
+                yield Command(type="command", tick_cost=0,
+                             command={"send_dm": target, "message": msg.strip()})
 
 
 # --- Runner ---
@@ -145,7 +163,7 @@ def drive(name, mind, percept, scheduler, bus, llm):
         except StopIteration:
             return
 
-        if w.command:
+        if isinstance(w, Command):
             cmd = w.command
             if "send_dm" in cmd:
                 log.info(f"  t={scheduler.sim_time} {name} -> {cmd['send_dm']}: {cmd['message'][:120]}")
@@ -153,17 +171,17 @@ def drive(name, mind, percept, scheduler, bus, llm):
             elif "post_board" in cmd:
                 log.info(f"  t={scheduler.sim_time} {name} -> BOARD: {cmd['message'][:120]}")
                 bus.emit(BoardPost(author=name, message=cmd["message"]))
-            step(WorkResult())
-        elif w.prompt:
+            step(ThinkResult())
+        elif isinstance(w, Think):
             async def do_llm():
                 log.info(f"  t={scheduler.sim_time} {name}: {w.type} (cost={w.tick_cost})")
                 resp = await llm.call("", [{"role": "user", "content": w.prompt}])
                 log.info(f"  t={scheduler.sim_time} {name} [{w.type}]: {resp.text.strip()[:120]}")
-                step(WorkResult(text=resp.text))
+                step(ThinkResult(text=resp.text))
 
             scheduler.schedule(f"{name}:{w.type}", do_llm, cost=w.tick_cost)
         else:
-            step(WorkResult())
+            step(ThinkResult())
 
     step()
 
