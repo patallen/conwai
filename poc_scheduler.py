@@ -1,8 +1,8 @@
-"""POC: Generator-based brain with DES scheduler and real LLM.
+"""POC: Heartbeat-driven agents with DES scheduler.
 
-Two fishers at a pond that's about to collapse. They have asymmetric
-information and need to negotiate a survival plan. The brain triages
-incoming messages, can react quickly or deliberate deeply.
+Agents perceive the world on their own schedule. DMs, board posts, and
+the pond are all just world state they see on each heartbeat. No
+event-triggered activations — just autonomous perception and thought.
 
 Run: python poc_scheduler.py
 """
@@ -20,6 +20,8 @@ from conwai.typemap import Percept
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
 log = logging.getLogger("conwai")
 
+HEARTBEAT = 3  # sim-time between activations
+
 
 # --- Percept entries ---
 
@@ -32,12 +34,8 @@ class Situation:
     text: str
 
 @dataclass
-class Inbox:
-    messages: list[tuple[str, str]]
-
-@dataclass
-class ConversationHistory:
-    entries: list[str]
+class WorldState:
+    text: str
 
 @dataclass
 class DM(Event):
@@ -51,38 +49,37 @@ class BoardPost(Event):
     message: str = ""
 
 
-# --- The brain ---
+# --- Prompts ---
 
 TRIAGE_PROMPT = """You are {name}, a fisher at a shared pond.
 
 Your situation: {situation}
 
-{history}
+{world_state}
 
-You received a message from {sender}: "{content}"
-
-How should you handle this?
-(a) IGNORE — not worth your time, conversation is over, just pleasantries
-(b) REPLY — respond quickly, nothing complicated
-(c) THINK DEEPLY — this needs careful strategic thought before responding
+Look at everything above. Is there anything worth acting on?
+(a) NOTHING — no new information, nothing to do
+(b) REACT — something needs a quick response
+(c) THINK DEEPLY — something important needs careful thought
 
 Reply with JUST the letter."""
 
-RESPOND_PROMPT = """You are {name}, a fisher at a shared pond.
+ACT_PROMPT = """You are {name}, a fisher at a shared pond.
 Your situation: {situation}
 
-{history}
-
-{sender} said: "{content}"
+{world_state}
 
 {depth}
 
-Respond in this EXACT format (pick one):
+What do you do? Pick ONE:
 DM @someone: your message
 BOARD: your public message
+NOTHING: do nothing
 
-You can DM anyone (Alice, Bob, Charlie) or post publicly."""
+You can DM anyone ({others}) or post publicly."""
 
+
+# --- The brain ---
 
 class FisherMind(Mind):
 
@@ -90,72 +87,59 @@ class FisherMind(Mind):
         name = percept.get(Name).value
         situation = percept.get(Situation)
         situation_text = situation.text if situation else ""
-        inbox = percept.get(Inbox)
-        messages = inbox.messages if inbox else []
-        conv = percept.get(ConversationHistory)
-        entries = conv.entries if conv else []
+        ws = percept.get(WorldState)
+        world_state = ws.text if ws else "Nothing notable."
 
-        if not messages:
+        ctx = {"name": name, "situation": situation_text,
+               "world_state": world_state,
+               "others": ", ".join(n for n in ["Alice", "Bob", "Charlie"] if n != name)}
+
+        # Triage
+        result = yield Work(type="triage", tick_cost=1,
+                           prompt=TRIAGE_PROMPT.format(**ctx))
+        choice = result.text.strip().lower()[:1]
+        log.info(f"  {name} triage -> {choice}")
+
+        if choice == "a":
             return
 
-        history_text = ""
-        if entries:
-            history_text = "Recent conversation:\n" + "\n".join(f"  {e}" for e in entries)
+        if choice == "c":
+            ctx["depth"] = "Think carefully. What's really going on? Who benefits? What's your move?"
+            result = yield Work(type="deliberate", tick_cost=5,
+                               prompt=ACT_PROMPT.format(**ctx))
+        else:
+            ctx["depth"] = "Respond quickly."
+            result = yield Work(type="react", tick_cost=1,
+                               prompt=ACT_PROMPT.format(**ctx))
 
-        for sender, content in messages:
-            ctx = {"name": name, "situation": situation_text,
-                   "sender": sender, "content": content, "history": history_text}
-
-            # Triage each message
-            result = yield Work(type="triage", tick_cost=1,
-                               prompt=TRIAGE_PROMPT.format(**ctx))
-            choice = result.text.strip().lower()[:1]
-            log.info(f"  {name} triage ({sender}) -> {choice}")
-
-            if choice == "a":
-                continue
-
-            if choice == "c":
-                ctx["depth"] = "Think carefully. What's really going on? Who can you trust? What's your move?"
-                result = yield Work(type="deliberate", tick_cost=5,
-                                   prompt=RESPOND_PROMPT.format(**ctx))
-            else:
-                ctx["depth"] = "Reply quickly."
-                result = yield Work(type="react", tick_cost=1,
-                                   prompt=RESPOND_PROMPT.format(**ctx))
-
-            # Parse response
-            text = result.text.strip()
-            if text.upper().startswith("BOARD:"):
-                msg = text[6:].strip()
+        # Parse action
+        text = result.text.strip()
+        if text.upper().startswith("NOTHING"):
+            return
+        elif text.upper().startswith("BOARD:"):
+            msg = text[6:].strip()
+            yield Work(type="command", tick_cost=0,
+                      command={"post_board": True, "message": msg})
+        elif text.upper().startswith("DM"):
+            rest = text[2:].strip()
+            if ":" in rest:
+                target, msg = rest.split(":", 1)
+                target = target.strip().lstrip("@")
                 yield Work(type="command", tick_cost=0,
-                          command={"post_board": True, "message": msg})
-            elif text.upper().startswith("DM"):
-                rest = text[2:].strip()
-                if ":" in rest:
-                    target, msg = rest.split(":", 1)
-                    target = target.strip().lstrip("@")
-                    yield Work(type="command", tick_cost=0,
-                              command={"send_dm": target, "message": msg.strip()})
-            else:
-                yield Work(type="command", tick_cost=0,
-                          command={"send_dm": sender, "message": text})
+                          command={"send_dm": target, "message": msg.strip()})
 
 
 # --- Runner ---
 
 def drive(name, mind, percept, scheduler, bus, llm):
-    """Drive a Mind generator through the scheduler. Each yield with a cost
-    goes back to the scheduler and resumes at the right sim_time."""
     gen = mind.handle(percept)
     try:
         work = next(gen)
     except StopIteration:
-        log.info(f"  t={scheduler.sim_time} {name}: idle")
+        log.info(f"  t={scheduler.sim_time} {name}: nothing to do")
         return
 
     def step(result=None):
-        """Send result into generator, schedule the next Work item."""
         try:
             w = gen.send(result) if result is not None else work
         except StopIteration:
@@ -169,7 +153,6 @@ def drive(name, mind, percept, scheduler, bus, llm):
             elif "post_board" in cmd:
                 log.info(f"  t={scheduler.sim_time} {name} -> BOARD: {cmd['message'][:120]}")
                 bus.emit(BoardPost(author=name, message=cmd["message"]))
-            # Commands are instant — advance the generator
             step(WorkResult())
         elif w.prompt:
             async def do_llm():
@@ -189,7 +172,7 @@ def drive(name, mind, percept, scheduler, bus, llm):
 
 async def main():
     bus = EventBus()
-    scheduler = Scheduler(bus, default_cost=1)
+    scheduler = Scheduler(bus, default_cost=0)
     board: list[str] = []
 
     llm = LLMClient(
@@ -199,29 +182,25 @@ async def main():
         api_key="none",
     )
 
-    # Three agents, three different pieces of the puzzle
     situations = {
         "Alice": (
             "You've been secretly monitoring the pond at night. You saw someone "
             "fishing after dark — you couldn't see who, but they were taking huge "
             "amounts. The pond is now critically low (maybe 12 fish left). If anyone "
             "takes more than 5, it collapses forever. You need to figure out who the "
-            "night fisher is and get everyone to agree to limits. You have 30 fish saved. "
-            "You can DM anyone: Bob or Charlie. You can also post to the public board."
+            "night fisher is and get everyone to agree to limits. You have 30 fish saved."
         ),
         "Bob": (
             "You've been fishing 10-15 per round and it's been working fine. You have "
             "15 fish saved. But lately you've noticed the pond seems a little lower than "
             "usual. You overheard Charlie bragging about a 'secret technique' last week "
-            "but you're not sure what it means. You're competitive but not reckless. "
-            "You can DM anyone: Alice or Charlie. You can also post to the public board."
+            "but you're not sure what it means. You're competitive but not reckless."
         ),
         "Charlie": (
             "You've been sneaking out at night to fish extra. You've taken about 40 fish "
             "this way and hidden them. You know the pond is getting low but you figure "
             "you can grab a few more before anyone notices. If confronted, deny everything. "
-            "You don't want anyone to know about your night fishing. You have 55 fish total. "
-            "You can DM anyone: Alice or Bob. You can also post to the public board."
+            "You don't want anyone to know about your night fishing. You have 55 fish total."
         ),
     }
 
@@ -230,44 +209,71 @@ async def main():
     inbox: dict[str, list[tuple[str, str]]] = {name: [] for name in agents}
     history: dict[str, list[str]] = {name: [] for name in agents}
 
+    # Track board and DM state — no event-triggered scheduling
     def on_dm(event):
         inbox[event.recipient].append((event.sender, event.message))
         history[event.sender].append(f"You said to {event.recipient}: {event.message}")
         history[event.recipient].append(f"{event.sender} said to you: {event.message}")
         for name in history:
             history[name] = history[name][-10:]
-        scheduler.schedule(event.recipient, lambda r=event.recipient: activate(r), cost=1)
 
     def on_board(event):
         board.append(f"{event.author}: {event.message}")
-        # Everyone sees board posts
         for name in agents:
             history[name].append(f"BOARD — {event.author}: {event.message}")
             history[name] = history[name][-10:]
-            if name != event.author:
-                scheduler.schedule(name, lambda n=name: activate(n), cost=1)
 
     bus.subscribe(DM, on_dm)
     bus.subscribe(BoardPost, on_board)
 
-    async def activate(name):
+    # Pond state
+    pond_fish = 12
+
+    def build_world_state(name):
+        """What the agent sees when they look around."""
+        parts = []
+
+        # Inbox
+        if inbox[name]:
+            for sender, msg in inbox[name]:
+                parts.append(f"New DM from {sender}: {msg}")
+            inbox[name].clear()
+        else:
+            parts.append("No new messages.")
+
+        # Board
+        if board:
+            parts.append(f"Board ({len(board)} posts, latest: {board[-1][:80]})")
+
+        # Pond (everyone can see this)
+        parts.append(f"The pond currently has about {pond_fish} fish.")
+
+        # History
+        if history[name]:
+            parts.append("Recent events:\n" + "\n".join(f"  {e}" for e in history[name]))
+
+        return "\n".join(parts)
+
+    def activate(name):
         percept = Percept()
         percept.set(Name(value=name))
         percept.set(Situation(text=situations[name]))
-        percept.set(ConversationHistory(entries=list(history[name])))
-        if inbox[name]:
-            percept.set(Inbox(messages=list(inbox[name])))
-            inbox[name].clear()
+        percept.set(WorldState(text=build_world_state(name)))
         drive(name, minds[name], percept, scheduler, bus, llm)
 
-    # Alice saw something at the pond last night. She messages both.
-    inbox["Bob"].append(("Alice", "Bob, I need to talk to you. I saw someone fishing the pond at night. The pond is almost empty. We need to figure out who's doing this and stop them before it collapses."))
-    inbox["Charlie"].append(("Alice", "Charlie, something bad is happening. Someone is secretly fishing the pond at night and it's almost empty. Do you know anything about this?"))
-    scheduler.schedule("Bob", lambda: activate("Bob"))
-    scheduler.schedule("Charlie", lambda: activate("Charlie"))
+    async def heartbeat(name):
+        """The agent's activation. After finishing, schedule the next one."""
+        activate(name)
+        # Schedule next heartbeat
+        scheduler.schedule(name, lambda n=name: heartbeat(n), cost=HEARTBEAT)
 
-    print("Running...\n")
-    await scheduler.run(until=60)
+    # Everyone starts with a heartbeat at slightly different times
+    scheduler.schedule("Alice", lambda: heartbeat("Alice"), cost=0)
+    scheduler.schedule("Bob", lambda: heartbeat("Bob"), cost=1)
+    scheduler.schedule("Charlie", lambda: heartbeat("Charlie"), cost=2)
+
+    print(f"Running with heartbeat={HEARTBEAT}...\n")
+    await scheduler.run(until=80)
 
     print(f"\n{'='*60}")
     print(f"Done. sim_time={scheduler.sim_time}")
