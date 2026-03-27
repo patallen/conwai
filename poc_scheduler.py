@@ -178,7 +178,7 @@ async def main():
     llm = LLMClient(
         base_url="http://ai-lab.lan:8081/v1",
         model="/mnt/models/Qwen3.5-27B-GPTQ-Int4",
-        max_tokens=300,
+        max_tokens=1024,
         api_key="none",
     )
 
@@ -218,13 +218,13 @@ async def main():
         history[event.sender].append(f"You said to {event.recipient}: {event.message}")
         history[event.recipient].append(f"{event.sender} said to you: {event.message}")
         for name in history:
-            history[name] = history[name][-10:]
+            history[name] = history[name][-30:]
 
     def on_board(event):
         board.append(f"{event.author}: {event.message}")
         for name in agents:
             history[name].append(f"BOARD — {event.author}: {event.message}")
-            history[name] = history[name][-10:]
+            history[name] = history[name][-30:]
 
     bus.subscribe(DM, on_dm)
     bus.subscribe(BoardPost, on_board)
