@@ -21,19 +21,25 @@ log = logging.getLogger("conwai")
 
 @dataclass
 class Work:
-    """A unit of work yielded by the mind.
+    """A unit of work yielded by a cognitive function.
 
-    The mind says what it wants to do and how long it takes.
-    The runner decides how to fulfill it.
+    The runner interprets this: if there's a prompt, call the LLM.
+    If there's a command, execute it. The tick_cost determines when
+    the result is delivered in simulated time.
     """
     type: str
     tick_cost: int = 1
-    payload: dict = field(default_factory=dict)
+    prompt: str | None = None
+    system_prompt: str | None = None
+    tools: list[dict] | None = None
+    command: dict | None = None
 
 
 @dataclass
 class WorkResult:
     """Result delivered back to the generator via .send()."""
+    text: str = ""
+    tool_calls: list[dict] = field(default_factory=list)
     data: dict = field(default_factory=dict)
 
 
