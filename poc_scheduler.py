@@ -281,7 +281,29 @@ async def main():
         print(f"\nBoard posts:")
         for post in board:
             print(f"  {post}")
-    print()
+
+    # --- Post-sim reflection ---
+    print(f"\n{'='*60}")
+    print("POST-SIM REFLECTIONS")
+    print(f"{'='*60}\n")
+
+    for name in agents:
+        h = "\n".join(f"  {e}" for e in history[name])
+        prompt = (
+            f"You are {name}, a fisher at a shared pond.\n"
+            f"Your private situation: {situations[name]}\n\n"
+            f"Recent events:\n{h}\n\n"
+            f"The simulation has paused. Reflect honestly:\n"
+            f"1. What just happened?\n"
+            f"2. Who do you trust and why?\n"
+            f"3. What do you think the others are really thinking?\n"
+            f"4. What would you do next?\n"
+            f"Be honest with yourself. 3-5 sentences."
+        )
+        resp = await llm.call("", [{"role": "user", "content": prompt}])
+        print(f"--- {name} ---")
+        print(resp.text.strip())
+        print()
 
 
 if __name__ == "__main__":
