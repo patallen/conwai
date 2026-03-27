@@ -21,17 +21,16 @@ log = logging.getLogger("conwai")
 
 @dataclass
 class Work:
-    """A unit of work yielded by a cognitive function.
+    """A unit of work yielded by the mind.
 
-    The runner interprets this: if there's a prompt, call the LLM.
-    If there's a command, execute it. The tick_cost determines when
-    the result is delivered in simulated time.
+    type: what kind of thinking or action (triage, deliberate, react, command)
+    tick_cost: how long this takes in simulated time
+    prompt: what to think about (for thinking work)
+    command: what to do (for action work)
     """
     type: str
     tick_cost: int = 1
     prompt: str | None = None
-    system_prompt: str | None = None
-    tools: list[dict] | None = None
     command: dict | None = None
 
 
