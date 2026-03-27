@@ -1,10 +1,11 @@
-"""Sub-tick scheduler. Manages a timeline of async work in simulated time."""
+"""Discrete event scheduler. Heap-based simulated time."""
 
 from __future__ import annotations
 
 import asyncio
+import heapq
+import itertools
 import logging
-from collections import defaultdict
 from collections.abc import Coroutine
 from typing import Any, Callable
 
@@ -14,78 +15,80 @@ log = logging.getLogger("conwai")
 
 TaskFn = Callable[[], Coroutine[Any, Any, Any]]
 
-MAX_CASCADES_PER_STEP = 100
+MAX_CASCADES = 1000
 
 
 class Scheduler:
-    """Manages async work on an absolute simulated-time timeline.
+    """Discrete event scheduler with simulated time.
 
-    schedule() places work at sim_time + cost. run_tick() advances
-    sim_time by `resolution` steps, running tasks as they come due.
-    Work scheduled past the current tick resolves in a future tick.
-    Between sub-ticks the EventBus is drained, so event handlers
-    can call schedule() to add more work.
+    schedule() fires the task immediately and places it on a heap
+    at sim_time + cost. run() pops events in time order, waits for
+    the result (barrier), drains the EventBus, and continues until
+    the heap is empty or a time limit is reached.
+
+    Time jumps from event to event — no stepping through empty slots.
     """
 
-    def __init__(self, bus: EventBus, resolution: int = 1, default_cost: int = 0):
+    def __init__(self, bus: EventBus, default_cost: int = 0):
         self.bus = bus
-        self.resolution = max(1, resolution)
         self.default_cost = default_cost
         self.sim_time: int = 0
-        # absolute sim_time -> [(key, task_fn)]
-        self._timeline: dict[int, list[tuple[str, TaskFn]]] = defaultdict(list)
+        # heap of (resolve_time, tie_breaker, key, task_fn)
+        self._heap: list[tuple[int, int, str, TaskFn]] = []
+        self._counter = itertools.count()
         self._active: set[str] = set()
 
     def schedule(self, key: str, task_fn: TaskFn, cost: int | None = None) -> None:
-        """Place work on the timeline at sim_time + cost."""
+        """Schedule work at sim_time + cost. Task runs when its time comes."""
         if key in self._active:
             return
         cost = cost if cost is not None else self.default_cost
         if cost < 0:
             raise ValueError(f"cost must be >= 0, got {cost}")
         resolve_at = self.sim_time + cost
-        self._timeline[resolve_at].append((key, task_fn))
+        heapq.heappush(self._heap, (resolve_at, next(self._counter), key, task_fn))
         self._active.add(key)
 
-    async def run_tick(self) -> None:
-        """Advance sim_time by resolution steps, running due tasks."""
-        tick_end = self.sim_time + self.resolution
+    async def run(self, until: int | None = None) -> None:
+        """Process events until the heap is empty or sim_time reaches `until`."""
+        cascades = 0
 
-        while self.sim_time < tick_end:
-            work = self._timeline.pop(self.sim_time, [])
-            cascades = 0
-            while work:
-                if cascades >= MAX_CASCADES_PER_STEP:
-                    log.error(
-                        f"[SCHEDULER] t={self.sim_time}: hit cascade limit "
-                        f"({MAX_CASCADES_PER_STEP}), dropping remaining work"
-                    )
-                    for key, _ in work:
-                        self._active.discard(key)
-                    break
+        while self._heap:
+            resolve_time = self._heap[0][0]
+            if until is not None and resolve_time >= until:
+                break
 
-                keys = [k for k, _ in work]
-                tasks = [asyncio.create_task(fn()) for _, fn in work]
+            # Collect all events at this time step
+            batch: list[tuple[str, TaskFn]] = []
+            while self._heap and self._heap[0][0] == resolve_time:
+                _, _, key, task_fn = heapq.heappop(self._heap)
+                batch.append((key, task_fn))
 
-                log.info(f"[SCHEDULER] t={self.sim_time}: {len(keys)} task(s)")
+            self.sim_time = resolve_time
 
-                results = await asyncio.gather(*tasks, return_exceptions=True)
+            # Create and run all tasks at this time step
+            keys = [k for k, _ in batch]
+            tasks = [asyncio.create_task(fn()) for _, fn in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                for key, result in zip(keys, results):
-                    self._active.discard(key)
-                    if isinstance(result, Exception):
-                        log.error(f"[SCHEDULER] {key} error: {result}", exc_info=result)
+            log.info(f"[SCHEDULER] t={self.sim_time}: {keys}")
 
-                self.bus.drain()
+            for key, result in zip(keys, results):
+                self._active.discard(key)
+                if isinstance(result, Exception):
+                    log.error(f"[SCHEDULER] {key} error: {result}", exc_info=result)
 
-                # Drain may have scheduled new work at this same sim_time
-                work = self._timeline.pop(self.sim_time, [])
-                cascades += 1
+            self.bus.drain()
 
-            self.sim_time += 1
+            cascades += 1
+            if cascades >= MAX_CASCADES:
+                log.error(f"[SCHEDULER] cascade limit ({MAX_CASCADES}), stopping")
+                break
 
-        # Clean up _active for any work still on the timeline
-        # (scheduled past tick_end — will resolve in a future tick,
-        # but keys should be free to re-schedule if needed)
-        scheduled_keys = {k for entries in self._timeline.values() for k, _ in entries}
-        self._active = scheduled_keys
+        # Advance sim_time to `until` if specified
+        if until is not None:
+            self.sim_time = max(self.sim_time, until)
+
+        # Clean up _active
+        active_on_heap = {key for _, _, key, _ in self._heap}
+        self._active = active_on_heap

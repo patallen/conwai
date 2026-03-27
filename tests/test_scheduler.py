@@ -1,4 +1,4 @@
-"""Tests for the sub-tick scheduler."""
+"""Tests for the discrete event scheduler."""
 
 import asyncio
 from dataclasses import dataclass
@@ -13,28 +13,28 @@ async def _val(v):
 
 def test_schedule_and_run():
     bus = EventBus()
-    s = Scheduler(bus, resolution=1)
+    s = Scheduler(bus)
 
     async def go():
         s.schedule("a", lambda: _val("done"))
-        await s.run_tick()
+        await s.run()
 
     asyncio.run(go())
 
 
-def test_multiple_tasks_concurrent():
+def test_multiple_tasks_same_time():
     bus = EventBus()
     order = []
 
     async def track(key):
         order.append(key)
 
-    s = Scheduler(bus, resolution=1)
+    s = Scheduler(bus)
 
     async def go():
         s.schedule("a", lambda: track("a"))
         s.schedule("b", lambda: track("b"))
-        await s.run_tick()
+        await s.run()
 
     asyncio.run(go())
     assert set(order) == {"a", "b"}
@@ -50,12 +50,12 @@ def test_error_does_not_crash_others():
     async def ok():
         ran.append(True)
 
-    s = Scheduler(bus, resolution=1)
+    s = Scheduler(bus)
 
     async def go():
         s.schedule("bad", fail)
         s.schedule("good", ok)
-        await s.run_tick()
+        await s.run()
 
     asyncio.run(go())
     assert ran == [True]
@@ -68,19 +68,19 @@ def test_duplicate_key_ignored():
     async def track():
         count["a"] += 1
 
-    s = Scheduler(bus, resolution=5)
+    s = Scheduler(bus)
 
     async def go():
         s.schedule("a", track)
-        s.schedule("a", track)  # duplicate, ignored
-        await s.run_tick()
+        s.schedule("a", track)
+        await s.run()
 
     asyncio.run(go())
     assert count["a"] == 1
 
 
 def test_event_driven_retrigger():
-    """Events from completed work trigger new work via the EventBus."""
+    """Completed work triggers new work via EventBus."""
     bus = EventBus()
     ran = []
 
@@ -88,11 +88,11 @@ def test_event_driven_retrigger():
     class Done(Event):
         key: str = ""
 
-    s = Scheduler(bus, resolution=5, default_cost=0)
+    s = Scheduler(bus)
 
     def on_done(event):
         if event.key == "a":
-            s.schedule("b", lambda: _track("b"), cost=1)
+            s.schedule("b", lambda: _track("b"), cost=2)
 
     bus.subscribe(Done, on_done)
 
@@ -102,14 +102,14 @@ def test_event_driven_retrigger():
 
     async def go():
         s.schedule("a", lambda: _track("a"))
-        await s.run_tick()
+        await s.run()
 
     asyncio.run(go())
     assert ran == ["a", "b"]
 
 
 def test_same_time_retrigger():
-    """Work scheduled at the same sim_time resolves in the same step."""
+    """Work at cost=0 triggers more work at the same sim_time."""
     bus = EventBus()
     ran = []
 
@@ -117,7 +117,7 @@ def test_same_time_retrigger():
     class Done(Event):
         key: str = ""
 
-    s = Scheduler(bus, resolution=1, default_cost=0)
+    s = Scheduler(bus)
 
     def on_done(event):
         if event.key == "a":
@@ -131,106 +131,132 @@ def test_same_time_retrigger():
 
     async def go():
         s.schedule("a", lambda: _track("a"))
-        await s.run_tick()
-        assert ran == ["a", "b"]
+        await s.run()
 
     asyncio.run(go())
+    assert ran == ["a", "b"]
 
 
 def test_cascade():
-    """a -> b -> c cascade through events."""
+    """a -> b -> c cascade through events at different times."""
     bus = EventBus()
     ran = []
+    times = {}
 
     @dataclass
     class Done(Event):
         key: str = ""
 
-    s = Scheduler(bus, resolution=10, default_cost=0)
+    s = Scheduler(bus)
 
     def on_done(event):
         if event.key == "a":
             s.schedule("b", lambda: _track("b"), cost=2)
         elif event.key == "b":
-            s.schedule("c", lambda: _track("c"), cost=2)
+            s.schedule("c", lambda: _track("c"), cost=3)
 
     bus.subscribe(Done, on_done)
 
     async def _track(key):
         ran.append(key)
+        times[key] = s.sim_time
         bus.emit(Done(key=key))
 
     async def go():
         s.schedule("a", lambda: _track("a"))
-        await s.run_tick()
+        await s.run()
 
     asyncio.run(go())
     assert ran == ["a", "b", "c"]
+    assert times["a"] == 0
+    assert times["b"] == 2
+    assert times["c"] == 5  # 2 + 3
 
 
-def test_cost_past_resolution_carries_over():
-    """Work past tick boundary carries over to next tick."""
+def test_until_stops_at_time():
+    """run(until=N) stops before processing events at time N."""
     bus = EventBus()
     ran = []
 
-    async def track():
-        ran.append(True)
-
-    s = Scheduler(bus, resolution=3, default_cost=0)
+    s = Scheduler(bus)
 
     async def go():
-        s.schedule("a", lambda: _val("ok"))
-        s.schedule("late", lambda: track(), cost=5)  # resolves at subtick 5
-        await s.run_tick()  # tick has 3 subticks, "late" carries over
-        assert ran == []
-        await s.run_tick()  # "late" resolves (5 - 3 = subtick 2)
-        assert ran == [True]
+        s.schedule("early", lambda: _track("early"), cost=1)
+        s.schedule("late", lambda: _track("late"), cost=10)
+        await s.run(until=5)
+
+    async def _track(key):
+        ran.append(key)
+
+    asyncio.run(go())
+    assert "early" in ran
+    assert "late" not in ran
+    assert s.sim_time == 5
+
+
+def test_until_preserves_heap():
+    """Work past `until` stays on the heap for the next run()."""
+    bus = EventBus()
+    ran = []
+
+    s = Scheduler(bus)
+
+    async def _track(key):
+        ran.append(key)
+
+    async def go():
+        s.schedule("a", lambda: _track("a"), cost=2)
+        s.schedule("b", lambda: _track("b"), cost=8)
+        await s.run(until=5)
+        assert ran == ["a"]
+        await s.run(until=10)
+        assert ran == ["a", "b"]
 
     asyncio.run(go())
 
 
-def test_run_tick_resets_state():
-    """Each run_tick starts fresh."""
+def test_sim_time_advances():
+    """sim_time reflects when work resolved."""
+    bus = EventBus()
+    s = Scheduler(bus)
+    resolved_at = {}
+
+    async def track(key):
+        resolved_at[key] = s.sim_time
+
+    async def go():
+        s.schedule("a", lambda: track("a"), cost=3)
+        s.schedule("b", lambda: track("b"), cost=7)
+        await s.run()
+
+    asyncio.run(go())
+    assert resolved_at["a"] == 3
+    assert resolved_at["b"] == 7
+
+
+def test_key_reusable_after_completion():
+    """A key can be re-scheduled after its previous work completes."""
     bus = EventBus()
     count = {"a": 0}
 
     async def track():
         count["a"] += 1
 
-    s = Scheduler(bus, resolution=1)
+    s = Scheduler(bus)
 
     async def go():
-        s.schedule("a", track)
-        await s.run_tick()
-        s.schedule("a", track)
-        await s.run_tick()
+        s.schedule("a", track, cost=0)
+        await s.run()
+        s.schedule("a", track, cost=0)
+        await s.run()
 
     asyncio.run(go())
     assert count["a"] == 2
 
 
-def test_task_with_cost_resolves_later():
-    """Task scheduled with cost resolves at the right subtick."""
-    bus = EventBus()
-    resolved_at = {}
-
-    s = Scheduler(bus, resolution=5, default_cost=3)
-
-    async def track_resolve(key):
-        resolved_at[key] = s.sim_time
-
-    async def go():
-        s.schedule("a", lambda: track_resolve("a"))  # cost=3, resolves at subtick 3
-        await s.run_tick()
-
-    asyncio.run(go())
-    assert resolved_at["a"] == 3
-
-
 def test_negative_cost_raises():
-    """Negative cost is rejected."""
     bus = EventBus()
-    s = Scheduler(bus, resolution=5)
+    s = Scheduler(bus)
 
     async def go():
         try:
@@ -242,15 +268,8 @@ def test_negative_cost_raises():
     asyncio.run(go())
 
 
-def test_conversation_within_one_tick():
-    """Three-message conversation in a single tick.
-
-    Old system: each agent thinks once per tick. A DMs B, B sees it
-    next tick, replies, A sees reply the tick after. Three ticks.
-
-    With the scheduler: A DMs B, B re-triggers and replies, A
-    re-triggers and posts to board. One tick.
-    """
+def test_conversation_within_one_run():
+    """Three-message conversation in a single run."""
     bus = EventBus()
     transcript = []
 
@@ -259,42 +278,30 @@ def test_conversation_within_one_tick():
         sender: str = ""
         recipient: str = ""
 
-    s = Scheduler(bus, resolution=10, default_cost=2)
+    s = Scheduler(bus, default_cost=2)
 
     inbox: dict[str, list[str]] = {"alice": [], "bob": []}
 
     def on_message(event):
         inbox[event.recipient].append(event.sender)
-        s.schedule(
-            event.recipient,
-            lambda r=event.recipient: agent_act(r),
-            cost=2,
-        )
+        s.schedule(event.recipient, lambda r=event.recipient: agent_act(r), cost=2)
 
     bus.subscribe(Message, on_message)
 
     async def agent_act(name):
         if name == "alice" and not inbox["alice"]:
-            # First activation: alice DMs bob
-            transcript.append("alice -> bob: hey want to coordinate?")
+            transcript.append("alice -> bob")
             bus.emit(Message(sender="alice", recipient="bob"))
         elif name == "bob" and inbox["bob"]:
-            # Bob got a DM, replies
-            transcript.append("bob -> alice: yeah let's fish less")
+            transcript.append("bob -> alice")
             bus.emit(Message(sender="bob", recipient="alice"))
         elif name == "alice" and inbox["alice"]:
-            # Alice got reply, posts to board
-            transcript.append("alice -> board: we agreed to conserve")
+            transcript.append("alice -> board")
 
     async def go():
         s.schedule("alice", lambda: agent_act("alice"))
         s.schedule("bob", lambda: agent_act("bob"))
-        await s.run_tick()
+        await s.run()
 
     asyncio.run(go())
-
-    assert transcript == [
-        "alice -> bob: hey want to coordinate?",
-        "bob -> alice: yeah let's fish less",
-        "alice -> board: we agreed to conserve",
-    ]
+    assert transcript == ["alice -> bob", "bob -> alice", "alice -> board"]

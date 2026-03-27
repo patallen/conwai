@@ -83,7 +83,7 @@ def test_triage_conversation():
     transcript = []
     activation_count = {"alice": 0, "bob": 0}
 
-    scheduler = Scheduler(bus, resolution=20, default_cost=1)
+    scheduler = Scheduler(bus, default_cost=1)
 
     TRIAGE_COST = 1
     DELIBERATE_COST = 4
@@ -136,7 +136,7 @@ def test_triage_conversation():
         # Both agents start with triage
         scheduler.schedule("alice", lambda: activate("alice"))
         scheduler.schedule("bob", lambda: activate("bob"))
-        await scheduler.run_tick()
+        await scheduler.run()
 
     asyncio.run(go())
 

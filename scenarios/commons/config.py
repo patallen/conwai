@@ -29,7 +29,6 @@ class CommonsConfig:
     memory_max: int = 1000
     max_ticks: int = 1000
     seed: int | None = None
-    tick_resolution: int = 1
     activation_cost: int = 0
     retrigger_cost: int = 1
 

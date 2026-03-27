@@ -179,7 +179,6 @@ async def run():
 
     scheduler = Scheduler(
         bus=event_bus,
-        resolution=cfg.tick_resolution,
         default_cost=cfg.activation_cost,
     )
 
@@ -231,7 +230,7 @@ async def run():
             registry.begin_tick(world, handles)
             for handle in handles:
                 scheduler.schedule(handle, lambda h=handle: think_then_act(h))
-            await scheduler.run_tick()
+            await scheduler.run()
 
     # --- Engine ---
     engine = Engine(
