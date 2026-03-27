@@ -11,7 +11,7 @@ else is between the Mind implementation and its runner.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Generator
+from typing import Generator
 
 from conwai.typemap import Percept, State
 

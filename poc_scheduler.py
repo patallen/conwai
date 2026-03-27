@@ -299,7 +299,7 @@ async def main():
     print(f"\n{'='*60}")
     print(f"Done. sim_time={scheduler.sim_time}")
     if board:
-        print(f"\nBoard posts:")
+        print("\nBoard posts:")
         for post in board:
             print(f"  {post}")
 
