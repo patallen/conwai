@@ -211,6 +211,9 @@ async def main():
 
     # Track board and DM state — no event-triggered scheduling
     def on_dm(event):
+        if event.recipient not in inbox:
+            log.warning(f"  DM to unknown agent '{event.recipient}', dropped")
+            return
         inbox[event.recipient].append((event.sender, event.message))
         history[event.sender].append(f"You said to {event.recipient}: {event.message}")
         history[event.recipient].append(f"{event.sender} said to you: {event.message}")
