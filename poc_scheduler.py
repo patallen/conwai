@@ -54,8 +54,12 @@ class FisherMind(Mind):
             type="triage",
             tick_cost=1,
             prompt=(
-                f"You are {name}. You got a message from {sender}: '{content}'\n"
-                f"Should you: (a) ignore, (b) reply quickly, (c) think carefully?\n"
+                f"You are {name}. You got a message from {sender}: '{content}'\n\n"
+                f"Should you:\n"
+                f"(a) IGNORE - the conversation is done, nothing actionable, just pleasantries\n"
+                f"(b) REPLY - there's something worth responding to\n"
+                f"(c) THINK DEEPLY - this is a serious proposal that needs careful thought\n\n"
+                f"If the message is just a goodbye, farewell, or acknowledgment, pick (a).\n"
                 f"Reply with JUST the letter a, b, or c."
             ),
         )
@@ -156,7 +160,7 @@ async def main():
     scheduler.schedule("Alice", lambda: activate("Alice"))
 
     print("Running...\n")
-    await scheduler.run()
+    await scheduler.run(until=50)
     print(f"\nDone. sim_time={scheduler.sim_time}")
 
 
