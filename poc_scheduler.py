@@ -98,49 +98,48 @@ class FisherMind(Mind):
         if not messages:
             return
 
-        sender, content = messages[0]
         history_text = ""
         if entries:
             history_text = "Recent conversation:\n" + "\n".join(f"  {e}" for e in entries)
-        ctx = {"name": name, "situation": situation_text,
-               "sender": sender, "content": content, "history": history_text}
 
-        # Triage
-        result = yield Work(type="triage", tick_cost=1,
-                           prompt=TRIAGE_PROMPT.format(**ctx))
-        choice = result.text.strip().lower()[:1]
-        log.info(f"  {name} triage -> {choice}")
+        for sender, content in messages:
+            ctx = {"name": name, "situation": situation_text,
+                   "sender": sender, "content": content, "history": history_text}
 
-        if choice == "a":
-            return
+            # Triage each message
+            result = yield Work(type="triage", tick_cost=1,
+                               prompt=TRIAGE_PROMPT.format(**ctx))
+            choice = result.text.strip().lower()[:1]
+            log.info(f"  {name} triage ({sender}) -> {choice}")
 
-        if choice == "c":
-            ctx["depth"] = "Think carefully. What's really going on? Who can you trust? What's your move?"
-            result = yield Work(type="deliberate", tick_cost=5,
-                               prompt=RESPOND_PROMPT.format(**ctx))
-        else:
-            ctx["depth"] = "Reply quickly."
-            result = yield Work(type="react", tick_cost=1,
-                               prompt=RESPOND_PROMPT.format(**ctx))
+            if choice == "a":
+                continue
 
-        # Parse response: "DM @someone: message" or "BOARD: message"
-        text = result.text.strip()
-        if text.upper().startswith("BOARD:"):
-            msg = text[6:].strip()
-            yield Work(type="command", tick_cost=0,
-                      command={"post_board": True, "message": msg})
-        elif text.upper().startswith("DM"):
-            # "DM @Bob: message" or "DM Bob: message"
-            rest = text[2:].strip()
-            if ":" in rest:
-                target, msg = rest.split(":", 1)
-                target = target.strip().lstrip("@")
+            if choice == "c":
+                ctx["depth"] = "Think carefully. What's really going on? Who can you trust? What's your move?"
+                result = yield Work(type="deliberate", tick_cost=5,
+                                   prompt=RESPOND_PROMPT.format(**ctx))
+            else:
+                ctx["depth"] = "Reply quickly."
+                result = yield Work(type="react", tick_cost=1,
+                                   prompt=RESPOND_PROMPT.format(**ctx))
+
+            # Parse response
+            text = result.text.strip()
+            if text.upper().startswith("BOARD:"):
+                msg = text[6:].strip()
                 yield Work(type="command", tick_cost=0,
-                          command={"send_dm": target, "message": msg.strip()})
-        else:
-            # Fallback: reply to sender
-            yield Work(type="command", tick_cost=0,
-                      command={"send_dm": sender, "message": text})
+                          command={"post_board": True, "message": msg})
+            elif text.upper().startswith("DM"):
+                rest = text[2:].strip()
+                if ":" in rest:
+                    target, msg = rest.split(":", 1)
+                    target = target.strip().lstrip("@")
+                    yield Work(type="command", tick_cost=0,
+                              command={"send_dm": target, "message": msg.strip()})
+            else:
+                yield Work(type="command", tick_cost=0,
+                          command={"send_dm": sender, "message": text})
 
 
 # --- Runner ---
