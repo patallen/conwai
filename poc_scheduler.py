@@ -145,7 +145,9 @@ class FisherMind(Mind):
 
 # --- Runner ---
 
-async def drive(name, mind, percept, scheduler, bus, llm):
+def drive(name, mind, percept, scheduler, bus, llm):
+    """Drive a Mind generator through the scheduler. Each yield with a cost
+    goes back to the scheduler and resumes at the right sim_time."""
     gen = mind.handle(percept)
     try:
         work = next(gen)
@@ -153,30 +155,35 @@ async def drive(name, mind, percept, scheduler, bus, llm):
         log.info(f"  t={scheduler.sim_time} {name}: idle")
         return
 
-    while True:
-        if work.command:
-            cmd = work.command
+    def step(result=None):
+        """Send result into generator, schedule the next Work item."""
+        try:
+            w = gen.send(result) if result is not None else work
+        except StopIteration:
+            return
+
+        if w.command:
+            cmd = w.command
             if "send_dm" in cmd:
-                msg = cmd["message"][:120]
-                log.info(f"  t={scheduler.sim_time} {name} -> {cmd['send_dm']}: {msg}")
+                log.info(f"  t={scheduler.sim_time} {name} -> {cmd['send_dm']}: {cmd['message'][:120]}")
                 bus.emit(DM(sender=name, recipient=cmd["send_dm"], message=cmd["message"]))
             elif "post_board" in cmd:
-                msg = cmd["message"][:120]
-                log.info(f"  t={scheduler.sim_time} {name} -> BOARD: {msg}")
+                log.info(f"  t={scheduler.sim_time} {name} -> BOARD: {cmd['message'][:120]}")
                 bus.emit(BoardPost(author=name, message=cmd["message"]))
-            result = WorkResult()
-        elif work.prompt:
-            log.info(f"  t={scheduler.sim_time} {name}: {work.type} (cost={work.tick_cost})")
-            resp = await llm.call("", [{"role": "user", "content": work.prompt}])
-            result = WorkResult(text=resp.text)
-            log.info(f"  t={scheduler.sim_time} {name} [{work.type}]: {resp.text.strip()[:120]}")
-        else:
-            result = WorkResult()
+            # Commands are instant — advance the generator
+            step(WorkResult())
+        elif w.prompt:
+            async def do_llm():
+                log.info(f"  t={scheduler.sim_time} {name}: {w.type} (cost={w.tick_cost})")
+                resp = await llm.call("", [{"role": "user", "content": w.prompt}])
+                log.info(f"  t={scheduler.sim_time} {name} [{w.type}]: {resp.text.strip()[:120]}")
+                step(WorkResult(text=resp.text))
 
-        try:
-            work = gen.send(result)
-        except StopIteration:
-            break
+            scheduler.schedule(f"{name}:{w.type}", do_llm, cost=w.tick_cost)
+        else:
+            step(WorkResult())
+
+    step()
 
 
 # --- Main ---
@@ -252,7 +259,7 @@ async def main():
         if inbox[name]:
             percept.set(Inbox(messages=list(inbox[name])))
             inbox[name].clear()
-        await drive(name, minds[name], percept, scheduler, bus, llm)
+        drive(name, minds[name], percept, scheduler, bus, llm)
 
     # Alice saw something at the pond last night. She messages both.
     inbox["Bob"].append(("Alice", "Bob, I need to talk to you. I saw someone fishing the pond at night. The pond is almost empty. We need to figure out who's doing this and stop them before it collapses."))
