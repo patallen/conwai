@@ -1,72 +1,59 @@
-# Sub-tick Scheduler
+# DES Scheduler + Generator Brain
 
-## The Problem
+## What we built
 
-Everything is lockstep. All agents think once per tick, simultaneously. No agent can react to what another did. No conversations, no cascading, no emergence.
+### Scheduler (`conwai/scheduler.py`)
 
-## The Design
+Discrete event scheduler. Heap queue sorted by simulated time. Time jumps from event to event — no empty steps.
 
-A tick is divided into N sub-ticks (configurable, default 1 = backward compat). A Scheduler class manages the sub-tick timeline as a System in the engine.
+- `schedule(key, task_fn, cost)` — put work on the heap at `sim_time + cost`
+- `run(until=N)` — pop events in order, run tasks, drain EventBus between steps
+- Tasks at the same sim_time run concurrently via `asyncio.gather`
+- Duplicate keys are ignored (agent can't be scheduled twice)
+- Work past `until` stays on the heap for the next `run()` call
 
-### How it works
+### Mind (`conwai/cognitive.py`)
 
-1. Events drive agent activation. When something happens (DM arrives, board post, env change), the EventBus fires. The scheduler subscribes and queues affected agents.
-2. Each activation has a cost in sub-ticks. Quick reply = 1. Full deliberation = 3. Deep reflection = 5.
-3. The scheduler processes sub-ticks in order. At each sub-tick, it gathers results from completed work, executes actions, and checks for new events that trigger more work.
-4. At resolution=1, all agents activate at sub-tick 0 with cost 1. Everything resolves immediately. Same as today.
+Generator-based brain. Yields `Work` items, receives results via `.send()`.
 
-### Example: resolution=10, think_cost=3, retrigger_cost=2
+- `Work(type, tick_cost)` — what to do and how long it takes
+- `Mind.handle(percept)` — returns a generator the runner drives
+- Mind owns persistent `State` across activations
+- The framework doesn't prescribe what Work types exist or what results look like — that's between the Mind implementation and its runner
 
-```
-subtick 0: All agents start thinking (LLM calls fire concurrently)
-subtick 2: All agents resolve. Actions execute. EventBus fires.
-           Agent A sent DM to B → ActionExecuted event → scheduler queues B
-subtick 3: (nothing, B's retrigger hasn't resolved yet)
-subtick 4: B resolves retrigger. B's action executes. B DMs C → queues C
-subtick 5: (waiting)
-subtick 6: C resolves retrigger.
-subtick 9: Tick ends.
-```
+### POC (`poc_scheduler.py`)
 
-### Key principles
+Three agents with heartbeats. Each agent wakes every N sim-time units, perceives the world (inbox, board, pond), triages, and decides whether to ignore, react, or deliberate. DMs and board posts are just world state agents see on their heartbeat — no event-triggered activation.
 
-- **Scheduler is a System** — holds state, persists across ticks, has config set once at startup
-- **Scheduler is generic** — doesn't know about brains, perception, actions, or any domain concept. Takes opaque async callables.
-- **Events are the routing layer** — the EventBus (already exists) connects actions to re-triggers. Scenario code subscribes to events and tells the scheduler to queue work. The scheduler never inspects action results.
-- **BrainSystem/ActionSystem untouched** — the scheduler orchestrates WHEN agents run, not HOW they think. The existing brain and action logic stays where it is.
+Produces: multi-party negotiation, social deduction, false confessions, emergent governance. All from the architecture, not from scripted behavior.
 
-### Architecture
+## How it works
 
 ```
-Engine
-  └── tick()
-        ├── PondSystem (env update)
-        └── Scheduler.run()
-              ├── processes sub-ticks 0..resolution-1
-              ├── at each sub-tick: gather due tasks, execute
-              ├── actions fire events on EventBus
-              ├── event handlers call scheduler.schedule(key, task_fn)
-              └── new tasks land at current_subtick + cost
+Agent heartbeat fires
+  → Mind.handle(percept) produces a generator
+  → Runner drives it:
+      yield Work("triage", cost=1)     → runner calls LLM, sends result back
+      yield Work("deliberate", cost=5) → runner calls LLM, sends result back
+      yield Work("command", cost=0)    → runner executes action
+  → After generator completes, schedule next heartbeat
 ```
 
-### Config (scenarios/commons/config.json)
+Each yield goes through the scheduler. Triage resolves 1 sim-time unit later. Deliberation resolves 5 units later. Other agents' heartbeats can fire in between.
 
-```json
-{
-    "tick_resolution": 10,
-    "think_cost": 3,
-    "retrigger_cost": 2
-}
-```
+## Integration path
 
-### What exists now
+The existing conwai framework doesn't change. The runner changes:
 
-`conwai/scheduler.py` has a `run_subticks()` function that handles the sub-tick loop and re-triggering. It's generic (no domain imports) but it's just a function, not a System. Needs to become a class with state that integrates with EventBus.
+1. **Scheduler** replaces the Engine's tick loop for agent orchestration
+2. **Mind** wraps the existing Brain — triage decides whether to call `Brain.think()` (the existing process pipeline with memory, recall, context assembly, inference)
+3. **Heartbeats** replace the "all agents think every tick" pattern
+4. **World, ECS, ActionRegistry, perception builders, memory, storage** — all unchanged
 
-`scenarios/commons/runner.py` has a `ScheduledAgents` class that wraps the function with domain logic (activate, on_complete). The on_complete callback does string matching on action names — should use EventBus instead.
+## Key findings from the POC
 
-### What's left to do
-
-1. Make scheduler a proper class/System with state
-2. Wire re-triggering through EventBus instead of string-matching callbacks
-3. The runner defines what events trigger which agents (scenario-specific), subscribes to EventBus, calls scheduler.schedule()
+- Agents independently notice environmental changes (pond level) without being told
+- Social pressure creates false confessions (Bob admitted to something he didn't do)
+- Agents invent physical world elements (docks, crowds) when there's no grounded environment — integration with the real World/perception system would fix this
+- Charlie (the guilty agent) consistently plays it cool early, only confessing under sustained pressure
+- The heartbeat model produces much more dynamic interaction than tick-by-tick
