@@ -8,10 +8,9 @@ from pathlib import Path
 from faker import Faker
 
 import scenarios.commons.config as config
-from conwai.actions import ActionFeedback, PendingActions
+from conwai.actions import ActionFeedback, ActionResult, PendingActions
 from conwai.brain import Brain
 from conwai.bulletin_board import BulletinBoard
-from conwai.contrib.systems import ActionSystem, BrainSystem
 from conwai.engine import Engine, TickNumber
 from conwai.event_bus import EventBus
 from conwai.events import EventLog
@@ -166,20 +165,79 @@ async def run():
         bus.register(handle)
     bus.register("WORLD")
 
-    # --- Brain system ---
-    brain_system = BrainSystem(
-        brains=brains, perception=perception.build, percept_log="data/percepts.jsonl"
+    # --- Load brain states ---
+    for handle, brain in brains.items():
+        data = world.load_raw(handle, "brain_state")
+        if data:
+            brain.load_state(data)
+            log.info(f"[{handle}] loaded brain state")
+
+    # --- Scheduler ---
+    from conwai.scheduler import Scheduler
+    from conwai.event_types import ActionExecuted
+    from conwai.contrib.systems import BrainSystem, ActionSystem
+
+    scheduler = Scheduler(
+        bus=event_bus,
+        default_cost=cfg.activation_cost,
     )
+
+    brain_system = BrainSystem(brains=brains, perception=perception.build)
     brain_system.load_brain_states(world)
-    action_system = ActionSystem(actions=registry)
+
+    async def think_then_act(handle):
+        """Think (async LLM call), then execute actions sequentially."""
+        start = time.monotonic()
+        brain = brains[handle]
+        tick = world.get_resource(TickNumber)
+
+        # Think — builds percept, calls LLM, writes PendingActions
+        percept = perception.build(handle, world)
+        decisions = await brain.think(percept)
+        world.set(handle, PendingActions(entries=decisions))
+        world.save_raw(handle, "brain_state", brain.save_state())
+
+        # Act — execute sequentially, same as ActionSystem
+        feedback_entries = []
+        for decision in decisions:
+            result = registry.execute(handle, decision.action, decision.args, world)
+            feedback_entries.append(
+                ActionResult(action=decision.action, args=decision.args, result=result)
+            )
+        world.set(handle, ActionFeedback(entries=feedback_entries))
+
+        log.info(f"[{handle}] tick {tick.value} took {time.monotonic() - start:.1f}s")
+
+    # Event-driven re-triggering: DM recipients get scheduled
+    def on_action(event):
+        if event.action == "send_message":
+            target = event.args.get("to", "").lstrip("@")
+            if target in brains:
+                scheduler.schedule(
+                    target,
+                    lambda h=target: think_then_act(h),
+                    cost=cfg.retrigger_cost,
+                )
+
+    event_bus.subscribe(ActionExecuted, on_action)
+
+    class ScheduledAgentSystem:
+        name = "agents"
+
+        async def run(self, w):
+            entities = set(world.entities())
+            handles = sorted(h for h in brains if h in entities)
+            registry.begin_tick(world, handles)
+            for handle in handles:
+                scheduler.schedule(handle, lambda h=handle: think_then_act(h))
+            await scheduler.run()
 
     # --- Engine ---
     engine = Engine(
         world,
         systems=[
             PondSystem(),
-            brain_system,
-            action_system,
+            ScheduledAgentSystem(),
         ],
     )
 
