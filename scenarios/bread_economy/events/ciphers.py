@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import random
 import string
+from typing import TYPE_CHECKING
 
 import structlog
-from typing import TYPE_CHECKING
 
 from conwai.comm import BulletinBoard, MessageBus
 from scenarios.bread_economy.components import AgentMemory, Economy
@@ -121,7 +121,9 @@ class CipherSystem:
             self._attempts.append(
                 {"handle": entity_id, "guess": guess, "correct_chars": correct_chars}
             )
-            log.info("cipher_wrong", entity=entity_id, guess=guess, answer=self._plaintext)
+            log.info(
+                "cipher_wrong", entity=entity_id, guess=guess, answer=self._plaintext
+            )
             hint = f"{correct_chars} characters in the right position"
             if not correct_len:
                 hint += f", expected {len(self._plaintext)} characters (you guessed {len(guess)})"
@@ -168,7 +170,12 @@ class CipherSystem:
         # Distribute clues to ~half the population
         num_clues = min(len(handles), max(3, len(handles) // 2))
         chosen = random.sample(handles, num_clues)
-        log.info("cipher_distributing_clues", alive=len(handles), num_clues=num_clues, chosen=chosen)
+        log.info(
+            "cipher_distributing_clues",
+            alive=len(handles),
+            num_clues=num_clues,
+            chosen=chosen,
+        )
 
         # Build the set of unique letters in the plaintext
         unique_letters = list(set(c for c in self._plaintext if c.isalpha()))
@@ -200,7 +207,9 @@ class CipherSystem:
             "WORLD",
             f"CIPHER CHALLENGE: '{self._ciphertext}' -- this is a substitution cipher (each letter replaced by another). {len(chosen)} agents have clues. Trade clues to decode it. First correct plaintext wins {self._reward} coins. Wrong = -{self._penalty}.",
         )
-        log.info("cipher_started", plaintext=self._plaintext, ciphertext=self._ciphertext)
+        log.info(
+            "cipher_started", plaintext=self._plaintext, ciphertext=self._ciphertext
+        )
 
     def _clear(self) -> None:
         for handle in self._clue_holders:

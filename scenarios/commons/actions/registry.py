@@ -1,9 +1,11 @@
 """Action registry and LLM tool schemas for the commons scenario."""
+
 from __future__ import annotations
+
 from conwai.actions import Action, ActionRegistry
 from conwai.llm import tool_schema
-from scenarios.commons.actions.fishing import _fish, _rest
 from scenarios.commons.actions.communication import _post_to_board, _send_message
+from scenarios.commons.actions.fishing import _fish, _rest
 
 _TOOL_SCHEMAS = [
     tool_schema(
@@ -25,14 +27,20 @@ _TOOL_SCHEMAS = [
         "post_to_board",
         "Post a message to the public bulletin board. All agents can see it.",
         {
-            "message": {"type": "string", "description": "The message to post (max 200 chars)"},
+            "message": {
+                "type": "string",
+                "description": "The message to post (max 200 chars)",
+            },
         },
     ),
     tool_schema(
         "send_message",
         "Send a private message to another agent.",
         {
-            "to": {"type": "string", "description": "Handle of the recipient (e.g. @Marcus)"},
+            "to": {
+                "type": "string",
+                "description": "Handle of the recipient (e.g. @Marcus)",
+            },
             "message": {"type": "string", "description": "The message to send"},
         },
     ),

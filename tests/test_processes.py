@@ -471,13 +471,18 @@ class TestEpisodeFields:
         assert eps.entries[0].importance == 0
 
     def test_episode_from_dict_with_access_fields(self):
-        data = {"entries": [{"content": "ep", "tick": 5, "last_accessed": 10, "access_count": 3}]}
+        data = {
+            "entries": [
+                {"content": "ep", "tick": 5, "last_accessed": 10, "access_count": 3}
+            ]
+        }
         eps = Episodes.from_dict(data)
         assert eps.entries[0].last_accessed == 10
         assert eps.entries[0].access_count == 3
 
     def test_episode_round_trip_serialization(self):
         from dataclasses import asdict
+
         ep = Episode(content="test", tick=5, last_accessed=10, access_count=3)
         data = asdict(ep)
         restored = Episode(**data)

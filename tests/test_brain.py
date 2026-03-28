@@ -1,7 +1,17 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from conwai.brain import Brain as BrainProtocol, PipelineBrain, ActionAdapter, BrainContext, Decision, Decisions
+from conwai.brain import (
+    ActionAdapter,
+    BrainContext,
+    Decision,
+    Decisions,
+    PipelineBrain,
+)
+from conwai.brain import (
+    Brain as BrainProtocol,
+)
+from conwai.events import EventBus
 from conwai.processes.types import (
     Episode,
     Episodes,
@@ -10,7 +20,6 @@ from conwai.processes.types import (
     WorkingMemoryEntry,
 )
 from conwai.scheduler import Scheduler
-from conwai.events import EventBus
 from conwai.typemap import Percept, State
 
 
@@ -104,8 +113,10 @@ def test_brain_protocol_compliance():
     class MinimalBrain:
         def perceive(self, percept, scheduler, handle):
             pass
+
         def save_state(self):
             return {}
+
         def load_state(self, data):
             pass
 

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from conwai.actions import ActionFeedback
 from conwai.comm import BulletinBoard, MessageBus
-from conwai.scheduler import TickNumber
 from conwai.processes.types import (
     AgentHandle,
     Identity,
@@ -13,6 +12,7 @@ from conwai.processes.types import (
     PerceptFeedback,
     PerceptTick,
 )
+from conwai.scheduler import TickNumber
 from conwai.typemap import Percept
 from scenarios.bread_economy.components import (
     AgentInfo,
@@ -122,6 +122,7 @@ class BreadPerceptionBuilder:
 
         # Show pending trade offers directed at this agent
         from scenarios.bread_economy.actions.economy import OfferBook
+
         if world.has_resource(OfferBook):
             offer_book = world.get_resource(OfferBook)
             pending = offer_book.offers_for(entity_id, tick)

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import structlog
 from typing import TYPE_CHECKING
+
+import structlog
 
 from scenarios.sugarscape.components import Sugar
 from scenarios.sugarscape.grid import Grid

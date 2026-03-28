@@ -31,9 +31,7 @@ USER_PROMPT = (
 MAX_TOKENS = 512
 
 
-async def single_request(
-    client: AsyncOpenAI, model: str, request_id: int
-) -> dict:
+async def single_request(client: AsyncOpenAI, model: str, request_id: int) -> dict:
     """Make one chat completion and return timing stats."""
     start = time.perf_counter()
     first_token_time = None
@@ -131,18 +129,24 @@ def print_stats(results: list[dict]) -> None:
     print(f"  Compl. tok:   {total_completion_tokens} total")
     print(f"  Aggregate:    {aggregate_tps:.1f} tok/s (completion)")
     print(f"  Per-request:  {statistics.mean(per_req_tps):.1f} tok/s mean")
-    print(f"  TTFT:         p50={statistics.median(ttfts):.3f}s  "
-          f"p95={sorted(ttfts)[int(len(ttfts)*0.95)]:.3f}s  "
-          f"max={max(ttfts):.3f}s")
-    print(f"  Latency:      p50={statistics.median(totals):.2f}s  "
-          f"p95={sorted(totals)[int(len(totals)*0.95)]:.2f}s  "
-          f"max={max(totals):.2f}s")
+    print(
+        f"  TTFT:         p50={statistics.median(ttfts):.3f}s  "
+        f"p95={sorted(ttfts)[int(len(ttfts) * 0.95)]:.3f}s  "
+        f"max={max(ttfts):.3f}s"
+    )
+    print(
+        f"  Latency:      p50={statistics.median(totals):.2f}s  "
+        f"p95={sorted(totals)[int(len(totals) * 0.95)]:.2f}s  "
+        f"max={max(totals):.2f}s"
+    )
 
 
 async def main():
     parser = argparse.ArgumentParser(description="Benchmark vLLM for conwai")
     parser.add_argument("base_url", help="vLLM base URL (e.g. http://host:8000/v1)")
-    parser.add_argument("--model", default=None, help="Model name (auto-detected if omitted)")
+    parser.add_argument(
+        "--model", default=None, help="Model name (auto-detected if omitted)"
+    )
     parser.add_argument("--warmup", type=int, default=2, help="Warmup requests")
     args = parser.parse_args()
 

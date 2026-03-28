@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import structlog
 from typing import TYPE_CHECKING
+
+import structlog
 
 from conwai.brain import BrainContext, Decision, Decisions
 from conwai.processes.types import (
@@ -54,7 +55,13 @@ class InferenceProcess:
             wm.entries.append(WorkingMemoryEntry(content=resp.text, kind="reasoning"))
             ctx.state.set(wm)
 
-        log.info("llm_response", handle=agent_id, prompt_tokens=resp.prompt_tokens, completion_tokens=resp.completion_tokens, text_preview=resp.text[:200] if resp.text else "")
+        log.info(
+            "llm_response",
+            handle=agent_id,
+            prompt_tokens=resp.prompt_tokens,
+            completion_tokens=resp.completion_tokens,
+            text_preview=resp.text[:200] if resp.text else "",
+        )
 
         decisions = ctx.bb.get(Decisions) or Decisions()
         for tc in resp.tool_calls:

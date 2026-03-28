@@ -1,11 +1,11 @@
 """Runner for the commons scenario."""
+
 import asyncio
 import random
 import time
 from pathlib import Path
 
 import structlog
-
 from faker import Faker
 
 import scenarios.commons.config as config
@@ -13,23 +13,23 @@ from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
 from conwai.brain import PipelineBrain, Process
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import ActionExecuted, EventBus, EventLog
-from conwai.scheduler import Scheduler, TickNumber
 from conwai.llm import LLMClient
+from conwai.processes import (
+    ContextAssembly,
+    InferenceProcess,
+    MemoryCompression,
+)
+from conwai.processes.activation_recall import ActivationRecall
 from conwai.processes.types import Episodes, WorkingMemory
+from conwai.scheduler import Scheduler, TickNumber
 from conwai.storage import SQLiteStorage
+from conwai.tick_loop import TickLoop
 from conwai.world import World
 from scenarios.commons.actions import create_registry, tool_definitions
 from scenarios.commons.components import AgentInfo, AgentMemory, FishHaul
 from scenarios.commons.config import get_config
 from scenarios.commons.perception import make_commons_perception
 from scenarios.commons.systems import Pond, PondSystem
-from conwai.processes.activation_recall import ActivationRecall
-from conwai.processes import (
-    ContextAssembly,
-    InferenceProcess,
-    MemoryCompression,
-)
-from conwai.tick_loop import TickLoop
 
 log = structlog.get_logger()
 
@@ -37,6 +37,7 @@ log = structlog.get_logger()
 async def wait_for_llm(client):
     """Block until the inference endpoint is reachable."""
     import httpx
+
     while True:
         try:
             async with httpx.AsyncClient(timeout=5) as http:
@@ -120,6 +121,7 @@ async def run():
 
     # --- Embedder ---
     from conwai.llm import FastEmbedder
+
     log.info("loading_embedding_model")
     embedder = FastEmbedder()
     log.info("embedding_model_ready")
@@ -134,7 +136,9 @@ async def run():
                 noise_actions={"rest"},
             ),
             ActivationRecall(
-                recall_limit=5, reflection_limit=5, embedder=embedder,
+                recall_limit=5,
+                reflection_limit=5,
+                embedder=embedder,
             ),
             ContextAssembly(
                 context_window=cfg.context_window,
@@ -145,7 +149,9 @@ async def run():
                 tools=tool_definitions(),
             ),
         ]
-        return PipelineBrain(processes=processes, adapter=adapter, state_types=[WorkingMemory, Episodes])
+        return PipelineBrain(
+            processes=processes, adapter=adapter, state_types=[WorkingMemory, Episodes]
+        )
 
     # --- Agents ---
     brains: dict[str, PipelineBrain] = {}
@@ -160,7 +166,9 @@ async def run():
         while handle in existing_handles:
             handle = fake.first_name()
         existing_handles.add(handle)
-        world.spawn(handle, overrides=[AgentInfo(role="fisher", personality=cfg.personality)])
+        world.spawn(
+            handle, overrides=[AgentInfo(role="fisher", personality=cfg.personality)]
+        )
         brains[handle] = make_brain()
 
     for handle in brains:
@@ -179,7 +187,12 @@ async def run():
         tick = world.get_resource(TickNumber)
         percept = perception.build(handle, world)
         brains[handle].perceive(percept, scheduler, handle)
-        log.info("tick_scheduled", handle=handle, tick=tick.value, elapsed_s=round(time.monotonic() - start, 3))
+        log.info(
+            "tick_scheduled",
+            handle=handle,
+            tick=tick.value,
+            elapsed_s=round(time.monotonic() - start, 3),
+        )
 
     # --- Scheduler ---
     scheduler = Scheduler(bus=event_bus, default_cost=cfg.activation_cost)
@@ -189,9 +202,11 @@ async def run():
         if event.action == "send_message":
             target = event.args.get("to", "").lstrip("@")
             if target in brains:
+
                 async def retrigger(h=target):
                     percept = perception.build(h, world)
                     brains[h].perceive(percept, scheduler, h)
+
                 scheduler.schedule(target, retrigger, cost=cfg.retrigger_cost)
 
     event_bus.subscribe(ActionExecuted, on_action)
@@ -232,7 +247,14 @@ async def run():
         scores = [(fh.fish, eid) for eid, fh in world.query(FishHaul)]
         scores.sort(reverse=True)
         top = ", ".join(f"{name}:{fish}" for fish, name in scores[:3])
-        log.info("tick_complete", tick=tick_number.value, elapsed_s=round(time.monotonic() - tick_start, 1), pond=pond_pop, pond_capacity=int(pond.capacity), top=top)
+        log.info(
+            "tick_complete",
+            tick=tick_number.value,
+            elapsed_s=round(time.monotonic() - tick_start, 1),
+            pond=pond_pop,
+            pond_capacity=int(pond.capacity),
+            top=top,
+        )
 
     # Final results
     log.info("simulation_complete")

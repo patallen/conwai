@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import structlog
 from typing import TYPE_CHECKING
+
+import structlog
 
 from conwai.scheduler import TickNumber
 from scenarios.bread_economy.events.ciphers import CipherSystem

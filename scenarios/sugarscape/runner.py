@@ -141,7 +141,9 @@ async def run(
 
         wealths = [s.wealth for _, s in world.query(Sugar)]
         g = gini(wealths)
-        print(f"\033[2J\033[H--- Tick {tick_number.value} ({alive} alive, gini={g:.2f}) ---")
+        print(
+            f"\033[2J\033[H--- Tick {tick_number.value} ({alive} alive, gini={g:.2f}) ---"
+        )
         print(render(world, grid))
         print()
         for eid, sugar, vision in world.query(Sugar, Vision):

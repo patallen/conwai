@@ -3,7 +3,6 @@ import random
 import time
 
 import structlog
-
 from faker import Faker
 
 import scenarios.bread_economy.config as config
@@ -11,16 +10,17 @@ from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
 from conwai.brain import PipelineBrain, Process
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import EventBus, EventLog
-from conwai.scheduler import Scheduler, TickNumber
-from conwai.tick_loop import TickLoop
 from conwai.llm import LLMClient
+from conwai.processes.activation_recall import ActivationRecall
+from conwai.processes.importance import ImportanceScoring
 from conwai.processes.types import Episodes, WorkingMemory
+from conwai.scheduler import Scheduler, TickNumber
 from conwai.storage import SQLiteStorage
+from conwai.tick_loop import TickLoop
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
 from scenarios.bread_economy.actions.economy import OfferBook
 from scenarios.bread_economy.actions.registry import tool_definitions
-from scenarios.bread_economy.systems import Treasury
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
@@ -38,8 +38,6 @@ from scenarios.bread_economy.perception import (
     make_bread_perception,
     tick_to_timestamp,
 )
-from conwai.processes.activation_recall import ActivationRecall
-from conwai.processes.importance import ImportanceScoring
 from scenarios.bread_economy.processes import (
     ContextAssembly,
     InferenceProcess,
@@ -51,6 +49,7 @@ from scenarios.bread_economy.systems import (
     DecaySystem,
     SpoilageSystem,
     TaxSystem,
+    Treasury,
 )
 
 log = structlog.get_logger()
@@ -84,7 +83,12 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                                 "remaining": world.get(handle, Economy).coins,
                             },
                         )
-                        log.info("handler_drain", handle=handle, amount=amount, remaining=world.get(handle, Economy).coins)
+                        log.info(
+                            "handler_drain",
+                            handle=handle,
+                            amount=amount,
+                            remaining=world.get(handle, Economy).coins,
+                        )
 
                 elif action == "set_energy":
                     handle, value = cmd["handle"], int(cmd["value"])
@@ -94,9 +98,16 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                         events.log(
                             "HANDLER",
                             "set_energy",
-                            {"handle": handle, "energy": world.get(handle, Economy).coins},
+                            {
+                                "handle": handle,
+                                "energy": world.get(handle, Economy).coins,
+                            },
                         )
-                        log.info("handler_set_energy", handle=handle, energy=world.get(handle, Economy).coins)
+                        log.info(
+                            "handler_set_energy",
+                            handle=handle,
+                            energy=world.get(handle, Economy).coins,
+                        )
 
                 elif action == "drop_secret":
                     handle, content = cmd["handle"], cmd["content"]
@@ -107,7 +118,9 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                             "secret_dropped",
                             {"to": handle, "content": content},
                         )
-                        log.info("handler_secret_dropped", handle=handle, content=content)
+                        log.info(
+                            "handler_secret_dropped", handle=handle, content=content
+                        )
 
                 elif action == "send_dm":
                     handle, content = cmd["to"], cmd["content"]
@@ -136,7 +149,11 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                         cmd["personality"],
                     )
                     if handle in set(world.entities()):
-                        log.warning("handler_spawn_failed", handle=handle, reason="already exists")
+                        log.warning(
+                            "handler_spawn_failed",
+                            handle=handle,
+                            reason="already exists",
+                        )
                     else:
                         world.spawn(
                             handle,
@@ -156,7 +173,12 @@ async def process_commands(world: World, brains=None, brain_factory=None):
                                 "personality": personality,
                             },
                         )
-                        log.info("handler_spawned", handle=handle, role=role, personality=personality)
+                        log.info(
+                            "handler_spawned",
+                            handle=handle,
+                            role=role,
+                            personality=personality,
+                        )
 
             except (KeyError, ValueError) as e:
                 log.warning("handler_bad_command", command=cmd, error=str(e))
@@ -294,27 +316,33 @@ async def run():
         ]
         if with_importance:
             processes.append(ImportanceScoring(articulator=articulator))
-        processes.extend([
-            ConsolidationProcess(
-                interval=24,
-                articulator=articulator,
-                embedder=embedder,
-                first_person=True,
-            ),
-            ActivationRecall(
-                recall_limit=5, reflection_limit=5, embedder=embedder,
-                delta=0.2 if with_importance else 0.0,
-            ),
-            ContextAssembly(
-                context_window=get_config().context_window,
-                system_prompt=perception.build_system_prompt(),
-            ),
-            InferenceProcess(
-                client=client,
-                tools=tool_definitions(),
-            ),
-        ])
-        return PipelineBrain(processes=processes, adapter=adapter, state_types=[WorkingMemory, Episodes])
+        processes.extend(
+            [
+                ConsolidationProcess(
+                    interval=24,
+                    articulator=articulator,
+                    embedder=embedder,
+                    first_person=True,
+                ),
+                ActivationRecall(
+                    recall_limit=5,
+                    reflection_limit=5,
+                    embedder=embedder,
+                    delta=0.2 if with_importance else 0.0,
+                ),
+                ContextAssembly(
+                    context_window=get_config().context_window,
+                    system_prompt=perception.build_system_prompt(),
+                ),
+                InferenceProcess(
+                    client=client,
+                    tools=tool_definitions(),
+                ),
+            ]
+        )
+        return PipelineBrain(
+            processes=processes, adapter=adapter, state_types=[WorkingMemory, Episodes]
+        )
 
     # --- Agents + Brains ---
     # A/B test: importance scoring on vs off
@@ -338,6 +366,7 @@ async def run():
             "SELECT entity, data FROM events WHERE type='ab_group'"
         ).fetchall():
             import json
+
             saved_groups[entity] = json.loads(data)["group"]
         _edb.close()
     except Exception:
@@ -373,7 +402,11 @@ async def run():
         if imp:
             importance_group.add(handle)
 
-    log.info("ab_test_groups", importance=sorted(importance_group), control=sorted(set(brains.keys()) - importance_group))
+    log.info(
+        "ab_test_groups",
+        importance=sorted(importance_group),
+        control=sorted(set(brains.keys()) - importance_group),
+    )
     for handle in brains:
         if handle not in saved_groups:
             group = "importance" if handle in importance_group else "control"
@@ -416,7 +449,13 @@ async def run():
             importance_group.add(handle)
         brains[handle] = make_brain(with_importance=was_imp)
         group_label = "IMP" if was_imp else "CTL"
-        log.info("agent_spawned", handle=handle, role=role, replaced=dead_entity_id, group=group_label)
+        log.info(
+            "agent_spawned",
+            handle=handle,
+            role=role,
+            replaced=dead_entity_id,
+            group=group_label,
+        )
 
     # --- Load brain states ---
     for handle, brain in brains.items():
@@ -429,12 +468,23 @@ async def run():
         start = time.monotonic()
         percept = perception.build(handle, world)
         brains[handle].perceive(percept, scheduler, handle)
-        log.info("tick_scheduled", handle=handle, tick=tick_number.value, elapsed_s=round(time.monotonic() - start, 3))
+        log.info(
+            "tick_scheduled",
+            handle=handle,
+            tick=tick_number.value,
+            elapsed_s=round(time.monotonic() - start, 3),
+        )
 
     scheduler = Scheduler(bus=event_bus)
 
     loop = TickLoop(scheduler=scheduler, event_bus=event_bus, world=world)
-    for system in [DecaySystem(), TaxSystem(), SpoilageSystem(), DeathSystem(on_death=on_death), world_events]:
+    for system in [
+        DecaySystem(),
+        TaxSystem(),
+        SpoilageSystem(),
+        DeathSystem(on_death=on_death),
+        world_events,
+    ]:
         loop.add_pre_system(system)
     loop.add_post_system(ConsumptionSystem())
 
@@ -473,4 +523,8 @@ async def run():
 
         await loop.tick(handles, on_tick)
 
-        log.info("tick_complete", tick=tick_number.value, elapsed_s=round(time.monotonic() - tick_start, 1))
+        log.info(
+            "tick_complete",
+            tick=tick_number.value,
+            elapsed_s=round(time.monotonic() - tick_start, 1),
+        )

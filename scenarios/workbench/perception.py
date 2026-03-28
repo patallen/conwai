@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 from conwai.actions import ActionFeedback
 from conwai.comm import BulletinBoard, MessageBus
-from conwai.scheduler import TickNumber
 from conwai.processes.types import (
     AgentHandle,
     Identity,
@@ -12,6 +11,7 @@ from conwai.processes.types import (
     PerceptFeedback,
     PerceptTick,
 )
+from conwai.scheduler import TickNumber
 from conwai.typemap import Percept
 from scenarios.workbench.components import AgentInfo
 

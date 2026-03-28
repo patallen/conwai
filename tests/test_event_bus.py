@@ -13,7 +13,6 @@ from conwai.events import (
     EventBus,
 )
 
-
 # ---------------------------------------------------------------------------
 # Task 1: EventBus core
 # ---------------------------------------------------------------------------
@@ -67,6 +66,7 @@ def test_cascade():
 
 def test_emit_no_subscribers():
     """Emitting an event with no subscribers does not raise."""
+
     class Orphan(Event):
         pass
 
@@ -137,8 +137,9 @@ def test_event_types_are_events():
 
 def test_component_changed_fields():
     """ComponentChanged stores entity, comp_type, old, and new."""
-    from conwai.component import Component
     from dataclasses import dataclass
+
+    from conwai.component import Component
 
     @dataclass
     class Hp(Component):
@@ -189,7 +190,9 @@ def test_event_types_routed_through_bus():
 
     bus.emit(EntitySpawned(entity="alice"))
     bus.emit(EntitySpawned(entity="bob"))
-    bus.emit(EntityDestroyed(entity="x"))  # different type, should not fire spawned handler
+    bus.emit(
+        EntityDestroyed(entity="x")
+    )  # different type, should not fire spawned handler
 
     bus.drain()
 

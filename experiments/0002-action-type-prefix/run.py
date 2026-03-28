@@ -30,7 +30,9 @@ def parse_entry(content: str) -> tuple[str, str]:
     first_line = lines[0]
     m = _ACTION_RE.search(first_line)
     action = m.group(1) if m else "unknown"
-    reasoning = " ".join(line.strip() for line in lines[1:] if line.strip()) or first_line
+    reasoning = (
+        " ".join(line.strip() for line in lines[1:] if line.strip()) or first_line
+    )
     return action, reasoning
 
 

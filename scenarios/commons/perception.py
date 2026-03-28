@@ -1,11 +1,12 @@
 """Perception builder for the commons scenario."""
+
 from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from conwai.actions import ActionFeedback
 from conwai.comm import BulletinBoard, MessageBus
-from conwai.scheduler import TickNumber
 from conwai.processes.types import (
     AgentHandle,
     Identity,
@@ -13,6 +14,7 @@ from conwai.processes.types import (
     PerceptFeedback,
     PerceptTick,
 )
+from conwai.scheduler import TickNumber
 from conwai.typemap import Percept
 from scenarios.commons.components import AgentInfo, AgentMemory, FishHaul
 from scenarios.commons.config import get_config
@@ -90,7 +92,7 @@ class CommonsPerceptionBuilder:
             scores.append((fh.fish, eid, marker))
         scores.sort(reverse=True)
         leaderboard = "\n".join(
-            f"  {i+1}. @{name}: {fish} fish{marker}"
+            f"  {i + 1}. @{name}: {fish} fish{marker}"
             for i, (fish, name, marker) in enumerate(scores)
         )
         parts.append(f"Leaderboard:\n{leaderboard}")
@@ -123,5 +125,7 @@ class CommonsPerceptionBuilder:
         return percept
 
 
-def make_commons_perception(prompts_dir: Path | None = None) -> CommonsPerceptionBuilder:
+def make_commons_perception(
+    prompts_dir: Path | None = None,
+) -> CommonsPerceptionBuilder:
     return CommonsPerceptionBuilder(prompts_dir or _DEFAULT_PROMPTS_DIR)

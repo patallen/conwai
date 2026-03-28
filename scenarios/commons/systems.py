@@ -1,8 +1,11 @@
 """Systems for the commons scenario."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import structlog
+
 from conwai.scheduler import TickNumber
 
 if TYPE_CHECKING:
@@ -14,8 +17,13 @@ log = structlog.get_logger()
 class Pond:
     """Shared fish pond resource with logistic regeneration."""
 
-    def __init__(self, population: float, capacity: float, growth_rate: float,
-                 collapse_threshold: float):
+    def __init__(
+        self,
+        population: float,
+        capacity: float,
+        growth_rate: float,
+        collapse_threshold: float,
+    ):
         self.population = population
         self.capacity = capacity
         self.growth_rate = growth_rate
@@ -41,10 +49,12 @@ class Pond:
 
 class PondSystem:
     """Applies logistic regeneration to the shared pond each tick."""
+
     name = "pond"
 
     async def run(self, world: World) -> None:
         from scenarios.commons.config import get_config
+
         cfg = get_config()
         tick = world.get_resource(TickNumber).value
         pond = world.get_resource(Pond)
@@ -52,4 +62,10 @@ class PondSystem:
             return
         before = pond.population
         pond.regenerate()
-        log.info("pond_regenerated", tick=tick, before=round(before), after=round(pond.population), capacity=round(pond.capacity))
+        log.info(
+            "pond_regenerated",
+            tick=tick,
+            before=round(before),
+            after=round(pond.population),
+            capacity=round(pond.capacity),
+        )

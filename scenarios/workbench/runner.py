@@ -21,26 +21,24 @@ import json
 from pathlib import Path
 
 import structlog
-
 from faker import Faker
 
 from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
 from conwai.brain import PipelineBrain
 from conwai.comm import BulletinBoard, MessageBus
-from conwai.llm import FastEmbedder, LLMClient
 from conwai.events import EventBus, EventLog
-from conwai.scheduler import TickNumber
-from conwai.processes.types import Episodes, WorkingMemory
-from conwai.scheduler import Scheduler
-from conwai.tick_loop import TickLoop
-from conwai.storage import SQLiteStorage
-from conwai.world import World
+from conwai.llm import FastEmbedder, LLMClient
 from conwai.processes import (
     ContextAssembly,
     InferenceProcess,
     MemoryCompression,
     MemoryRecall,
 )
+from conwai.processes.types import Episodes, WorkingMemory
+from conwai.scheduler import Scheduler, TickNumber
+from conwai.storage import SQLiteStorage
+from conwai.tick_loop import TickLoop
+from conwai.world import World
 from scenarios.workbench.actions import create_registry, tool_definitions
 from scenarios.workbench.components import AgentInfo
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder

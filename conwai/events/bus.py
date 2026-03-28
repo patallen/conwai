@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import structlog
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Callable
+
+import structlog
 
 log = structlog.get_logger()
 
@@ -13,6 +14,7 @@ log = structlog.get_logger()
 @dataclass
 class Event:
     """Base class for all typed events."""
+
     pass
 
 
@@ -53,7 +55,9 @@ class EventBus:
                 )
             event = self._queue.popleft()
             handlers = self._handlers.get(type(event), [])
-            log.debug("delivering", event_type=type(event).__name__, handlers=len(handlers))
+            log.debug(
+                "delivering", event_type=type(event).__name__, handlers=len(handlers)
+            )
             for handler in handlers:
                 handler(event)
             iterations += 1

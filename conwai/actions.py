@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from conwai.component import Component
-
 from conwai.brain import Decision
+from conwai.component import Component
 from conwai.world import World
 
 
@@ -27,7 +26,10 @@ class PendingActions(Component):
     @classmethod
     def from_dict(cls, data: dict) -> PendingActions:
         return cls(
-            entries=[Decision(**e) if isinstance(e, dict) else e for e in data.get("entries", [])]
+            entries=[
+                Decision(**e) if isinstance(e, dict) else e
+                for e in data.get("entries", [])
+            ]
         )
 
 
@@ -40,7 +42,10 @@ class ActionFeedback(Component):
     @classmethod
     def from_dict(cls, data: dict) -> ActionFeedback:
         return cls(
-            entries=[ActionResult(**e) if isinstance(e, dict) else e for e in data.get("entries", [])]
+            entries=[
+                ActionResult(**e) if isinstance(e, dict) else e
+                for e in data.get("entries", [])
+            ]
         )
 
 
@@ -94,9 +99,12 @@ class ActionRegistry:
         bus = world.bus
         if bus:
             from conwai.events import ActionExecuted
-            bus.emit(ActionExecuted(
-                entity=entity_id, action=name, args=args, result=result, data=data
-            ))
+
+            bus.emit(
+                ActionExecuted(
+                    entity=entity_id, action=name, args=args, result=result, data=data
+                )
+            )
 
         return result
 
@@ -108,7 +116,9 @@ class WorldActionAdapter:
         self._world = world
         self._registry = registry
 
-    async def execute(self, handle: str, decisions: list[Decision]) -> list[ActionResult]:
+    async def execute(
+        self, handle: str, decisions: list[Decision]
+    ) -> list[ActionResult]:
         self._world.set(handle, PendingActions(entries=decisions))
         results = []
         for d in decisions:

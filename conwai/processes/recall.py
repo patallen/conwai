@@ -8,7 +8,13 @@ from typing import TYPE_CHECKING
 import structlog
 
 from conwai.brain import BrainContext
-from conwai.processes.types import AgentHandle, Episode, Episodes, Observations, RecalledMemories
+from conwai.processes.types import (
+    AgentHandle,
+    Episode,
+    Episodes,
+    Observations,
+    RecalledMemories,
+)
 
 if TYPE_CHECKING:
     from conwai.llm import Embedder
@@ -63,9 +69,15 @@ class MemoryRecall:
         reflections = [e for e in embedded if e.content.startswith("[Reflection")]
         recalled = []
         if episodes:
-            recalled.extend(self._topk(episodes, query_vec, self.recall_limit, agent_id=agent_id))
+            recalled.extend(
+                self._topk(episodes, query_vec, self.recall_limit, agent_id=agent_id)
+            )
         if reflections:
-            recalled.extend(self._topk(reflections, query_vec, self.reflection_limit, agent_id=agent_id))
+            recalled.extend(
+                self._topk(
+                    reflections, query_vec, self.reflection_limit, agent_id=agent_id
+                )
+            )
         return recalled
 
     def _handle_recall(
@@ -87,7 +99,11 @@ class MemoryRecall:
 
     @staticmethod
     def _topk(
-        entries: list[Episode], query_vec: list[float], k: int, min_sim: float = 0.3, agent_id: str = "?"
+        entries: list[Episode],
+        query_vec: list[float],
+        k: int,
+        min_sim: float = 0.3,
+        agent_id: str = "?",
     ) -> list[str]:
         if not entries:
             return []
@@ -102,6 +118,11 @@ class MemoryRecall:
             if sims[i] < min_sim:
                 continue
             content_preview = entries[i].content[:60].replace("\n", " ")
-            log.info("recall", handle=agent_id, preview=content_preview, cosine=round(float(sims[i]), 2))
+            log.info(
+                "recall",
+                handle=agent_id,
+                preview=content_preview,
+                cosine=round(float(sims[i]), 2),
+            )
             recalled.append(entries[i].content)
         return recalled

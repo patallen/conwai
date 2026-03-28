@@ -24,18 +24,18 @@ Commands:
 import argparse
 import asyncio
 import json
+
 import structlog
 
 from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
 from conwai.brain import PipelineBrain
 from conwai.comm import BulletinBoard, MessageBus
-from conwai.llm import FastEmbedder, LLMClient
 from conwai.events import EventBus, EventLog
-from conwai.scheduler import TickNumber
+from conwai.llm import FastEmbedder, LLMClient
 from conwai.processes.types import Episodes, WorkingMemory
-from conwai.scheduler import Scheduler
-from conwai.tick_loop import TickLoop
+from conwai.scheduler import Scheduler, TickNumber
 from conwai.storage import SQLiteStorage
+from conwai.tick_loop import TickLoop
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
 from scenarios.bread_economy.actions.registry import tool_definitions

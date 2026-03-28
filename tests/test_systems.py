@@ -4,7 +4,6 @@ from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import EventBus, EventLog
 from conwai.scheduler import TickNumber
 from conwai.world import World
-from scenarios.bread_economy.systems import Treasury
 from scenarios.bread_economy.components import (
     AgentInfo,
     AgentMemory,
@@ -19,6 +18,7 @@ from scenarios.bread_economy.systems import (
     DecaySystem,
     SpoilageSystem,
     TaxSystem,
+    Treasury,
 )
 
 

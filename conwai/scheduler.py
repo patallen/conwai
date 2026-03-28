@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 import heapq
 import itertools
-import structlog
 from collections.abc import Coroutine
 from dataclasses import dataclass
 from typing import Any, Callable
+
+import structlog
 
 from conwai.events import EventBus
 
@@ -16,6 +17,7 @@ from conwai.events import EventBus
 @dataclass
 class TickNumber:
     value: int = 0
+
 
 log = structlog.get_logger()
 
@@ -81,17 +83,32 @@ class Scheduler:
             tasks = [asyncio.create_task(fn()) for _, fn in batch]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            log.info("scheduler_batch", sim_time=self.sim_time, keys=keys, batch_size=len(keys))
+            log.info(
+                "scheduler_batch",
+                sim_time=self.sim_time,
+                keys=keys,
+                batch_size=len(keys),
+            )
 
             for key, result in zip(keys, results):
                 if isinstance(result, Exception):
-                    log.error("scheduler_task_error", key=key, error=str(result), sim_time=self.sim_time)
+                    log.error(
+                        "scheduler_task_error",
+                        key=key,
+                        error=str(result),
+                        sim_time=self.sim_time,
+                    )
 
             self.bus.drain()
 
             cascades += 1
             if cascades >= MAX_CASCADES:
-                log.error("scheduler_cascade_limit", cascades=cascades, max=MAX_CASCADES, sim_time=self.sim_time)
+                log.error(
+                    "scheduler_cascade_limit",
+                    cascades=cascades,
+                    max=MAX_CASCADES,
+                    sim_time=self.sim_time,
+                )
                 break
 
         # Advance sim_time to `until` if specified

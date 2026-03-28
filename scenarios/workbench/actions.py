@@ -6,8 +6,8 @@ import structlog
 
 from conwai.actions import Action, ActionRegistry
 from conwai.comm import BulletinBoard, MessageBus
-from conwai.llm import tool_schema
 from conwai.events import EventLog
+from conwai.llm import tool_schema
 
 if TYPE_CHECKING:
     from conwai.world import World

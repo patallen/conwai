@@ -50,7 +50,8 @@ class OfferBook:
     def offers_for(self, handle: str, tick: int) -> list[tuple[int, dict]]:
         """Return all pending offers directed at this agent."""
         return [
-            (oid, o) for oid, o in self._offers.items()
+            (oid, o)
+            for oid, o in self._offers.items()
             if o["to"] == handle and tick - o["tick"] < self.expiry
         ]
 
@@ -174,7 +175,16 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             f"Use accept(offer_id={oid}) to accept.",
         )
 
-        log.info("offer_created", handle=entity_id, offer_id=oid, to=to, give_amount=give_amount, give_type=give_type, want_amount=want_amount, want_type=want_type)
+        log.info(
+            "offer_created",
+            handle=entity_id,
+            offer_id=oid,
+            to=to,
+            give_amount=give_amount,
+            give_type=give_type,
+            want_amount=want_amount,
+            want_type=want_type,
+        )
         return (
             f"Offer sent to @{to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks.",
             {"id": oid},
@@ -261,19 +271,43 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
 
         if world.bus:
             from conwai.events import ActionExecuted
-            world.bus.emit(ActionExecuted(
-                entity=entity_id, action="trade",
-                data={"id": oid, "with": offerer, "received_type": give_type,
-                      "received_amount": give_amount, "gave_type": want_type,
-                      "gave_amount": want_amount},
-            ))
-            world.bus.emit(ActionExecuted(
-                entity=offerer, action="trade",
-                data={"id": oid, "with": entity_id, "received_type": want_type,
-                      "received_amount": want_amount, "gave_type": give_type,
-                      "gave_amount": give_amount},
-            ))
-        log.info("trade_complete", offer_id=oid, offerer=offerer, offerer_gave=f"{give_amount} {give_type}", accepter=entity_id, accepter_gave=f"{want_amount} {want_type}")
+
+            world.bus.emit(
+                ActionExecuted(
+                    entity=entity_id,
+                    action="trade",
+                    data={
+                        "id": oid,
+                        "with": offerer,
+                        "received_type": give_type,
+                        "received_amount": give_amount,
+                        "gave_type": want_type,
+                        "gave_amount": want_amount,
+                    },
+                )
+            )
+            world.bus.emit(
+                ActionExecuted(
+                    entity=offerer,
+                    action="trade",
+                    data={
+                        "id": oid,
+                        "with": entity_id,
+                        "received_type": want_type,
+                        "received_amount": want_amount,
+                        "gave_type": give_type,
+                        "gave_amount": give_amount,
+                    },
+                )
+            )
+        log.info(
+            "trade_complete",
+            offer_id=oid,
+            offerer=offerer,
+            offerer_gave=f"{give_amount} {give_type}",
+            accepter=entity_id,
+            accepter_gave=f"{want_amount} {want_type}",
+        )
         return f"Trade complete: received {give_amount} {give_type} from {offerer}, gave {want_amount} {want_type}."
 
     return _offer, _accept

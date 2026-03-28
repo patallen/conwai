@@ -1,8 +1,11 @@
 """Board and DM actions — simplified from bread economy (no coin costs)."""
+
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import structlog
+
 from conwai.actions import ActionRegistry
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.scheduler import TickNumber
@@ -19,7 +22,9 @@ def _post_to_board(entity_id: str, world: World, args: dict) -> str:
     tick = world.get_resource(TickNumber).value
     mem = world.get(entity_id, AgentMemory)
     if mem.last_board_post and tick - mem.last_board_post < 3:
-        return f"You posted recently. Wait {3 - (tick - mem.last_board_post)} more ticks."
+        return (
+            f"You posted recently. Wait {3 - (tick - mem.last_board_post)} more ticks."
+        )
     content = args.get("message", "")
     board = world.get_resource(BulletinBoard)
     board.post(entity_id, content)

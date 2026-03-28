@@ -45,7 +45,9 @@ def parse_full_entry(content: str) -> dict:
     m = _ACTION_RESULT_RE.search(first_line)
     action = m.group(1) if m else "unknown"
     result = m.group(2).strip() if m else ""
-    reasoning = " ".join(line.strip() for line in lines[1:] if line.strip()) or first_line
+    reasoning = (
+        " ".join(line.strip() for line in lines[1:] if line.strip()) or first_line
+    )
     return {"action": action, "result": result, "reasoning": reasoning, "raw": content}
 
 

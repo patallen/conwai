@@ -1,6 +1,13 @@
 import asyncio
 
-from conwai.actions import Action, ActionFeedback, ActionRegistry, ActionResult, PendingActions, WorldActionAdapter
+from conwai.actions import (
+    Action,
+    ActionFeedback,
+    ActionRegistry,
+    ActionResult,
+    PendingActions,
+    WorldActionAdapter,
+)
 from conwai.brain import Decision
 from conwai.component import Component
 from conwai.scheduler import TickNumber
@@ -43,7 +50,9 @@ def test_world_action_adapter_writes_pending_before_executing():
     adapter = WorldActionAdapter(world=world, registry=registry)
     results = asyncio.run(adapter.execute("A1", [Decision("eat", {})]))
 
-    assert execution_order == [("execute", 1)]  # PendingActions had 1 entry when handler ran
+    assert execution_order == [
+        ("execute", 1)
+    ]  # PendingActions had 1 entry when handler ran
     assert len(results) == 1
     assert results[0].action == "eat"
     assert results[0].result == "ok"

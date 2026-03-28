@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import random
+from typing import TYPE_CHECKING
 
 import structlog
-from typing import TYPE_CHECKING
 
 from conwai.comm import BulletinBoard
 

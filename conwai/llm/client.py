@@ -44,7 +44,9 @@ class LLMClient:
         if not self.model:
             self.model = os.environ.get("CONWAI_LLM_MODEL", "")
         if not self.base_url:
-            self.base_url = os.environ.get("CONWAI_LLM_BASE_URL", "http://localhost:8080/v1")
+            self.base_url = os.environ.get(
+                "CONWAI_LLM_BASE_URL", "http://localhost:8080/v1"
+            )
         self._client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
 
     max_tokens: int | None = 2048
@@ -71,7 +73,12 @@ class LLMClient:
         try:
             response = await self._client.chat.completions.create(**kwargs)
         except Exception as e:
-            _log.error("llm_call_failed", error=str(e), model=self.model, base_url=self.base_url)
+            _log.error(
+                "llm_call_failed",
+                error=str(e),
+                model=self.model,
+                base_url=self.base_url,
+            )
             raise
         usage = response.usage
         msg = response.choices[0].message

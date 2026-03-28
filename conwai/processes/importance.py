@@ -58,7 +58,8 @@ class ImportanceScoring:
 
         batch = unscored[: self._batch_size]
         event_lines = "\n".join(
-            f"{n + 1}. {ep.content.split(chr(10))[0]}" for n, (_, ep) in enumerate(batch)
+            f"{n + 1}. {ep.content.split(chr(10))[0]}"
+            for n, (_, ep) in enumerate(batch)
         )
         user_msg = self._prompt.format(events=event_lines)
 

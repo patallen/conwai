@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import structlog
-from typing import TYPE_CHECKING, Any
 
 from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episodes, Identity, PerceptTick
@@ -90,10 +90,17 @@ class StrategicReview:
 
         strategy = resp.text.strip()
         if not strategy:
-            log.error("strategic_review_failed", handle=agent_id, error="no strategy returned")
+            log.error(
+                "strategic_review_failed", handle=agent_id, error="no strategy returned"
+            )
             return
 
-        log.info("morning_review_raw", handle=agent_id, length=len(strategy), strategy=strategy)
+        log.info(
+            "morning_review_raw",
+            handle=agent_id,
+            length=len(strategy),
+            strategy=strategy,
+        )
 
         strategy = strategy[:700]
 

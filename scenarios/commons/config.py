@@ -1,15 +1,18 @@
 """Configuration for the commons scenario."""
+
 from __future__ import annotations
+
 import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import structlog
-from pathlib import Path
 
 log = structlog.get_logger()
 
 _DEFAULT_CONFIG_PATH = Path(__file__).parent / "config.json"
 _config: CommonsConfig | None = None
+
 
 @dataclass
 class CommonsConfig:

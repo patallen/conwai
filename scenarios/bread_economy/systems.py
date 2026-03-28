@@ -38,7 +38,10 @@ class DecaySystem:
     async def run(self, world: World) -> None:
         cfg = get_config()
         for entity, _h, _inv in world.query(Hunger, Inventory):
-            with world.mutate(entity, Hunger) as h, world.mutate(entity, Inventory) as inv:
+            with (
+                world.mutate(entity, Hunger) as h,
+                world.mutate(entity, Inventory) as inv,
+            ):
                 h.hunger = max(0, h.hunger - cfg.hunger_decay_per_tick)
                 h.thirst = max(0, h.thirst - cfg.thirst_decay_per_tick)
                 inv.water += cfg.passive_water_per_tick
@@ -82,13 +85,23 @@ class TaxSystem:
                         eco.coins += dividend
                     perception.notify(entity, f"coins +{dividend} (tax dividend)")
             treasury.balance = 0
-            events.log("WORLD", "tax_redistribution", {
-                "pool": int(pool),
-                "per_agent": per_agent,
-                "agents": len(agents),
-                "tick": tick,
-            })
-            log.info("tax_redistributed", pool=int(pool), agents=len(agents), per_agent=per_agent, tick=tick)
+            events.log(
+                "WORLD",
+                "tax_redistribution",
+                {
+                    "pool": int(pool),
+                    "per_agent": per_agent,
+                    "agents": len(agents),
+                    "tick": tick,
+                },
+            )
+            log.info(
+                "tax_redistributed",
+                pool=int(pool),
+                agents=len(agents),
+                per_agent=per_agent,
+                tick=tick,
+            )
         else:
             log.info("tax_nothing_to_redistribute", tick=tick)
 
@@ -131,7 +144,9 @@ class ConsumptionSystem:
                     bread_eaten = 0
                     while h.hunger <= cfg.hunger_auto_eat_threshold and inv.bread > 0:
                         inv.bread -= 1
-                        h.hunger = min(cfg.hunger_max, h.hunger + cfg.hunger_eat_restore)
+                        h.hunger = min(
+                            cfg.hunger_max, h.hunger + cfg.hunger_eat_restore
+                        )
                         bread_eaten += 1
                     if bread_eaten:
                         perception.notify(
@@ -166,7 +181,9 @@ class ConsumptionSystem:
                     water_drunk = 0
                     while h.thirst <= cfg.thirst_auto_drink_threshold and inv.water > 0:
                         inv.water -= 1
-                        h.thirst = min(cfg.hunger_max, h.thirst + cfg.thirst_drink_restore)
+                        h.thirst = min(
+                            cfg.hunger_max, h.thirst + cfg.thirst_drink_restore
+                        )
                         water_drunk += 1
                     if water_drunk:
                         perception.notify(
@@ -179,7 +196,8 @@ class ConsumptionSystem:
                     eco.coins -= penalty
                     deposit_to_treasury(world, penalty)
                     perception.notify(
-                        entity, f"coins -{cfg.thirst_dehydration_coin_penalty} (dehydrated)"
+                        entity,
+                        f"coins -{cfg.thirst_dehydration_coin_penalty} (dehydrated)",
                     )
 
 

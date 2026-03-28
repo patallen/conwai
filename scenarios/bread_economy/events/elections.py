@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import random
+from typing import TYPE_CHECKING
 
 import structlog
-from typing import TYPE_CHECKING
 
 from conwai.comm import BulletinBoard
 from conwai.scheduler import TickNumber
@@ -71,7 +71,9 @@ class ElectionSystem:
             f"Use the vote action. You can change your vote. "
             f"Voting ends in {self.duration} ticks. Most votes wins.",
         )
-        log.info("election_started", reward=self._reward, ends_tick=tick + self.duration)
+        log.info(
+            "election_started", reward=self._reward, ends_tick=tick + self.duration
+        )
 
     def _check_end(self, tick: int) -> None:
         if tick - self._started_tick < self.duration:

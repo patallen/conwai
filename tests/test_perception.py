@@ -1,6 +1,6 @@
 from conwai.comm import BulletinBoard, MessageBus
-from conwai.scheduler import TickNumber
 from conwai.processes.types import Observations
+from conwai.scheduler import TickNumber
 from conwai.world import World
 from scenarios.bread_economy.components import (
     AgentInfo,

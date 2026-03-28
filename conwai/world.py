@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import structlog
 from collections.abc import Iterator
 from contextlib import contextmanager
 from copy import deepcopy
 from typing import TYPE_CHECKING, TypeVar
+
+import structlog
 
 from conwai.component import Component
 
@@ -65,12 +66,14 @@ class World:
                 self._suppress_events = False
         if self._bus:
             from conwai.events import EntitySpawned
+
             self._bus.emit(EntitySpawned(entity=entity_id))
         return entity_id
 
     def destroy(self, entity_id: str) -> None:
         if self._bus and entity_id in self._entities:
             from conwai.events import EntityDestroyed
+
             self._bus.emit(EntityDestroyed(entity=entity_id))
         self._entities.discard(entity_id)
         self._components.pop(entity_id, None)
@@ -92,12 +95,15 @@ class World:
         self._components[entity][type(comp)] = comp
         if self._bus and not self._suppress_events:
             from conwai.events import ComponentChanged
-            self._bus.emit(ComponentChanged(
-                entity=entity,
-                comp_type=type(comp),
-                old=deepcopy(old) if old is not None else None,
-                new=deepcopy(comp),
-            ))
+
+            self._bus.emit(
+                ComponentChanged(
+                    entity=entity,
+                    comp_type=type(comp),
+                    old=deepcopy(old) if old is not None else None,
+                    new=deepcopy(comp),
+                )
+            )
 
     def has(self, entity: str, comp: type[Component]) -> bool:
         return entity in self._components and comp in self._components[entity]
@@ -114,12 +120,15 @@ class World:
         else:
             if self._bus and comp != snapshot:
                 from conwai.events import ComponentChanged
-                self._bus.emit(ComponentChanged(
-                    entity=entity,
-                    comp_type=comp_type,
-                    old=snapshot,
-                    new=deepcopy(comp),
-                ))
+
+                self._bus.emit(
+                    ComponentChanged(
+                        entity=entity,
+                        comp_type=comp_type,
+                        old=snapshot,
+                        new=deepcopy(comp),
+                    )
+                )
 
     # -- Resources -----------------------------------------------------------
 

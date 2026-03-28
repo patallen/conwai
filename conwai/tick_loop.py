@@ -6,9 +6,10 @@ pre-systems -> agent scheduling -> post-systems -> persist.
 
 from __future__ import annotations
 
-import structlog
 from collections.abc import Awaitable, Callable
 from typing import Protocol, runtime_checkable
+
+import structlog
 
 from conwai.events import EventBus
 from conwai.scheduler import Scheduler
@@ -72,8 +73,10 @@ class TickLoop:
 
         # Schedule all agents (concurrent via scheduler)
         for handle in handles:
+
             async def _run(h: str = handle) -> None:
                 await agent_fn(h)
+
             self._scheduler.schedule(handle, _run, cost=cost)
         await self._scheduler.run()
 

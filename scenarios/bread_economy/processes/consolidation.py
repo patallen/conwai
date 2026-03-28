@@ -96,7 +96,9 @@ class ConsolidationProcess:
 
         eps = ctx.state.get(Episodes)
         if not eps or len(eps.entries) < _MIN_ENTRIES:
-            log.debug("reflection_skipped", handle=agent_id, reason="not enough episodes")
+            log.debug(
+                "reflection_skipped", handle=agent_id, reason="not enough episodes"
+            )
             return
 
         entries_with_emb = [e for e in eps.entries if e.embedding is not None]
@@ -116,7 +118,9 @@ class ConsolidationProcess:
         for q in questions:
             log.info("focal_question", handle=agent_id, question=q[:80])
 
-        vectors: list[list[float]] = [e.embedding for e in entries_with_emb if e.embedding is not None]
+        vectors: list[list[float]] = [
+            e.embedding for e in entries_with_emb if e.embedding is not None
+        ]
         insights = []
         consumed: set[int] = set()  # indices into entries_with_emb
 

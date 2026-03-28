@@ -113,11 +113,11 @@ def report_overview(ev, st):
         inv = a.get("inventory", {})
         hun = a.get("hunger", {})
         print(
-            f"  [{grp}] {handle:12s} {info.get('role','?'):15s} "
-            f"{int(eco.get('coins',0)):>5d} "
-            f"{inv.get('flour',0):>4d} {inv.get('water',0):>4d} "
-            f"{inv.get('bread',0):>4d} "
-            f"{hun.get('hunger',0):>4d} {hun.get('thirst',0):>4d}"
+            f"  [{grp}] {handle:12s} {info.get('role', '?'):15s} "
+            f"{int(eco.get('coins', 0)):>5d} "
+            f"{inv.get('flour', 0):>4d} {inv.get('water', 0):>4d} "
+            f"{inv.get('bread', 0):>4d} "
+            f"{hun.get('hunger', 0):>4d} {hun.get('thirst', 0):>4d}"
         )
     print()
 
@@ -149,8 +149,14 @@ def report_compare(ev, st):
     # Actions per group
     print("--- ACTIONS PER AGENT ---")
     action_types = [
-        "forage", "bake", "trade", "offer", "accept",
-        "send_message", "post_to_board", "entity_destroyed",
+        "forage",
+        "bake",
+        "trade",
+        "offer",
+        "accept",
+        "send_message",
+        "post_to_board",
+        "entity_destroyed",
     ]
     header = f"  {'action':20s}"
     for g in grp_names:
@@ -166,7 +172,7 @@ def report_compare(ev, st):
                 [atype] + agents,
             ).fetchone()[0]
             n = len(agents)
-            line += f" {cnt/n:>12.1f}"
+            line += f" {cnt / n:>12.1f}"
         print(line)
     print()
 
@@ -194,7 +200,7 @@ def report_compare(ev, st):
         pairs = ev.execute(
             f"""SELECT entity, REPLACE(json_extract(data, '$.to'), '@', '') as receiver, COUNT(*)
                 FROM events WHERE type='send_message'
-                AND entity IN ({','.join('?' * len(agents))})
+                AND entity IN ({",".join("?" * len(agents))})
                 GROUP BY entity, receiver""",
             list(agents),
         ).fetchall()
@@ -229,9 +235,7 @@ def report_compare(ev, st):
     ]:
         line = f"  {metric:20s}"
         for g in grp_names:
-            agents = [
-                all_agents[h] for h in agents_by_grp[g] if h in all_agents
-            ]
+            agents = [all_agents[h] for h in agents_by_grp[g] if h in all_agents]
             if metric == "min bread":
                 val = min(
                     (a.get("inventory", {}).get("bread", 0) for a in agents),
@@ -240,9 +244,7 @@ def report_compare(ev, st):
                 line += f" {val:>12d}"
             elif metric == "zero bread":
                 val = sum(
-                    1
-                    for a in agents
-                    if a.get("inventory", {}).get("bread", 0) == 0
+                    1 for a in agents if a.get("inventory", {}).get("bread", 0) == 0
                 )
                 line += f" {val:>12d}"
             elif metric == "gini coins":
@@ -310,9 +312,7 @@ def report_compare(ev, st):
         for _, candidate in votes:
             candidate = candidate.lstrip("@")
             vote_counts[candidate] += 1
-        for candidate, count in sorted(
-            vote_counts.items(), key=lambda x: -x[1]
-        ):
+        for candidate, count in sorted(vote_counts.items(), key=lambda x: -x[1]):
             grp = groups.get(candidate, "?")[:3].upper()
             print(f"  [{grp}] {candidate}: {count} votes")
         print()
@@ -331,9 +331,9 @@ def report_agent_timeline(ev, st, agent, tick_filter=None):
     print(f"=== AGENT TIMELINE: {agent} ===")
     print(f"Group: {grp}, Role: {info.get('role', '?')}")
     print(
-        f"Current: coins={int(eco.get('coins',0))}, "
-        f"F={inv.get('flour',0)}, W={inv.get('water',0)}, "
-        f"B={inv.get('bread',0)}, hunger={hun.get('hunger',0)}"
+        f"Current: coins={int(eco.get('coins', 0))}, "
+        f"F={inv.get('flour', 0)}, W={inv.get('water', 0)}, "
+        f"B={inv.get('bread', 0)}, hunger={hun.get('hunger', 0)}"
     )
     print(f"Soul: {(mem.get('soul') or 'none')[:100]}")
     print(f"Strategy: {(mem.get('strategy') or 'none')[:200]}")
@@ -399,19 +399,13 @@ def report_agent_timeline(ev, st, agent, tick_filter=None):
     print()
 
     # Trade partners
-    trades = [
-        json.loads(data)
-        for _, typ, data in events
-        if typ == "trade"
-    ]
+    trades = [json.loads(data) for _, typ, data in events if typ == "trade"]
     if trades:
         print("--- TRADE PARTNERS ---")
         partner_counts = defaultdict(int)
         for t in trades:
             partner_counts[t.get("with", "?")] += 1
-        for partner, cnt in sorted(
-            partner_counts.items(), key=lambda x: -x[1]
-        ):
+        for partner, cnt in sorted(partner_counts.items(), key=lambda x: -x[1]):
             pg = groups.get(partner, "?")[:3].upper()
             print(f"  [{pg}] {partner}: {cnt} trades")
         print()
@@ -428,7 +422,11 @@ def report_agent_timeline(ev, st, agent, tick_filter=None):
     if focal_lines:
         print("--- ALL FOCAL QUESTIONS ---")
         for line in focal_lines:
-            q = line.split("focal question: ", 1)[1] if "focal question: " in line else line
+            q = (
+                line.split("focal question: ", 1)[1]
+                if "focal question: " in line
+                else line
+            )
             print(f"  {q[:140]}")
         print()
 
@@ -450,7 +448,11 @@ def report_agent_timeline(ev, st, agent, tick_filter=None):
         time_str = f"Day {tick_day}, {tick_hour}:00"
 
         # Find recalls for this tick
-        tick_recalls = [line for line in recall_lines if time_str in line or f"Day {tick_day}," in line]
+        tick_recalls = [
+            line
+            for line in recall_lines
+            if time_str in line or f"Day {tick_day}," in line
+        ]
         if tick_recalls:
             print("  Recalled:")
             for line in tick_recalls[:10]:
@@ -470,7 +472,9 @@ def report_agent_timeline(ev, st, agent, tick_filter=None):
 def main():
     parser = argparse.ArgumentParser(description="Analyze conwai run")
     parser.add_argument("--agent", help="Show timeline for specific agent")
-    parser.add_argument("--tick", type=int, help="Show detail for specific tick (use with --agent)")
+    parser.add_argument(
+        "--tick", type=int, help="Show detail for specific tick (use with --agent)"
+    )
     parser.add_argument("--compare", action="store_true", help="A/B group comparison")
     args = parser.parse_args()
 

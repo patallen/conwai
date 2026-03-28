@@ -4,22 +4,26 @@ from __future__ import annotations
 
 import asyncio
 
+from conwai.brain import BrainContext
 from conwai.processes.importance import ImportanceScoring
 from conwai.processes.types import AgentHandle, Episode, Episodes, PerceptTick
 from conwai.typemap import Blackboard, Percept, State
-from conwai.brain import BrainContext
 
 
 class FakeArticulator:
     """Returns predictable importance scores."""
+
     def __init__(self, response_text: str):
         self.response_text = response_text
         self.calls = []
 
     async def call(self, system, messages, tools=None):
         from conwai.llm import LLMResponse
+
         self.calls.append({"system": system, "messages": messages})
-        return LLMResponse(text=self.response_text, tool_calls=[], prompt_tokens=0, completion_tokens=0)
+        return LLMResponse(
+            text=self.response_text, tool_calls=[], prompt_tokens=0, completion_tokens=0
+        )
 
 
 class ErrorArticulator:
@@ -115,7 +119,7 @@ class TestImportanceScoring:
 
     def test_batch_size_caps_processing(self):
         episodes = [Episode(content=f"event {i}", tick=i) for i in range(10)]
-        art = FakeArticulator("\n".join(f"{i+1}. 3" for i in range(5)))
+        art = FakeArticulator("\n".join(f"{i + 1}. 3" for i in range(5)))
         ctx, eps = _make_ctx(episodes=episodes)
 
         asyncio.run(ImportanceScoring(articulator=art, batch_size=5).run(ctx))

@@ -56,12 +56,24 @@ class TestActivationRecall:
     def test_recency_dominance(self):
         """Newer episode wins when cosine similarity is equal."""
         episodes = [
-            Episode(content="traded flour long ago", tick=10, last_accessed=10,
-                    access_count=0, embedding=[1.0, 0.0, 0.0]),
-            Episode(content="traded flour recently", tick=90, last_accessed=90,
-                    access_count=0, embedding=[1.0, 0.0, 0.0]),
+            Episode(
+                content="traded flour long ago",
+                tick=10,
+                last_accessed=10,
+                access_count=0,
+                embedding=[1.0, 0.0, 0.0],
+            ),
+            Episode(
+                content="traded flour recently",
+                tick=90,
+                last_accessed=90,
+                access_count=0,
+                embedding=[1.0, 0.0, 0.0],
+            ),
         ]
-        ctx, _ = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+        ctx, _ = _make_ctx(
+            tick=100, observations="I need to trade flour", episodes=episodes
+        )
 
         recall = ActivationRecall(recall_limit=1, embedder=FakeEmbedder())
         asyncio.run(recall.run(ctx))
@@ -74,12 +86,24 @@ class TestActivationRecall:
     def test_frequency_dominance(self):
         """More-accessed episode wins when recency and cosine are equal."""
         episodes = [
-            Episode(content="traded flour rarely", tick=50, last_accessed=50,
-                    access_count=0, embedding=[1.0, 0.0, 0.0]),
-            Episode(content="traded flour often", tick=50, last_accessed=50,
-                    access_count=15, embedding=[1.0, 0.0, 0.0]),
+            Episode(
+                content="traded flour rarely",
+                tick=50,
+                last_accessed=50,
+                access_count=0,
+                embedding=[1.0, 0.0, 0.0],
+            ),
+            Episode(
+                content="traded flour often",
+                tick=50,
+                last_accessed=50,
+                access_count=15,
+                embedding=[1.0, 0.0, 0.0],
+            ),
         ]
-        ctx, _ = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+        ctx, _ = _make_ctx(
+            tick=100, observations="I need to trade flour", episodes=episodes
+        )
 
         recall = ActivationRecall(recall_limit=1, embedder=FakeEmbedder())
         asyncio.run(recall.run(ctx))
@@ -91,12 +115,24 @@ class TestActivationRecall:
     def test_reinforcement_updates_metadata(self):
         """Recalled episodes get access_count incremented and last_accessed updated."""
         episodes = [
-            Episode(content="traded flour with @Alice", tick=50, last_accessed=50,
-                    access_count=2, embedding=[1.0, 0.0, 0.0]),
-            Episode(content="watched the sunset", tick=50, last_accessed=50,
-                    access_count=0, embedding=[0.0, 0.0, 1.0]),
+            Episode(
+                content="traded flour with @Alice",
+                tick=50,
+                last_accessed=50,
+                access_count=2,
+                embedding=[1.0, 0.0, 0.0],
+            ),
+            Episode(
+                content="watched the sunset",
+                tick=50,
+                last_accessed=50,
+                access_count=0,
+                embedding=[0.0, 0.0, 1.0],
+            ),
         ]
-        ctx, eps = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+        ctx, eps = _make_ctx(
+            tick=100, observations="I need to trade flour", episodes=episodes
+        )
 
         recall = ActivationRecall(recall_limit=1, embedder=FakeEmbedder())
         asyncio.run(recall.run(ctx))
@@ -104,7 +140,9 @@ class TestActivationRecall:
         # The recalled episode should have access_count incremented but last_accessed unchanged
         trade_ep = eps.entries[0]
         assert trade_ep.access_count == 3
-        assert trade_ep.last_accessed == 50  # not updated — recency reflects when event happened
+        assert (
+            trade_ep.last_accessed == 50
+        )  # not updated — recency reflects when event happened
 
         # The non-recalled episode should be unchanged
         sunset_ep = eps.entries[1]
@@ -130,9 +168,16 @@ class TestActivationRecall:
     def test_fallback_does_not_update_metadata(self):
         """Handle recall fallback should not touch access_count or last_accessed."""
         episodes = [
-            Episode(content="met @Alice at the market", tick=10, last_accessed=10, access_count=0),
+            Episode(
+                content="met @Alice at the market",
+                tick=10,
+                last_accessed=10,
+                access_count=0,
+            ),
         ]
-        ctx, eps = _make_ctx(tick=100, observations="@Alice wants to trade", episodes=episodes)
+        ctx, eps = _make_ctx(
+            tick=100, observations="@Alice wants to trade", episodes=episodes
+        )
 
         recall = ActivationRecall(recall_limit=5)  # no embedder
         asyncio.run(recall.run(ctx))
@@ -143,10 +188,17 @@ class TestActivationRecall:
     def test_score_components_in_range(self):
         """All score components should stay in [0, 1]."""
         episodes = [
-            Episode(content="traded flour", tick=1, last_accessed=1,
-                    access_count=100, embedding=[1.0, 0.0, 0.0]),
+            Episode(
+                content="traded flour",
+                tick=1,
+                last_accessed=1,
+                access_count=100,
+                embedding=[1.0, 0.0, 0.0],
+            ),
         ]
-        ctx, _ = _make_ctx(tick=500, observations="I need to trade flour", episodes=episodes)
+        ctx, _ = _make_ctx(
+            tick=500, observations="I need to trade flour", episodes=episodes
+        )
 
         recall = ActivationRecall(recall_limit=7, embedder=FakeEmbedder())
         asyncio.run(recall.run(ctx))
@@ -160,13 +212,22 @@ class TestActivationRecall:
     def test_respects_recall_limit(self):
         """Should return at most recall_limit + reflection_limit episodes."""
         episodes = [
-            Episode(content=f"traded flour episode {i}", tick=90, last_accessed=90,
-                    access_count=0, embedding=[1.0, 0.0, 0.0])
+            Episode(
+                content=f"traded flour episode {i}",
+                tick=90,
+                last_accessed=90,
+                access_count=0,
+                embedding=[1.0, 0.0, 0.0],
+            )
             for i in range(20)
         ]
-        ctx, _ = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+        ctx, _ = _make_ctx(
+            tick=100, observations="I need to trade flour", episodes=episodes
+        )
 
-        recall = ActivationRecall(recall_limit=5, reflection_limit=2, embedder=FakeEmbedder())
+        recall = ActivationRecall(
+            recall_limit=5, reflection_limit=2, embedder=FakeEmbedder()
+        )
         asyncio.run(recall.run(ctx))
 
         recalled = ctx.bb.get(RecalledMemories)
@@ -175,17 +236,31 @@ class TestActivationRecall:
     def test_reflection_split(self):
         """Reflections get reserved slots separate from episodes."""
         episodes = [
-            Episode(content=f"traded flour episode {i}", tick=90, last_accessed=90,
-                    access_count=0, embedding=[1.0, 0.0, 0.0])
+            Episode(
+                content=f"traded flour episode {i}",
+                tick=90,
+                last_accessed=90,
+                access_count=0,
+                embedding=[1.0, 0.0, 0.0],
+            )
             for i in range(20)
         ] + [
-            Episode(content=f"[Reflection, Day 3] insight about trading {i}", tick=70, last_accessed=70,
-                    access_count=0, embedding=[1.0, 0.0, 0.0])
+            Episode(
+                content=f"[Reflection, Day 3] insight about trading {i}",
+                tick=70,
+                last_accessed=70,
+                access_count=0,
+                embedding=[1.0, 0.0, 0.0],
+            )
             for i in range(5)
         ]
-        ctx, _ = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+        ctx, _ = _make_ctx(
+            tick=100, observations="I need to trade flour", episodes=episodes
+        )
 
-        recall = ActivationRecall(recall_limit=5, reflection_limit=2, embedder=FakeEmbedder())
+        recall = ActivationRecall(
+            recall_limit=5, reflection_limit=2, embedder=FakeEmbedder()
+        )
         asyncio.run(recall.run(ctx))
 
         recalled = ctx.bb.get(RecalledMemories)
@@ -205,12 +280,26 @@ class TestActivationRecall:
     def test_importance_dominance(self):
         """Higher-importance episode wins when other scores are equal."""
         episodes = [
-            Episode(content="traded flour routine", tick=90, last_accessed=90,
-                    access_count=0, importance=2, embedding=[1.0, 0.0, 0.0]),
-            Episode(content="traded flour critical", tick=90, last_accessed=90,
-                    access_count=0, importance=9, embedding=[1.0, 0.0, 0.0]),
+            Episode(
+                content="traded flour routine",
+                tick=90,
+                last_accessed=90,
+                access_count=0,
+                importance=2,
+                embedding=[1.0, 0.0, 0.0],
+            ),
+            Episode(
+                content="traded flour critical",
+                tick=90,
+                last_accessed=90,
+                access_count=0,
+                importance=9,
+                embedding=[1.0, 0.0, 0.0],
+            ),
         ]
-        ctx, _ = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+        ctx, _ = _make_ctx(
+            tick=100, observations="I need to trade flour", episodes=episodes
+        )
 
         recall = ActivationRecall(recall_limit=1, embedder=FakeEmbedder())
         asyncio.run(recall.run(ctx))
@@ -222,11 +311,18 @@ class TestActivationRecall:
     def test_skips_episodes_without_embeddings(self):
         """Episodes without embeddings should be excluded from activation scoring."""
         episodes = [
-            Episode(content="has embedding", tick=90, last_accessed=90,
-                    access_count=0, embedding=[1.0, 0.0, 0.0]),
+            Episode(
+                content="has embedding",
+                tick=90,
+                last_accessed=90,
+                access_count=0,
+                embedding=[1.0, 0.0, 0.0],
+            ),
             Episode(content="no embedding", tick=95, last_accessed=95, access_count=0),
         ]
-        ctx, _ = _make_ctx(tick=100, observations="I need to trade flour", episodes=episodes)
+        ctx, _ = _make_ctx(
+            tick=100, observations="I need to trade flour", episodes=episodes
+        )
 
         recall = ActivationRecall(recall_limit=7, embedder=FakeEmbedder())
         asyncio.run(recall.run(ctx))
