@@ -29,7 +29,7 @@ def _update_soul(entity_id: str, world: World, args: dict) -> str:
     return "soul updated"
 
 
-def _update_journal(entity_id: str, world: World, args: dict) -> str:
+def _update_journal(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
     cfg = get_config()
     content = args.get("content", "")
     max_len = cfg.memory_max

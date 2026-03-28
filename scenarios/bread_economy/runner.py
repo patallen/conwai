@@ -7,7 +7,7 @@ from faker import Faker
 
 import scenarios.bread_economy.config as config
 from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
-from conwai.brain import PipelineBrain
+from conwai.brain import PipelineBrain, Process
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import EventBus, EventLog
 from conwai.scheduler import Scheduler, TickNumber
@@ -58,7 +58,7 @@ log = logging.getLogger("conwai")
 async def process_commands(world: World, brains=None, brain_factory=None):
     """Poll the command queue and execute admin commands from the dashboard."""
     storage = world._storage
-    if not storage:
+    if not storage or not isinstance(storage, SQLiteStorage):
         return
     board = world.get_resource(BulletinBoard)
     bus = world.get_resource(MessageBus)
@@ -286,7 +286,7 @@ async def run():
         nonlocal _brain_counter
         client = clients[_brain_counter % len(clients)]
         _brain_counter += 1
-        processes = [
+        processes: list[Process] = [
             StrategicReview(client=client, store=world, interval=24),
             MemoryCompression(
                 recent_ticks=16,

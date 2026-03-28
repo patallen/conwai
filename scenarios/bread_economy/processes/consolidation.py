@@ -115,7 +115,7 @@ class ConsolidationProcess:
         for q in questions:
             log.info(f"[@{agent_id}]   focal question: {q[:80]}")
 
-        vectors = [e.embedding for e in entries_with_emb]
+        vectors: list[list[float]] = [e.embedding for e in entries_with_emb if e.embedding is not None]
         insights = []
         consumed: set[int] = set()  # indices into entries_with_emb
 
@@ -177,6 +177,7 @@ class ConsolidationProcess:
             f"recent experience?\n"
             f"1)"
         )
+        assert self._articulator is not None
         try:
             resp = await self._articulator.call(
                 system=q_system,
@@ -217,6 +218,7 @@ class ConsolidationProcess:
             f"What high-level insight {i_framing} from the above? "
             f"One sentence. Ground it in the evidence."
         )
+        assert self._articulator is not None
         try:
             resp = await self._articulator.call(
                 system=i_system,

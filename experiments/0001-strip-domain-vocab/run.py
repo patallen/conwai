@@ -60,7 +60,7 @@ _NUMBER_PATTERN = re.compile(r"\b\d+\b")
 def extract_reasoning(content: str) -> str:
     """Skip the first line (timestamp + action results), return the rest joined."""
     lines = content.strip().split("\n")
-    reasoning_lines = [l.strip() for l in lines[1:] if l.strip()]
+    reasoning_lines = [line.strip() for line in lines[1:] if line.strip()]
     if reasoning_lines:
         return " ".join(reasoning_lines)
     return content

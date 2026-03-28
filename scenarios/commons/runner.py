@@ -9,7 +9,7 @@ from faker import Faker
 
 import scenarios.commons.config as config
 from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
-from conwai.brain import PipelineBrain
+from conwai.brain import PipelineBrain, Process
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import ActionExecuted, EventBus, EventLog
 from conwai.scheduler import Scheduler, TickNumber
@@ -126,7 +126,7 @@ async def run():
     # --- Brain pipeline ---
     def make_brain() -> PipelineBrain:
         client = clients[0]
-        processes = [
+        processes: list[Process] = [
             MemoryCompression(
                 recent_ticks=16,
                 embedder=embedder,

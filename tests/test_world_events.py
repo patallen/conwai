@@ -56,7 +56,7 @@ def test_mutate_no_change_no_event():
     received: list[ComponentChanged] = []
     bus.subscribe(ComponentChanged, received.append)
 
-    with world.mutate("e1", Health) as h:
+    with world.mutate("e1", Health):
         pass  # no mutation
 
     bus.drain()

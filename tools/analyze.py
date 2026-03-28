@@ -12,7 +12,6 @@ import argparse
 import json
 import re
 import sqlite3
-import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -83,7 +82,7 @@ def report_overview(ev, st):
     day = tick // 24 + 1
     hour = 8 + tick % 24
 
-    print(f"=== CONWAI RUN ANALYSIS ===")
+    print("=== CONWAI RUN ANALYSIS ===")
     print(f"Tick: {tick} (Day {day}, {hour}:00)  Events: {total}")
     if groups:
         grp_counts = defaultdict(int)
@@ -140,7 +139,6 @@ def report_compare(ev, st):
         print("No A/B groups found.")
         return
 
-    tick = get_tick()
     grp_names = sorted(set(groups.values()))
     agents_by_grp = defaultdict(list)
     for entity, grp in groups.items():
@@ -290,8 +288,8 @@ def report_compare(ev, st):
                 for line in log_text.splitlines()
                 if "insight:" in line and re.search(f"@({pattern})", line)
             ]
-            pos = sum(1 for l in insights if positive_words.search(l))
-            neg = sum(1 for l in insights if negative_words.search(l))
+            pos = sum(1 for line in insights if positive_words.search(line))
+            neg = sum(1 for line in insights if negative_words.search(line))
             total = len(insights)
             pos_pct = pos / total * 100 if total > 0 else 0
             neg_pct = neg / total * 100 if total > 0 else 0
@@ -376,14 +374,13 @@ def report_agent_timeline(ev, st, agent, tick_filter=None):
                     log_lines.append(line.strip())
 
     # Index log lines by approximate content
-    recall_lines = [l for l in log_lines if "recall:" in l]
-    importance_lines = [l for l in log_lines if "importance:" in l]
-    insight_lines = [l for l in log_lines if "insight:" in l]
-    focal_lines = [l for l in log_lines if "focal question:" in l]
-    strategy_lines = [l for l in log_lines if "morning" in l.lower() or "strategy" in l.lower()]
-    reasoning_lines = [l for l in log_lines if "tok)" in l]
+    recall_lines = [line for line in log_lines if "recall:" in line]
+    importance_lines = [line for line in log_lines if "importance:" in line]
+    insight_lines = [line for line in log_lines if "insight:" in line]
+    focal_lines = [line for line in log_lines if "focal question:" in line]
+    reasoning_lines = [line for line in log_lines if "tok)" in line]
 
-    print(f"--- SUMMARY ---")
+    print("--- SUMMARY ---")
     print(f"  Total events: {len(events)}")
     print(f"  Ticks with activity: {len(ticks)}")
     print(f"  Recalls logged: {len(recall_lines)}")
@@ -453,21 +450,21 @@ def report_agent_timeline(ev, st, agent, tick_filter=None):
         time_str = f"Day {tick_day}, {tick_hour}:00"
 
         # Find recalls for this tick
-        tick_recalls = [l for l in recall_lines if time_str in l or f"Day {tick_day}," in l]
+        tick_recalls = [line for line in recall_lines if time_str in line or f"Day {tick_day}," in line]
         if tick_recalls:
             print("  Recalled:")
-            for l in tick_recalls[:10]:
+            for line in tick_recalls[:10]:
                 # Extract just the content and score
-                match = re.search(r'recall: "(.*?)".*?\((.*?)\)', l)
+                match = re.search(r'recall: "(.*?)".*?\((.*?)\)', line)
                 if match:
                     print(f"    {match.group(1)[:80]} ({match.group(2)})")
 
         # Find reasoning for this tick
-        tick_reasoning = [l for l in reasoning_lines if time_str in l]
+        tick_reasoning = [line for line in reasoning_lines if time_str in line]
         if tick_reasoning:
             print("  Reasoning:")
-            for l in tick_reasoning:
-                print(f"    {l[:200]}")
+            for line in tick_reasoning:
+                print(f"    {line[:200]}")
 
 
 def main():

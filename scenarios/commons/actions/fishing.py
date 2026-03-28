@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("conwai")
 
 
-def _fish(entity_id: str, world: World, args: dict) -> str:
+def _fish(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
     cfg = get_config()
     tick = world.get_resource(TickNumber).value
     if tick < cfg.fish_interval or tick % cfg.fish_interval != 0:

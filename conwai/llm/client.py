@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from openai import AsyncOpenAI
 
@@ -32,15 +32,19 @@ class LLMProvider(Protocol):
 
 @dataclass
 class LLMClient:
-    model: str = "/mnt/models/Qwen3.5-9B-AWQ"
-    base_url: str = "http://ai-lab.lan:8080/v1"
+    model: str = ""
+    base_url: str = ""
     api_key: str = "ollama"
     extra_body: dict = field(
         default_factory=lambda: {"chat_template_kwargs": {"enable_thinking": False}}
     )
-    _client: AsyncOpenAI = field(default=None, repr=False)
+    _client: AsyncOpenAI | None = field(default=None, repr=False)
 
     def __post_init__(self):
+        if not self.model:
+            self.model = os.environ.get("CONWAI_LLM_MODEL", "")
+        if not self.base_url:
+            self.base_url = os.environ.get("CONWAI_LLM_BASE_URL", "http://localhost:8080/v1")
         self._client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
 
     max_tokens: int | None = 2048
@@ -50,7 +54,7 @@ class LLMClient:
         self, system: str, messages: list[dict], tools: list[dict] | None = None
     ) -> LLMResponse:
         all_messages = [{"role": "system", "content": system}, *messages]
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": all_messages,
             "temperature": self.temperature,
@@ -63,6 +67,7 @@ class LLMClient:
         import logging
 
         _log = logging.getLogger("conwai")
+        assert self._client is not None
         try:
             response = await self._client.chat.completions.create(**kwargs)
         except Exception as e:
@@ -97,7 +102,7 @@ class AnthropicLLMClient:
         default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY", "")
     )
     max_tokens: int = 600
-    _client: object = field(default=None, repr=False)
+    _client: Any = field(default=None, repr=False)
 
     def __post_init__(self):
         from anthropic import AsyncAnthropic

@@ -28,7 +28,7 @@ def parse_entry(content: str) -> tuple[str, str]:
     lines = content.strip().split("\n")
     m = _ACTION_RE.search(lines[0])
     action = m.group(1) if m else "unknown"
-    reasoning = " ".join(l.strip() for l in lines[1:] if l.strip()) or lines[0]
+    reasoning = " ".join(line.strip() for line in lines[1:] if line.strip()) or lines[0]
     return action, reasoning
 
 

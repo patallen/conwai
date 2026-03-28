@@ -16,7 +16,7 @@ class Event:
     pass
 
 
-Handler = Callable[[Event], None]
+Handler = Callable[..., None]
 
 
 class EventBus:

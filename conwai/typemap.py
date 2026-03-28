@@ -66,7 +66,11 @@ class State(_TypeMap):
         """Serialize all entries to a dict keyed by class name."""
         from dataclasses import asdict
 
-        return {type(val).__name__: asdict(val) for val in self._data.values()}
+        return {
+            type(val).__name__: asdict(val)  # type: ignore[call-overload]
+            for val in self._data.values()
+            if hasattr(val, "__dataclass_fields__")
+        }
 
     @classmethod
     def deserialize(cls, data: dict, type_registry: dict[str, type]) -> State:

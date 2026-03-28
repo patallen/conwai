@@ -117,7 +117,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
     if offer_book is None:
         offer_book = OfferBook()
 
-    def _offer(entity_id: str, world: World, args: dict) -> str:
+    def _offer(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
         tick = world.get_resource(TickNumber).value
         offer_book.expire(tick)
 

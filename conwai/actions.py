@@ -33,7 +33,7 @@ class PendingActions(Component):
 
 @dataclass
 class ActionFeedback(Component):
-    """Results of executed actions. Written by ActionSystem, read by perception."""
+    """Results of executed actions. Written by WorldActionAdapter, read by perception."""
 
     entries: list[ActionResult] = field(default_factory=list)
 

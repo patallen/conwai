@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("conwai")
 
 
-def _forage(entity_id: str, world: World, args: dict) -> str:
+def _forage(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
     cfg = get_config()
     info = world.get(entity_id, AgentInfo)
     skills = cfg.forage_skill_by_role.get(info.role, {"flour": 1, "water": 1})
@@ -40,7 +40,7 @@ def _forage(entity_id: str, world: World, args: dict) -> str:
     return "found nothing", {"flour": 0, "water": 0}
 
 
-def _bake(entity_id: str, world: World, args: dict) -> str:
+def _bake(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
     cfg = get_config()
     flour_needed = cfg.bake_cost["flour"]
     water_needed = cfg.bake_cost["water"]

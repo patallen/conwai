@@ -13,7 +13,7 @@ def load(path: Path | None = None) -> dict:
 
 def get(cfg: dict, *keys, default=None):
     """Read from nested config."""
-    val = cfg
+    val: object = cfg
     for k in keys:
         if isinstance(val, dict):
             val = val.get(k)
