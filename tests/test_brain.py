@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from conwai.brain import Brain, BrainContext, Decision, Decisions
+from conwai.brain import Brain as BrainProtocol, PipelineBrain, ActionAdapter, BrainContext, Decision, Decisions
 from conwai.processes.types import (
     Episode,
     Episodes,
@@ -9,6 +9,8 @@ from conwai.processes.types import (
     WorkingMemory,
     WorkingMemoryEntry,
 )
+from conwai.scheduler import Scheduler
+from conwai.events import EventBus
 from conwai.typemap import Percept, State
 
 
@@ -98,6 +100,27 @@ def test_episodes_from_dict():
 # -- Brain tests ------------------------------------------------------------
 
 
+def test_brain_protocol_compliance():
+    class MinimalBrain:
+        def perceive(self, percept, scheduler, handle):
+            pass
+        def save_state(self):
+            return {}
+        def load_state(self, data):
+            pass
+
+    assert isinstance(MinimalBrain(), BrainProtocol)
+
+
+class FakeAdapter:
+    def __init__(self):
+        self.calls: list[tuple[str, list[Decision]]] = []
+
+    async def execute(self, handle, decisions):
+        self.calls.append((handle, list(decisions)))
+        return []
+
+
 class AppendDecision:
     def __init__(self, action: str):
         self.action = action
@@ -115,50 +138,132 @@ class WriteToState:
         ctx.state.set(wm)
 
 
-def test_brain_runs_processes_in_order():
-    brain = Brain(processes=[AppendDecision("first"), AppendDecision("second")])
-    decisions = asyncio.run(brain.think(Percept()))
+def test_perceive_schedules_work():
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(processes=[AppendDecision("eat")], adapter=adapter)
+
+    brain.perceive(Percept(), scheduler, "A1")
+
+    # perceive() just schedules — adapter not called yet
+    assert adapter.calls == []
+    assert len(scheduler._heap) == 1
+
+
+def test_perceive_runs_pipeline_and_calls_adapter():
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(processes=[AppendDecision("eat")], adapter=adapter)
+
+    brain.perceive(Percept(), scheduler, "A1")
+    asyncio.run(scheduler.run())
+
+    assert len(adapter.calls) == 1
+    handle, decisions = adapter.calls[0]
+    assert handle == "A1"
+    assert [d.action for d in decisions] == ["eat"]
+
+
+def test_perceive_runs_processes_in_order():
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(
+        processes=[AppendDecision("first"), AppendDecision("second")],
+        adapter=adapter,
+    )
+
+    brain.perceive(Percept(), scheduler, "A1")
+    asyncio.run(scheduler.run())
+
+    _, decisions = adapter.calls[0]
     assert [d.action for d in decisions] == ["first", "second"]
 
 
-def test_brain_state_persists_across_thinks():
-    brain = Brain(processes=[WriteToState()])
-    asyncio.run(brain.think(Percept()))
+def test_perceive_no_decisions_skips_adapter():
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(processes=[], adapter=adapter)
+
+    brain.perceive(Percept(), scheduler, "A1")
+    asyncio.run(scheduler.run())
+
+    assert adapter.calls == []
+
+
+def test_perceive_state_persists_across_calls():
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(processes=[WriteToState()], adapter=adapter)
+
+    brain.perceive(Percept(), scheduler, "A1")
+    asyncio.run(scheduler.run())
+
     wm = brain.state.get(WorkingMemory)
     assert wm.last_tick == 99
 
 
-def test_brain_bb_is_fresh_each_think():
-    class WriteScratch:
-        async def run(self, ctx: BrainContext):
-            ctx.bb.set(LLMSnapshot(system_prompt="test"))
+def test_perceive_duplicate_dropped_while_active():
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(processes=[AppendDecision("eat")], adapter=adapter)
 
-    brain = Brain(processes=[WriteScratch()])
-    asyncio.run(brain.think(Percept()))
-    # State should NOT have LLMSnapshot
-    assert brain.state.get(LLMSnapshot) is None
+    brain.perceive(Percept(), scheduler, "A1")
+    brain.perceive(Percept(), scheduler, "A1")  # duplicate — should be dropped
 
-
-def test_brain_empty_pipeline():
-    brain = Brain(processes=[])
-    decisions = asyncio.run(brain.think(Percept()))
-    assert decisions == []
+    assert len(scheduler._heap) == 1  # only one task scheduled
 
 
-def test_brain_save_load_state():
-    brain = Brain(
+def test_pipeline_brain_save_load_state():
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(
         processes=[WriteToState()],
+        adapter=adapter,
         state_types=[WorkingMemory],
     )
-    asyncio.run(brain.think(Percept()))
+
+    brain.perceive(Percept(), scheduler, "A1")
+    asyncio.run(scheduler.run())
 
     data = brain.save_state()
     assert "WorkingMemory" in data
 
-    brain2 = Brain(
+    brain2 = PipelineBrain(
         processes=[WriteToState()],
+        adapter=adapter,
         state_types=[WorkingMemory],
     )
     brain2.load_state(data)
     wm = brain2.state.get(WorkingMemory)
     assert wm.last_tick == 99
+
+
+def test_perceive_bb_is_fresh_each_call():
+    class WriteScratch:
+        async def run(self, ctx: BrainContext):
+            ctx.bb.set(LLMSnapshot(system_prompt="test"))
+
+    bus = EventBus()
+    scheduler = Scheduler(bus=bus)
+    adapter = FakeAdapter()
+    brain = PipelineBrain(processes=[WriteScratch()], adapter=adapter)
+
+    brain.perceive(Percept(), scheduler, "A1")
+    asyncio.run(scheduler.run())
+
+    assert brain.state.get(LLMSnapshot) is None
+
+
+def test_action_adapter_protocol_compliance():
+    class MinimalAdapter:
+        async def execute(self, handle, decisions):
+            return []
+
+    assert isinstance(MinimalAdapter(), ActionAdapter)

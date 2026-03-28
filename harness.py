@@ -27,8 +27,8 @@ import json
 import logging
 import sys
 
-from conwai.actions import ActionFeedback, ActionResult, PendingActions
-from conwai.brain import Brain
+from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
+from conwai.brain import PipelineBrain
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.llm import FastEmbedder, LLMClient
 from conwai.events import EventBus, EventLog
@@ -117,6 +117,8 @@ async def run(args):
     registry = create_registry()
     world.set_resource(registry)
 
+    adapter = WorldActionAdapter(world=world, registry=registry)
+
     handle = args.handle
 
     # Load or create the test agent
@@ -142,7 +144,7 @@ async def run(args):
                 ],
             )
 
-    brain = Brain(
+    brain = PipelineBrain(
         processes=[
             StrategicReview(client=client, store=world, interval=24),
             MemoryCompression(
@@ -158,22 +160,15 @@ async def run(args):
             ),
             InferenceProcess(client=client, tools=tool_definitions()),
         ],
+        adapter=adapter,
         state_types=[WorkingMemory, Episodes],
     )
 
     scheduler = Scheduler(bus=event_bus)
 
-    async def think_then_act_single(_handle: str):
+    async def on_tick(_handle: str):
         percept = perception.build(handle, world)
-        decisions = await brain.think(percept)
-        world.set(handle, PendingActions(entries=decisions))
-        feedback_entries = []
-        for decision in decisions:
-            result = registry.execute(handle, decision.action, decision.args, world)
-            feedback_entries.append(
-                ActionResult(action=decision.action, args=decision.args, result=result)
-            )
-        world.set(handle, ActionFeedback(entries=feedback_entries))
+        brain.perceive(percept, scheduler, handle)
 
     loop = TickLoop(scheduler=scheduler, event_bus=event_bus, world=world)
     loop.add_pre_system(DecaySystem())
@@ -194,7 +189,7 @@ async def run(args):
     async def do_tick():
         tick_number.value += 1
         storage.save_component("_meta", "tick", {"value": tick_number.value})
-        await loop.tick([handle], think_then_act_single)
+        await loop.tick([handle], on_tick)
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from conwai.typemap import Blackboard, Percept, State
 
@@ -37,42 +37,66 @@ class Process(Protocol):
     async def run(self, ctx: BrainContext) -> None: ...
 
 
-class Brain:
+@runtime_checkable
+class ActionAdapter(Protocol):
+    """Bridge between cognition and environment. Like ACT-R's motor module."""
+
+    async def execute(self, handle: str, decisions: list[Decision]) -> list: ...
+
+
+@runtime_checkable
+class Brain(Protocol):
+    """Framework-level brain interface. Concrete brains implement this."""
+
+    def perceive(self, percept: Percept, scheduler: Any, handle: str) -> None: ...
+    def save_state(self) -> dict: ...
+    def load_state(self, data: dict) -> None: ...
+
+
+class PipelineBrain:
     """Run a pipeline of processes, producing decisions.
 
-    The brain owns a persistent State typemap that accumulates across
-    cycles (working memory, episodes, etc.). Each think() call creates
-    a fresh Blackboard for per-cycle scratch, builds a BrainContext,
-    and runs the process pipeline.
+    Implements the Brain protocol by scheduling the full pipeline as a
+    single task on the Scheduler. The adapter handles action execution
+    after the pipeline completes.
     """
 
     def __init__(
         self,
         processes: list[Process],
+        adapter: ActionAdapter,
         state_types: list[type] | None = None,
     ):
         self.processes = processes
+        self.adapter = adapter
         self.state = State()
         self._state_registry = {t.__name__: t for t in (state_types or [])}
         self._last_snapshot: dict | None = None
 
-    async def think(self, percept: Percept) -> list[Decision]:
-        ctx = BrainContext(percept=percept, state=self.state, bb=Blackboard())
+    def perceive(self, percept: Percept, scheduler: Any, handle: str) -> None:
+        async def run_pipeline():
+            ctx = BrainContext(percept=percept, state=self.state, bb=Blackboard())
 
-        for process in self.processes:
-            await process.run(ctx)
+            for process in self.processes:
+                await process.run(ctx)
 
-        from conwai.processes.types import LLMSnapshot
+            from conwai.processes.types import LLMSnapshot
 
-        snap = ctx.bb.get(LLMSnapshot)
-        if snap:
-            self._last_snapshot = {
-                "system": snap.system_prompt,
-                "messages": snap.messages,
-            }
+            snap = ctx.bb.get(LLMSnapshot)
+            if snap:
+                self._last_snapshot = {
+                    "system": snap.system_prompt,
+                    "messages": snap.messages,
+                }
 
-        decisions = ctx.bb.get(Decisions)
-        return decisions.entries if decisions else []
+            decisions_obj = ctx.bb.get(Decisions)
+            if decisions_obj and decisions_obj.entries:
+                await self.adapter.execute(handle, decisions_obj.entries)
+                log.info(f"[{handle}] pipeline complete, {len(decisions_obj.entries)} decisions")
+            else:
+                log.debug(f"[{handle}] pipeline complete, no decisions")
+
+        scheduler.schedule(f"{handle}:think", run_pipeline)
 
     def save_state(self) -> dict:
         """Serialize persistent state for storage."""

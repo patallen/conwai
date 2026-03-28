@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable
 
 from conwai.component import Component
 
 from conwai.brain import Decision
-
-if TYPE_CHECKING:
-    from conwai.world import World
+from conwai.world import World
 
 
 @dataclass
@@ -101,3 +99,20 @@ class ActionRegistry:
             ))
 
         return result
+
+
+class WorldActionAdapter:
+    """Standard adapter: writes PendingActions, executes via registry, writes ActionFeedback."""
+
+    def __init__(self, world: World, registry: ActionRegistry):
+        self._world = world
+        self._registry = registry
+
+    async def execute(self, handle: str, decisions: list[Decision]) -> list[ActionResult]:
+        self._world.set(handle, PendingActions(entries=decisions))
+        results = []
+        for d in decisions:
+            result = self._registry.execute(handle, d.action, d.args, self._world)
+            results.append(ActionResult(action=d.action, args=d.args, result=result))
+        self._world.set(handle, ActionFeedback(entries=results))
+        return results

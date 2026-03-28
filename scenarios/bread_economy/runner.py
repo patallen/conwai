@@ -6,8 +6,8 @@ import time
 from faker import Faker
 
 import scenarios.bread_economy.config as config
-from conwai.actions import ActionFeedback, ActionResult, PendingActions
-from conwai.brain import Brain
+from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
+from conwai.brain import PipelineBrain
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import EventBus, EventLog
 from conwai.scheduler import Scheduler, TickNumber
@@ -260,6 +260,8 @@ async def run():
     registry = create_registry(world=world_events, offer_book=offer_book)
     world.set_resource(registry)
 
+    adapter = WorldActionAdapter(world=world, registry=registry)
+
     # --- Embedder (shared across all agents, stateless) ---
     from conwai.llm import FastEmbedder
 
@@ -280,7 +282,7 @@ async def run():
 
     _brain_counter = 0
 
-    def make_brain(with_importance: bool = False) -> Brain:
+    def make_brain(with_importance: bool = False) -> PipelineBrain:
         nonlocal _brain_counter
         client = clients[_brain_counter % len(clients)]
         _brain_counter += 1
@@ -315,11 +317,11 @@ async def run():
                 tools=tool_definitions(),
             ),
         ])
-        return Brain(processes=processes, state_types=[WorkingMemory, Episodes])
+        return PipelineBrain(processes=processes, adapter=adapter, state_types=[WorkingMemory, Episodes])
 
     # --- Agents + Brains ---
     # A/B test: importance scoring on vs off
-    brains: dict[str, Brain] = {}
+    brains: dict[str, PipelineBrain] = {}
     importance_group: set[str] = set()
     ab_roles = (
         ["flour_forager"] * 2
@@ -427,21 +429,11 @@ async def run():
             brain.load_state(data)
             log.info(f"[{handle}] loaded brain state")
 
-    async def think_then_act(handle):
+    async def on_tick(handle):
         start = time.monotonic()
-        brain = brains[handle]
         percept = perception.build(handle, world)
-        decisions = await brain.think(percept)
-        world.set(handle, PendingActions(entries=decisions))
-
-        feedback_entries = []
-        for decision in decisions:
-            result = registry.execute(handle, decision.action, decision.args, world)
-            feedback_entries.append(
-                ActionResult(action=decision.action, args=decision.args, result=result)
-            )
-        world.set(handle, ActionFeedback(entries=feedback_entries))
-        log.info(f"[{handle}] tick {tick_number.value} took {time.monotonic() - start:.1f}s")
+        brains[handle].perceive(percept, scheduler, handle)
+        log.info(f"[{handle}] tick {tick_number.value} scheduled in {time.monotonic() - start:.3f}s")
 
     scheduler = Scheduler(bus=event_bus)
 
@@ -483,6 +475,6 @@ async def run():
         handles = sorted(h for h in brains if h in entities)
         registry.begin_tick(world, handles)
 
-        await loop.tick(handles, think_then_act)
+        await loop.tick(handles, on_tick)
 
         log.info(f"[WORLD] tick {tick_number.value} completed in {time.monotonic() - tick_start:.1f}s")

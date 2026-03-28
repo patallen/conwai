@@ -24,8 +24,8 @@ from pathlib import Path
 
 from faker import Faker
 
-from conwai.actions import ActionFeedback, ActionResult, PendingActions
-from conwai.brain import Brain
+from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
+from conwai.brain import PipelineBrain
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.llm import FastEmbedder, LLMClient
 from conwai.events import EventBus, EventLog
@@ -92,10 +92,12 @@ async def run(args):
     registry = create_registry()
     world.set_resource(registry)
 
+    adapter = WorldActionAdapter(world=world, registry=registry)
+
     system_prompt = (Path(__file__).parent / "prompts" / "system.md").read_text()
 
-    def make_brain() -> Brain:
-        return Brain(
+    def make_brain() -> PipelineBrain:
+        return PipelineBrain(
             processes=[
                 MemoryCompression(
                     recent_ticks=16,
@@ -108,13 +110,14 @@ async def run(args):
                 ),
                 InferenceProcess(client=client, tools=tool_definitions()),
             ],
+            adapter=adapter,
             state_types=[WorkingMemory, Episodes],
         )
 
     # Load or create agents
     fake = Faker()
 
-    brains: dict[str, Brain] = {}
+    brains: dict[str, PipelineBrain] = {}
     loaded_handles = list(storage.list_entities())
     for handle in loaded_handles:
         if handle in set(world.entities()):
@@ -135,18 +138,9 @@ async def run(args):
 
     scheduler = Scheduler(bus=event_bus)
 
-    async def think_then_act(handle):
-        b = brains[handle]
+    async def on_tick(handle):
         percept = perception.build(handle, world)
-        decisions = await b.think(percept)
-        world.set(handle, PendingActions(entries=decisions))
-        feedback_entries = []
-        for decision in decisions:
-            result = registry.execute(handle, decision.action, decision.args, world)
-            feedback_entries.append(
-                ActionResult(action=decision.action, args=decision.args, result=result)
-            )
-        world.set(handle, ActionFeedback(entries=feedback_entries))
+        brains[handle].perceive(percept, scheduler, handle)
 
     loop = TickLoop(scheduler=scheduler, event_bus=event_bus, world=world)
 
@@ -167,7 +161,7 @@ async def run(args):
         tick_number.value += 1
         storage.save_component("_meta", "tick", {"value": tick_number.value})
         handles = [h for h in brains if h in set(world.entities())]
-        await loop.tick(handles, think_then_act)
+        await loop.tick(handles, on_tick)
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")

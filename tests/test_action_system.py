@@ -1,11 +1,10 @@
 import asyncio
 
-from conwai.actions import Action, ActionFeedback, ActionRegistry, ActionResult, PendingActions
-from conwai.brain import Brain, BrainContext, Decision, Decisions
+from conwai.actions import Action, ActionFeedback, ActionRegistry, ActionResult, PendingActions, WorldActionAdapter
+from conwai.brain import Decision
 from conwai.component import Component
-from conwai.systems import ActionSystem, BrainSystem
+from conwai.systems import ActionSystem
 from conwai.scheduler import TickNumber
-from conwai.typemap import Percept
 from conwai.world import World
 
 
@@ -21,13 +20,6 @@ def test_action_result_fields():
     r = ActionResult(action="eat", args={}, result="yum")
     assert r.action == "eat"
     assert r.result == "yum"
-
-
-class FakeDecider:
-    async def run(self, ctx: BrainContext):
-        decisions = ctx.bb.get(Decisions) or Decisions()
-        decisions.entries.append(Decision("eat", {}))
-        ctx.bb.set(decisions)
 
 
 def test_action_system_executes_pending():
@@ -71,42 +63,46 @@ def test_action_system_skips_empty_pending():
     assert len(fb.entries) == 0
 
 
-def test_brain_system_writes_pending_actions():
+def test_world_action_adapter_writes_pending_before_executing():
+    """PendingActions must be written BEFORE actions execute, for snapshottability."""
     world = World()
     world.register(PendingActions)
     world.register(ActionFeedback)
-    world.set_resource(TickNumber())
     world.spawn("A1")
+    world.set_resource(TickNumber())
 
-    brain = Brain(processes=[FakeDecider()])
-    brains = {"A1": brain}
+    execution_order = []
 
-    def perception(entity_id, w):
-        return Percept()
+    def handler(eid, w, args):
+        # At execution time, PendingActions should already be on the entity
+        pa = w.get(eid, PendingActions)
+        execution_order.append(("execute", len(pa.entries)))
+        return "ok"
 
-    system = BrainSystem(brains=brains, perception=perception)
-    asyncio.run(system.run(world))
+    registry = ActionRegistry()
+    registry.register(Action(name="eat", handler=handler))
 
-    pa = world.get("A1", PendingActions)
-    assert len(pa.entries) == 1
-    assert pa.entries[0].action == "eat"
+    adapter = WorldActionAdapter(world=world, registry=registry)
+    results = asyncio.run(adapter.execute("A1", [Decision("eat", {})]))
+
+    assert execution_order == [("execute", 1)]  # PendingActions had 1 entry when handler ran
+    assert len(results) == 1
+    assert results[0].action == "eat"
+    assert results[0].result == "ok"
+
+    fb = world.get("A1", ActionFeedback)
+    assert len(fb.entries) == 1
 
 
-def test_brain_system_no_decisions_no_pending():
+def test_world_action_adapter_empty_decisions():
     world = World()
     world.register(PendingActions)
     world.register(ActionFeedback)
-    world.set_resource(TickNumber())
     world.spawn("A1")
+    world.set_resource(TickNumber())
 
-    brain = Brain(processes=[])
-    brains = {"A1": brain}
+    registry = ActionRegistry()
+    adapter = WorldActionAdapter(world=world, registry=registry)
+    results = asyncio.run(adapter.execute("A1", []))
 
-    def perception(entity_id, w):
-        return Percept()
-
-    system = BrainSystem(brains=brains, perception=perception)
-    asyncio.run(system.run(world))
-
-    pa = world.get("A1", PendingActions)
-    assert len(pa.entries) == 0
+    assert results == []

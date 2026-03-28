@@ -3,8 +3,8 @@ import logging
 import random
 import sys
 
-from conwai.actions import ActionFeedback, ActionResult, PendingActions
-from conwai.brain import Brain
+from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
+from conwai.brain import PipelineBrain
 from conwai.events import EventBus
 from conwai.scheduler import Scheduler, TickNumber
 from conwai.tick_loop import TickLoop
@@ -89,11 +89,13 @@ async def run(
     # Actions
     registry = create_registry()
 
+    adapter = WorldActionAdapter(world=world, registry=registry)
+
     # Perception
     perception = SugarPerception()
 
     # Agents — random metabolism (1-4), vision (1-6), scattered randomly
-    brains: dict[str, Brain] = {}
+    brains: dict[str, PipelineBrain] = {}
     for i in range(n_agents):
         handle = f"A{i}"
         world.spawn(
@@ -106,26 +108,18 @@ async def run(
                 Vision(range=random.randint(1, 6)),
             ],
         )
-        brains[handle] = Brain(
+        brains[handle] = PipelineBrain(
             processes=[RememberSugar(), PlanMove(), ExecuteMove()],
+            adapter=adapter,
             state_types=[SugarMemory],
         )
 
     bus = EventBus()
     scheduler = Scheduler(bus)
 
-    async def think_then_act(handle):
-        brain = brains[handle]
+    async def on_tick(handle):
         percept = perception.build(handle, world)
-        decisions = await brain.think(percept)
-        world.set(handle, PendingActions(entries=decisions))
-        feedback_entries = []
-        for decision in decisions:
-            result = registry.execute(handle, decision.action, decision.args, world)
-            feedback_entries.append(
-                ActionResult(action=decision.action, args=decision.args, result=result)
-            )
-        world.set(handle, ActionFeedback(entries=feedback_entries))
+        brains[handle].perceive(percept, scheduler, handle)
 
     loop = TickLoop(scheduler=scheduler, event_bus=bus, world=world)
     loop.add_pre_system(RegrowthSystem())
@@ -143,7 +137,7 @@ async def run(
         tick_number.value += 1
 
         handles = [h for h in brains if h in set(world.entities())]
-        await loop.tick(handles, think_then_act)
+        await loop.tick(handles, on_tick)
 
         wealths = [s.wealth for _, s in world.query(Sugar)]
         g = gini(wealths)

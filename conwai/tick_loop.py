@@ -35,7 +35,7 @@ class TickLoop:
         loop.add_post_system(consumption)
         loop.on_persist = lambda: (world.flush(), save_brains())
 
-        await loop.tick(handles, think_then_act)
+        await loop.tick(handles, on_tick)
     """
 
     def __init__(

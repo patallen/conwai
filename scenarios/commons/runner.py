@@ -8,8 +8,8 @@ from pathlib import Path
 from faker import Faker
 
 import scenarios.commons.config as config
-from conwai.actions import ActionFeedback, ActionResult, PendingActions
-from conwai.brain import Brain
+from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
+from conwai.brain import PipelineBrain
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import ActionExecuted, EventBus, EventLog
 from conwai.scheduler import Scheduler, TickNumber
@@ -115,6 +115,8 @@ async def run():
     registry = create_registry()
     world.set_resource(registry)
 
+    adapter = WorldActionAdapter(world=world, registry=registry)
+
     # --- Embedder ---
     from conwai.llm import FastEmbedder
     log.info("[WORLD] loading embedding model...")
@@ -122,7 +124,7 @@ async def run():
     log.info("[WORLD] embedding model ready")
 
     # --- Brain pipeline ---
-    def make_brain() -> Brain:
+    def make_brain() -> PipelineBrain:
         client = clients[0]
         processes = [
             MemoryCompression(
@@ -142,10 +144,10 @@ async def run():
                 tools=tool_definitions(),
             ),
         ]
-        return Brain(processes=processes, state_types=[WorkingMemory, Episodes])
+        return PipelineBrain(processes=processes, adapter=adapter, state_types=[WorkingMemory, Episodes])
 
     # --- Agents ---
-    brains: dict[str, Brain] = {}
+    brains: dict[str, PipelineBrain] = {}
     loaded_handles = list(storage.list_entities())
     for handle in loaded_handles:
         if handle in set(world.entities()):
@@ -171,27 +173,12 @@ async def run():
             brain.load_state(data)
             log.info(f"[{handle}] loaded brain state")
 
-    async def think_then_act(handle):
-        """Think (async LLM call), then execute actions sequentially."""
+    async def on_tick(handle):
         start = time.monotonic()
-        brain = brains[handle]
         tick = world.get_resource(TickNumber)
-
-        # Think — builds percept, calls LLM, writes PendingActions
         percept = perception.build(handle, world)
-        decisions = await brain.think(percept)
-        world.set(handle, PendingActions(entries=decisions))
-
-        # Act — execute sequentially, same as ActionSystem
-        feedback_entries = []
-        for decision in decisions:
-            result = registry.execute(handle, decision.action, decision.args, world)
-            feedback_entries.append(
-                ActionResult(action=decision.action, args=decision.args, result=result)
-            )
-        world.set(handle, ActionFeedback(entries=feedback_entries))
-
-        log.info(f"[{handle}] tick {tick.value} took {time.monotonic() - start:.1f}s")
+        brains[handle].perceive(percept, scheduler, handle)
+        log.info(f"[{handle}] tick {tick.value} scheduled in {time.monotonic() - start:.3f}s")
 
     # --- Scheduler ---
     scheduler = Scheduler(bus=event_bus, default_cost=cfg.activation_cost)
@@ -201,7 +188,10 @@ async def run():
         if event.action == "send_message":
             target = event.args.get("to", "").lstrip("@")
             if target in brains:
-                scheduler.schedule(target, lambda h=target: think_then_act(h), cost=cfg.retrigger_cost)
+                async def retrigger(h=target):
+                    percept = perception.build(h, world)
+                    brains[h].perceive(percept, scheduler, h)
+                scheduler.schedule(target, retrigger, cost=cfg.retrigger_cost)
 
     event_bus.subscribe(ActionExecuted, on_action)
 
@@ -234,7 +224,7 @@ async def run():
         handles = sorted(h for h in brains if h in entities)
         registry.begin_tick(world, handles)
 
-        await loop.tick(handles, think_then_act)
+        await loop.tick(handles, on_tick)
 
         # Log
         pond_pop = int(pond.population)
