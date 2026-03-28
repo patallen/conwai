@@ -241,8 +241,8 @@ async def run():
     # --- LLM clients ---
     clients = [
         LLMClient(
-            base_url="https://o9hgcgopc1wg97-8000.proxy.runpod.net/v1",
-            model="Qwen/Qwen3.5-122B-A10B-GPTQ-Int4",
+            base_url="http://ai-lab.lan:8081/v1",
+            model="/mnt/models/Qwen3.5-27B-GPTQ-Int4",
             max_tokens=2048,
             api_key="none",
         ),
@@ -322,10 +322,10 @@ async def run():
     brains: dict[str, Brain] = {}
     importance_group: set[str] = set()
     ab_roles = (
-        ["flour_forager"] * 4
-        + ["water_forager"] * 4  # importance on
-        + ["flour_forager"] * 4
-        + ["water_forager"] * 4  # importance off
+        ["flour_forager"] * 2
+        + ["water_forager"] * 1  # importance on
+        + ["flour_forager"] * 2
+        + ["water_forager"] * 1  # importance off
     )
     agent_personality = "practical, observant"
 
