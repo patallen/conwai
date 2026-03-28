@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 import random
+
+import structlog
 from typing import TYPE_CHECKING
 
 from conwai.comm import BulletinBoard
@@ -12,7 +13,7 @@ from scenarios.bread_economy.perception import BreadPerceptionBuilder
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 class ElectionSystem:
@@ -70,9 +71,7 @@ class ElectionSystem:
             f"Use the vote action. You can change your vote. "
             f"Voting ends in {self.duration} ticks. Most votes wins.",
         )
-        log.info(
-            f"[WORLD] election started (reward: {self._reward}, ends tick {tick + self.duration})"
-        )
+        log.info("election_started", reward=self._reward, ends_tick=tick + self.duration)
 
     def _check_end(self, tick: int) -> None:
         if tick - self._started_tick < self.duration:
@@ -83,7 +82,7 @@ class ElectionSystem:
         if not self._votes:
             board = self._world.get_resource(BulletinBoard)
             board.post("WORLD", "ELECTION ENDED: No votes cast. No winner.")
-            log.info("[WORLD] election ended with no votes")
+            log.info("election_ended", result="no_votes")
             return
 
         # Count votes
@@ -116,9 +115,7 @@ class ElectionSystem:
             f"ELECTION WON by {winner} with {vote_count} votes! "
             f"They receive {self._reward} coins. Results: {results}",
         )
-        log.info(
-            f"[WORLD] election won by {winner} ({vote_count} votes). Tally: {results}"
-        )
+        log.info("election_won", winner=winner, votes=vote_count, tally=results)
 
         self._votes.clear()
 

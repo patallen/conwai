@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 import re
 from typing import TYPE_CHECKING
+
+import structlog
 
 from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episodes
@@ -12,7 +13,7 @@ from conwai.processes.types import AgentHandle, Episodes
 if TYPE_CHECKING:
     from conwai.llm import LLMProvider
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 _DEFAULT_PROMPT = """\
 Rate each event's significance for an agent building a self-sufficient community.
@@ -66,7 +67,7 @@ class ImportanceScoring:
                 _SYSTEM, [{"role": "user", "content": user_msg}]
             )
         except Exception:
-            log.error("ImportanceScoring: articulator call failed", exc_info=True)
+            log.error("importance_scoring_error", exc_info=True)
             return
 
         scores = self._parse(resp.text, len(batch))
@@ -77,7 +78,7 @@ class ImportanceScoring:
         for (idx, ep), score in zip(batch, scores):
             ep.importance = score
             preview = ep.content[:60]
-            log.info(f'[@{agent_id}] importance: "{preview}" -> {score}')
+            log.info("importance_scored", handle=agent_id, preview=preview, score=score)
 
     @staticmethod
     def _parse(text: str, count: int) -> list[int]:
@@ -96,7 +97,7 @@ class ImportanceScoring:
                 bare_scores.append(max(1, min(10, int(bare.group(1)))))
                 continue
             if line.strip():
-                log.warning(f"ImportanceScoring: unparseable line: {line!r}")
+                log.warning("importance_unparseable_line", line=line)
 
         # Prefer indexed format; fall back to bare scores in order
         if parsed:

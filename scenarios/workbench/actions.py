@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
+
+import structlog
 
 from conwai.actions import Action, ActionRegistry
 from conwai.comm import BulletinBoard, MessageBus
@@ -11,14 +12,14 @@ from conwai.events import EventLog
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def _broadcast(entity_id: str, world: World, args: dict) -> str:
     content = args.get("content", "")
     world.get_resource(BulletinBoard).post(entity_id, content)
     world.get_resource(EventLog).log(entity_id, "broadcast", {"content": content})
-    log.info(f"[{entity_id}] broadcast: {content}")
+    log.info("broadcast", handle=entity_id, content=content)
     return f"broadcast: {content}"
 
 
@@ -33,7 +34,7 @@ def _message(entity_id: str, world: World, args: dict) -> str:
     world.get_resource(EventLog).log(
         entity_id, "message_sent", {"to": to, "content": content}
     )
-    log.info(f"[{entity_id}] -> [{to}]: {content}")
+    log.info("message_sent", handle=entity_id, to=to, content=content)
     return f"sent message to {to}"
 
 

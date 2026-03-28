@@ -24,8 +24,7 @@ Commands:
 import argparse
 import asyncio
 import json
-import logging
-import sys
+import structlog
 
 from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
 from conwai.brain import PipelineBrain
@@ -58,14 +57,15 @@ from scenarios.bread_economy.processes import (
 from scenarios.bread_economy.processes.review import StrategicReview
 from scenarios.bread_economy.systems import ConsumptionSystem, DecaySystem
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def setup_logging():
-    log.setLevel(logging.INFO)
-    h = logging.StreamHandler(sys.stdout)
-    h.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S"))
-    log.addHandler(h)
+    import logging
+
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+    )
 
 
 async def run(args):
@@ -184,7 +184,7 @@ async def run(args):
     data = world.load_raw(handle, "brain_state")
     if data:
         brain.load_state(data)
-        log.info(f"[{handle}] loaded brain state")
+        log.info("loaded_brain_state", handle=handle)
 
     async def do_tick():
         tick_number.value += 1

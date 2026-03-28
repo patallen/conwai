@@ -1,9 +1,10 @@
 """Runner for the commons scenario."""
 import asyncio
-import logging
 import random
 import time
 from pathlib import Path
+
+import structlog
 
 from faker import Faker
 
@@ -30,7 +31,7 @@ from conwai.processes import (
 )
 from conwai.tick_loop import TickLoop
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 async def wait_for_llm(client):
@@ -44,7 +45,7 @@ async def wait_for_llm(client):
                     return
         except Exception:
             pass
-        log.warning("[WORLD] LLM unreachable, waiting 10s...")
+        log.warning("llm_unreachable")
         await asyncio.sleep(10)
 
 
@@ -56,7 +57,7 @@ async def run():
     if cfg.seed is not None:
         random.seed(cfg.seed)
         Faker.seed(cfg.seed)
-        log.info(f"[WORLD] random seed: {cfg.seed}")
+        log.info("random_seed", seed=cfg.seed)
 
     # --- Storage ---
     storage = SQLiteStorage(path=Path("data/commons.db"))
@@ -119,9 +120,9 @@ async def run():
 
     # --- Embedder ---
     from conwai.llm import FastEmbedder
-    log.info("[WORLD] loading embedding model...")
+    log.info("loading_embedding_model")
     embedder = FastEmbedder()
-    log.info("[WORLD] embedding model ready")
+    log.info("embedding_model_ready")
 
     # --- Brain pipeline ---
     def make_brain() -> PipelineBrain:
@@ -171,14 +172,14 @@ async def run():
         data = world.load_raw(handle, "brain_state")
         if data:
             brain.load_state(data)
-            log.info(f"[{handle}] loaded brain state")
+            log.info("loaded_brain_state", handle=handle)
 
     async def on_tick(handle):
         start = time.monotonic()
         tick = world.get_resource(TickNumber)
         percept = perception.build(handle, world)
         brains[handle].perceive(percept, scheduler, handle)
-        log.info(f"[{handle}] tick {tick.value} scheduled in {time.monotonic() - start:.3f}s")
+        log.info("tick_scheduled", handle=handle, tick=tick.value, elapsed_s=round(time.monotonic() - start, 3))
 
     # --- Scheduler ---
     scheduler = Scheduler(bus=event_bus, default_cost=cfg.activation_cost)
@@ -231,15 +232,12 @@ async def run():
         scores = [(fh.fish, eid) for eid, fh in world.query(FishHaul)]
         scores.sort(reverse=True)
         top = ", ".join(f"{name}:{fish}" for fish, name in scores[:3])
-        log.info(
-            f"[WORLD] tick {tick_number.value} done in {time.monotonic() - tick_start:.1f}s | "
-            f"pond: {pond_pop}/{int(pond.capacity)} | top: {top}"
-        )
+        log.info("tick_complete", tick=tick_number.value, elapsed_s=round(time.monotonic() - tick_start, 1), pond=pond_pop, pond_capacity=int(pond.capacity), top=top)
 
     # Final results
-    log.info("=== SIMULATION COMPLETE ===")
+    log.info("simulation_complete")
     scores = [(fh.fish, eid) for eid, fh in world.query(FishHaul)]
     scores.sort(reverse=True)
     for rank, (fish, name) in enumerate(scores, 1):
-        log.info(f"  #{rank} @{name}: {fish} fish")
-    log.info(f"  Pond final population: {int(pond.population)}/{int(pond.capacity)}")
+        log.info("final_score", rank=rank, handle=name, fish=fish)
+    log.info("pond_final", population=int(pond.population), capacity=int(pond.capacity))

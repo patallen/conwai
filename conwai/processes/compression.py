@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import logging
+import structlog
 from collections.abc import Callable, Set
 from typing import TYPE_CHECKING
 
@@ -18,7 +18,7 @@ from conwai.processes.types import (
 if TYPE_CHECKING:
     from conwai.llm import Embedder
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 class MemoryCompression:

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
+
+import structlog
 
 from scenarios.bread_economy.actions.helpers import charge
 from scenarios.bread_economy.components import (
@@ -12,7 +13,7 @@ from scenarios.bread_economy.config import get_config
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def _update_soul(entity_id: str, world: World, args: dict) -> str:
@@ -25,7 +26,7 @@ def _update_soul(entity_id: str, world: World, args: dict) -> str:
     content = args.get("content", "")
     with world.mutate(entity_id, AgentMemory) as mem:
         mem.soul = content
-    log.info(f"[{entity_id}] soul updated")
+    log.info("soul_updated", handle=entity_id)
     return "soul updated"
 
 
@@ -39,7 +40,7 @@ def _update_journal(entity_id: str, world: World, args: dict) -> str | tuple[str
         content = content[:max_len]
     with world.mutate(entity_id, AgentMemory) as mem:
         mem.memory = content
-    log.info(f"[{entity_id}] journal updated")
+    log.info("journal_updated", handle=entity_id)
     if lost > 0:
         return f"journal updated ({lost} chars truncated)", {"chars": len(content)}
     return "journal updated", {"chars": len(content)}
@@ -49,14 +50,14 @@ def _inspect(entity_id: str, world: World, args: dict) -> str:
     handle = args.get("handle", "").lstrip("@")
     alive = set(world.entities())
     if handle not in alive:
-        log.info(f"[{entity_id}] inspect failed: unknown agent {handle}")
+        log.info("inspect_failed", handle=entity_id, target=handle, reason="unknown")
         return f"unknown agent: {handle}"
     mem = world.get(handle, AgentMemory)
     soul = mem.soul[:200] if mem.soul else "(no soul set)"
-    log.info(f"[{entity_id}] inspected {handle}")
+    log.info("inspected", handle=entity_id, target=handle)
     return f"Inspect @{handle}: {soul}"
 
 
 def _wait(entity_id: str, world: World, args: dict) -> str:
-    log.info(f"[{entity_id}] waiting")
+    log.info("waiting", handle=entity_id)
     return "waiting"

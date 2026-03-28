@@ -1,7 +1,8 @@
 """Fishing and rest actions."""
 from __future__ import annotations
-import logging
 from typing import TYPE_CHECKING
+
+import structlog
 from conwai.actions import ActionRegistry
 from conwai.scheduler import TickNumber
 from scenarios.commons.components import FishHaul
@@ -11,7 +12,7 @@ from scenarios.commons.systems import Pond
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def _fish(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
@@ -38,10 +39,10 @@ def _fish(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
     world.get_resource(ActionRegistry).block(
         entity_id, "You are fishing this tick and cannot take other actions."
     )
-    log.info(f"[{entity_id}] fished {caught} (requested {requested}, pond now {pond.population:.0f})")
+    log.info("fished", handle=entity_id, caught=caught, requested=requested, pond_population=round(pond.population))
     return f"caught {caught} fish (pond population: {int(pond.population)})", {"caught": caught}
 
 
 def _rest(entity_id: str, world: World, args: dict) -> str:
-    log.info(f"[{entity_id}] resting")
+    log.info("resting", handle=entity_id)
     return "rested — no fish caught this tick"

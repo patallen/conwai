@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+import structlog
 from typing import TYPE_CHECKING
 
 from scenarios.sugarscape.components import Sugar
@@ -9,7 +9,7 @@ from scenarios.sugarscape.grid import Grid
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 class MetabolismSystem:
@@ -23,7 +23,7 @@ class MetabolismSystem:
                 dead.append(entity_id)
 
         for entity_id in dead:
-            log.info(f"[{entity_id}] died (starvation)")
+            log.info("agent_died", entity=entity_id, cause="starvation")
             world.destroy(entity_id)
 
 

@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import logging
+import time
+
+import structlog
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 from conwai.typemap import Blackboard, Percept, State
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 @dataclass
@@ -78,7 +80,9 @@ class PipelineBrain:
             ctx = BrainContext(percept=percept, state=self.state, bb=Blackboard())
 
             for process in self.processes:
+                t0 = time.monotonic()
                 await process.run(ctx)
+                log.debug("process_complete", handle=handle, process=process.__class__.__name__, elapsed_s=round(time.monotonic() - t0, 3))
 
             from conwai.processes.types import LLMSnapshot
 
@@ -92,9 +96,9 @@ class PipelineBrain:
             decisions_obj = ctx.bb.get(Decisions)
             if decisions_obj and decisions_obj.entries:
                 await self.adapter.execute(handle, decisions_obj.entries)
-                log.info(f"[{handle}] pipeline complete, {len(decisions_obj.entries)} decisions")
+                log.info("pipeline_complete", handle=handle, decisions=len(decisions_obj.entries))
             else:
-                log.debug(f"[{handle}] pipeline complete, no decisions")
+                log.debug("pipeline_complete", handle=handle, decisions=0)
 
         scheduler.schedule(f"{handle}:think", run_pipeline)
 

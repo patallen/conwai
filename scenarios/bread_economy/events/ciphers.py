@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import logging
 import random
 import string
+
+import structlog
 from typing import TYPE_CHECKING
 
 from conwai.comm import BulletinBoard, MessageBus
@@ -13,7 +14,7 @@ from scenarios.bread_economy.perception import BreadPerceptionBuilder
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 CIPHER_PHRASES = [
     "TRUST NO ONE",
@@ -105,7 +106,7 @@ class CipherSystem:
                 f"CIPHER SOLVED by {entity_id}! The answer was '{self._plaintext}'. "
                 f"{entity_id} earned {self._reward} coins.",
             )
-            log.info(f"[WORLD] CIPHER SOLVED by {entity_id}: {self._plaintext}")
+            log.info("cipher_solved", solver=entity_id, answer=self._plaintext)
             self._clear()
             return (
                 f"CORRECT! The answer was '{guess}'. You earned {self._reward} coins."
@@ -120,9 +121,7 @@ class CipherSystem:
             self._attempts.append(
                 {"handle": entity_id, "guess": guess, "correct_chars": correct_chars}
             )
-            log.info(
-                f"[WORLD] WRONG CIPHER by {entity_id}: '{guess}' (wanted '{self._plaintext}')"
-            )
+            log.info("cipher_wrong", entity=entity_id, guess=guess, answer=self._plaintext)
             hint = f"{correct_chars} characters in the right position"
             if not correct_len:
                 hint += f", expected {len(self._plaintext)} characters (you guessed {len(guess)})"
@@ -169,9 +168,7 @@ class CipherSystem:
         # Distribute clues to ~half the population
         num_clues = min(len(handles), max(3, len(handles) // 2))
         chosen = random.sample(handles, num_clues)
-        log.info(
-            f"[WORLD] cipher: {len(handles)} alive, distributing {num_clues} clues to {chosen}"
-        )
+        log.info("cipher_distributing_clues", alive=len(handles), num_clues=num_clues, chosen=chosen)
 
         # Build the set of unique letters in the plaintext
         unique_letters = list(set(c for c in self._plaintext if c.isalpha()))
@@ -196,14 +193,14 @@ class CipherSystem:
                 handle,
                 f"CIPHER CHALLENGE: The message '{self._ciphertext}' is encrypted with a substitution cipher (each letter maps to a different letter). Your clue: {clue}. Replace that letter everywhere in the ciphertext, then trade clues with others to decode more letters. Do NOT guess random phrases. Submit only when you know the full plaintext. First correct answer wins {self._reward} coins. Wrong guess costs {self._penalty}.",
             )
-            log.info(f"[WORLD] cipher clue -> [{handle}]: {clue}")
+            log.info("cipher_clue_sent", handle=handle, clue=clue)
 
         board = self._world.get_resource(BulletinBoard)
         board.post(
             "WORLD",
             f"CIPHER CHALLENGE: '{self._ciphertext}' -- this is a substitution cipher (each letter replaced by another). {len(chosen)} agents have clues. Trade clues to decode it. First correct plaintext wins {self._reward} coins. Wrong = -{self._penalty}.",
         )
-        log.info(f"[WORLD] cipher started: '{self._plaintext}' -> '{self._ciphertext}'")
+        log.info("cipher_started", plaintext=self._plaintext, ciphertext=self._ciphertext)
 
     def _clear(self) -> None:
         for handle in self._clue_holders:
@@ -222,7 +219,7 @@ class CipherSystem:
                 "WORLD",
                 f"CIPHER EXPIRED. The answer was: '{self._plaintext}'. No one claimed it.",
             )
-            log.info(f"[WORLD] cipher expired: {self._plaintext}")
+            log.info("cipher_expired", answer=self._plaintext)
             self._clear()
 
     # -- State persistence helpers --

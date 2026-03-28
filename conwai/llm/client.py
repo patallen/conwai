@@ -64,16 +64,14 @@ class LLMClient:
             kwargs["max_tokens"] = self.max_tokens
         if tools:
             kwargs["tools"] = tools
-        import logging
+        import structlog
 
-        _log = logging.getLogger("conwai")
+        _log = structlog.get_logger()
         assert self._client is not None
         try:
             response = await self._client.chat.completions.create(**kwargs)
         except Exception as e:
-            _log.error(
-                f"LLM call failed: {e} | model={self.model} base_url={self.base_url}"
-            )
+            _log.error("llm_call_failed", error=str(e), model=self.model, base_url=self.base_url)
             raise
         usage = response.usage
         msg = response.choices[0].message

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import logging
+import structlog
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Callable
 
-logger = logging.getLogger(__name__)
+log = structlog.get_logger()
 
 
 @dataclass
@@ -35,12 +35,12 @@ class EventBus:
     def subscribe(self, event_type: type[Event], handler: Handler) -> None:
         """Register *handler* to be called whenever *event_type* is drained."""
         self._handlers[event_type].append(handler)
-        logger.debug("subscribed %s to %s", handler, event_type.__name__)
+        log.debug("subscribed", handler=str(handler), event_type=event_type.__name__)
 
     def emit(self, event: Event) -> None:
         """Queue *event* for delivery on the next drain()."""
         self._queue.append(event)
-        logger.debug("queued %s", type(event).__name__)
+        log.debug("queued", event_type=type(event).__name__)
 
     def drain(self, max_iterations: int = 10_000) -> None:
         """Deliver all queued events, including any emitted by handlers (cascades)."""
@@ -53,9 +53,7 @@ class EventBus:
                 )
             event = self._queue.popleft()
             handlers = self._handlers.get(type(event), [])
-            logger.debug(
-                "delivering %s to %d handler(s)", type(event).__name__, len(handlers)
-            )
+            log.debug("delivering", event_type=type(event).__name__, handlers=len(handlers))
             for handler in handlers:
                 handler(event)
             iterations += 1

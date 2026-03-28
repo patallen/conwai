@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+import structlog
 from typing import TYPE_CHECKING
 
 from conwai.scheduler import TickNumber
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from conwai.storage import Storage
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 class WorldEvents:

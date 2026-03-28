@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Callable
+
+import structlog
 
 from conwai.events import EventLog
 from conwai.scheduler import TickNumber
@@ -12,7 +13,7 @@ from scenarios.bread_economy.perception import BreadPerceptionBuilder
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 class Treasury:
@@ -87,9 +88,9 @@ class TaxSystem:
                 "agents": len(agents),
                 "tick": tick,
             })
-            log.info(f"[WORLD] daily tax: redistributed {int(pool)} coins to {len(agents)} agents (tick {tick})")
+            log.info("tax_redistributed", pool=int(pool), agents=len(agents), per_agent=per_agent, tick=tick)
         else:
-            log.info(f"[WORLD] daily tax: nothing to redistribute (tick {tick})")
+            log.info("tax_nothing_to_redistribute", tick=tick)
 
 
 class SpoilageSystem:
@@ -192,7 +193,7 @@ class DeathSystem:
         # Snapshot query results since destroy() mutates the entity set
         for entity, h, inv in list(world.query(Hunger, Inventory)):
             if h.hunger == 0 and inv.bread == 0 and inv.flour == 0:
-                log.info(f"[{entity}] DEAD -- starved")
+                log.info("agent_died", entity=entity, cause="starvation")
                 if self._on_death:
                     self._on_death(entity, world)
                 world.destroy(entity)

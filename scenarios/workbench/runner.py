@@ -18,9 +18,9 @@ Commands:
 import argparse
 import asyncio
 import json
-import logging
-import sys
 from pathlib import Path
+
+import structlog
 
 from faker import Faker
 
@@ -45,14 +45,15 @@ from scenarios.workbench.actions import create_registry, tool_definitions
 from scenarios.workbench.components import AgentInfo
 from scenarios.workbench.perception import WorkbenchPerceptionBuilder
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def setup_logging():
-    log.setLevel(logging.INFO)
-    h = logging.StreamHandler(sys.stdout)
-    h.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S"))
-    log.addHandler(h)
+    import logging
+
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+    )
 
 
 async def run(args):
@@ -155,7 +156,7 @@ async def run(args):
         data = world.load_raw(h, "brain_state")
         if data:
             b.load_state(data)
-            log.info(f"[{h}] loaded brain state")
+            log.info("loaded_brain_state", handle=h)
 
     async def do_tick():
         tick_number.value += 1

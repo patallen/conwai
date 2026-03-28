@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 import re
-from math import log
+from math import log as math_log
 from typing import TYPE_CHECKING
 
 import numpy as np
+import structlog
 
 from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episode, Episodes, Observations, PerceptTick, RecalledMemories
@@ -15,7 +15,7 @@ from conwai.processes.types import AgentHandle, Episode, Episodes, Observations,
 if TYPE_CHECKING:
     from conwai.llm import Embedder
 
-logger = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 _HANDLE_RE = re.compile(r"@(\w+)")
 
@@ -44,7 +44,7 @@ class ActivationRecall:
         self._delta = delta
         self._decay_rate = decay_rate
         self._freq_cap = freq_cap
-        self._log_freq_denom = log(1 + freq_cap)
+        self._log_freq_denom = math_log(1 + freq_cap)
 
     async def run(self, ctx: BrainContext) -> None:
         eps = ctx.state.get(Episodes)
@@ -95,7 +95,7 @@ class ActivationRecall:
         for i, ep in enumerate(embedded):
             age = max(0, current_tick - ep.last_accessed)
             recency = 1.0 / (1.0 + self._decay_rate * age)
-            freq = log(1 + min(ep.access_count, self._freq_cap)) / self._log_freq_denom
+            freq = math_log(1 + min(ep.access_count, self._freq_cap)) / self._log_freq_denom
             imp = ep.importance / 10.0 if ep.importance > 0 else 0.5
             scores[i] = self._alpha * recency + self._beta * freq + self._gamma * cosine_sims[i] + self._delta * imp
 
@@ -108,15 +108,12 @@ class ActivationRecall:
             ep = embedded[idx]
             age = max(0, current_tick - ep.last_accessed)
             recency = 1.0 / (1.0 + self._decay_rate * age)
-            freq = log(1 + min(ep.access_count, self._freq_cap)) / self._log_freq_denom
+            freq = math_log(1 + min(ep.access_count, self._freq_cap)) / self._log_freq_denom
             cosine = float(cosine_sims[idx])
 
             imp = ep.importance / 10.0 if ep.importance > 0 else 0.5
             content_preview = ep.content[:60].replace("\n", " ")
-            logger.info(
-                f"[{agent_id}] recall: \"{content_preview}\" "
-                f"(score={scores[idx]:.2f}: recency={recency:.2f}, freq={freq:.2f}, cosine={cosine:.2f}, imp={imp:.2f})"
-            )
+            log.info("recall", handle=agent_id, preview=content_preview, score=round(float(scores[idx]), 2), recency=round(recency, 2), freq=round(freq, 2), cosine=round(cosine, 2), importance=round(imp, 2))
 
             ep.access_count += 1
             recalled.append(ep)

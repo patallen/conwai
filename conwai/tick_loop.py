@@ -6,7 +6,7 @@ pre-systems -> agent scheduling -> post-systems -> persist.
 
 from __future__ import annotations
 
-import logging
+import structlog
 from collections.abc import Awaitable, Callable
 from typing import Protocol, runtime_checkable
 
@@ -14,7 +14,7 @@ from conwai.events import EventBus
 from conwai.scheduler import Scheduler
 from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 AgentFn = Callable[[str], Awaitable[None]]
 

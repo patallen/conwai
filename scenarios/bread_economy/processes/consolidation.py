@@ -11,13 +11,14 @@ Adapted from Generative Agents (Park et al., 2023). On each cycle:
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any
+
+import structlog
 
 from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episode, Episodes, PerceptTick
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 if TYPE_CHECKING:
     from conwai.llm import Embedder
@@ -95,7 +96,7 @@ class ConsolidationProcess:
 
         eps = ctx.state.get(Episodes)
         if not eps or len(eps.entries) < _MIN_ENTRIES:
-            log.debug(f"[@{agent_id}] reflection skipped: not enough episodes")
+            log.debug("reflection_skipped", handle=agent_id, reason="not enough episodes")
             return
 
         entries_with_emb = [e for e in eps.entries if e.embedding is not None]
@@ -113,7 +114,7 @@ class ConsolidationProcess:
             return
 
         for q in questions:
-            log.info(f"[@{agent_id}]   focal question: {q[:80]}")
+            log.info("focal_question", handle=agent_id, question=q[:80])
 
         vectors: list[list[float]] = [e.embedding for e in entries_with_emb if e.embedding is not None]
         insights = []
@@ -156,11 +157,14 @@ class ConsolidationProcess:
             ctx.state.set(eps)
 
             log.info(
-                f"[@{agent_id}] reflection: consolidated {len(consumed)} episodes -> "
-                f"{len(new_insights)} insights ({len(insights) - len(new_insights)} dupes skipped)"
+                "reflection_consolidated",
+                handle=agent_id,
+                consumed=len(consumed),
+                insights=len(new_insights),
+                dupes_skipped=len(insights) - len(new_insights),
             )
             for ins in new_insights:
-                log.info(f"[@{agent_id}]   insight: {ins[:80]}")
+                log.info("reflection_insight", handle=agent_id, insight=ins[:80])
 
     async def _generate_questions(self, diary_summary: str, agent_id: str) -> list[str]:
         if self.first_person:
@@ -198,7 +202,7 @@ class ConsolidationProcess:
                     questions.append(line)
             return questions[:_N_QUESTIONS]
         except Exception as e:
-            log.warning(f"[@{agent_id}] focal-point generation failed: {e}")
+            log.warning("focal_point_generation_failed", handle=agent_id, error=str(e))
             return []
 
     async def _generate_insight(
@@ -230,5 +234,5 @@ class ConsolidationProcess:
                     text = text[len(prefix) :].strip()
             return text if text else None
         except Exception as e:
-            log.warning(f"[@{agent_id}] insight generation failed: {e}")
+            log.warning("insight_generation_failed", handle=agent_id, error=str(e))
             return None

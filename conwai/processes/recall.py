@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 import re
 from typing import TYPE_CHECKING
+
+import structlog
 
 from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episode, Episodes, Observations, RecalledMemories
@@ -12,7 +13,7 @@ from conwai.processes.types import AgentHandle, Episode, Episodes, Observations,
 if TYPE_CHECKING:
     from conwai.llm import Embedder
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 _HANDLE_RE = re.compile(r"@(\w+)")
 
@@ -101,9 +102,6 @@ class MemoryRecall:
             if sims[i] < min_sim:
                 continue
             content_preview = entries[i].content[:60].replace("\n", " ")
-            log.info(
-                f"[{agent_id}] recall: \"{content_preview}\" "
-                f"(cosine={sims[i]:.2f})"
-            )
+            log.info("recall", handle=agent_id, preview=content_preview, cosine=round(float(sims[i]), 2))
             recalled.append(entries[i].content)
         return recalled

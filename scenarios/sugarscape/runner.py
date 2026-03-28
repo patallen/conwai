@@ -1,7 +1,7 @@
 import asyncio
-import logging
 import random
-import sys
+
+import structlog
 
 from conwai.actions import ActionFeedback, PendingActions, WorldActionAdapter
 from conwai.brain import PipelineBrain
@@ -21,7 +21,7 @@ from scenarios.sugarscape.processes import (
 )
 from scenarios.sugarscape.systems import MetabolismSystem, RegrowthSystem
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def gini(values: list[int | float]) -> float:
@@ -131,7 +131,7 @@ async def run(
     for t in range(ticks):
         alive = len(world.entities())
         if alive == 0:
-            log.info(f"[WORLD] all agents dead at tick {t}")
+            log.info("all_agents_dead", tick=t)
             break
 
         tick_number.value += 1
@@ -152,17 +152,16 @@ async def run(
         await asyncio.sleep(0.3)
 
     # Summary
-    log.info(f"[WORLD] done. {len(world.entities())} agents survived {ticks} ticks")
+    log.info("simulation_done", survivors=len(world.entities()), ticks=ticks)
     for entity_id, pos, sugar in world.query(Position, Sugar):
-        log.info(f"  {entity_id}: pos=({pos.x},{pos.y}) wealth={sugar.wealth}")
+        log.info("agent_final", entity=entity_id, x=pos.x, y=pos.y, wealth=sugar.wealth)
 
 
 def main():
-    logging.basicConfig(
-        level=logging.WARNING,
-        format="%(asctime)s %(message)s",
-        datefmt="%H:%M:%S",
-        stream=sys.stdout,
+    import logging
+
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.WARNING),
     )
     asyncio.run(run(width=50, height=50, n_agents=40, ticks=200, seed=42))
 

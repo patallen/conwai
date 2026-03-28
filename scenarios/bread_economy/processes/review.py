@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
+
+import structlog
 from typing import TYPE_CHECKING, Any
 
 from conwai.brain import BrainContext
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
 from scenarios.bread_economy.components import AgentMemory, Economy, Inventory
 
-log = logging.getLogger("conwai.strategic_review")
+log = structlog.get_logger()
 
 _PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -84,15 +85,15 @@ class StrategicReview:
                 [{"role": "user", "content": identity_text + "\n\n" + review_prompt}],
             )
         except Exception as e:
-            log.error(f"[@{agent_id}] strategic review failed: {e}")
+            log.error("strategic_review_failed", handle=agent_id, error=str(e))
             return
 
         strategy = resp.text.strip()
         if not strategy:
-            log.error(f"[@{agent_id}] strategic review failed: no strategy returned")
+            log.error("strategic_review_failed", handle=agent_id, error="no strategy returned")
             return
 
-        log.info(f"[@{agent_id}] morning ({len(strategy)}):\n{strategy}...")
+        log.info("morning_review_raw", handle=agent_id, length=len(strategy), strategy=strategy)
 
         strategy = strategy[:700]
 
@@ -103,4 +104,4 @@ class StrategicReview:
         mem.strategy = strategy
         self.store.set(agent_id, mem)
 
-        log.info(f"[@{agent_id}] morning review (len: {len(strategy)})")
+        log.info("morning_review_done", handle=agent_id, length=len(strategy))

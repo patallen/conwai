@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import logging
+import structlog
 from collections.abc import Iterator
 from contextlib import contextmanager
 from copy import deepcopy
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from conwai.events import EventBus
     from conwai.storage import Storage
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 T = TypeVar("T", bound=Component)
 

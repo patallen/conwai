@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+import structlog
 from typing import TYPE_CHECKING
 
 from conwai.actions import Action, ActionRegistry
@@ -10,7 +10,7 @@ from scenarios.sugarscape.grid import Grid
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def _move(entity_id: str, world: World, args: dict) -> str:

@@ -1,11 +1,12 @@
 """Configuration for the commons scenario."""
 from __future__ import annotations
 import json
-import logging
 from dataclasses import dataclass
+
+import structlog
 from pathlib import Path
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 _DEFAULT_CONFIG_PATH = Path(__file__).parent / "config.json"
 _config: CommonsConfig | None = None

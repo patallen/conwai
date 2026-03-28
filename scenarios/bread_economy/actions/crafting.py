@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 import random
+
+import structlog
 from typing import TYPE_CHECKING
 
 from conwai.actions import ActionRegistry
@@ -12,7 +13,7 @@ from scenarios.bread_economy.config import get_config
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def _forage(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
@@ -29,7 +30,7 @@ def _forage(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
     world.get_resource(ActionRegistry).block(
         entity_id, "You are foraging this tick and cannot take other actions."
     )
-    log.info(f"[{entity_id}] foraged {flour} flour, {water} water")
+    log.info("foraged", handle=entity_id, flour=flour, water=water)
     parts = []
     if flour > 0:
         parts.append(f"{flour} flour")
@@ -53,7 +54,7 @@ def _bake(entity_id: str, world: World, args: dict) -> str | tuple[str, dict]:
         inv.flour -= flour_needed
         inv.water -= water_needed
         bread_yield = _capped_add(inv, "bread", bread_yield)
-    log.info(f"[{entity_id}] baked {bread_yield} bread")
+    log.info("baked_bread", handle=entity_id, bread=bread_yield)
     return (
         f"baked {bread_yield} bread (flour: {inv.flour}, water: {inv.water}, bread: {inv.bread})",
         {"bread": bread_yield, "flour": inv.flour, "water": inv.water},

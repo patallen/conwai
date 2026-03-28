@@ -1,13 +1,14 @@
 """Systems for the commons scenario."""
 from __future__ import annotations
-import logging
 from typing import TYPE_CHECKING
+
+import structlog
 from conwai.scheduler import TickNumber
 
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 class Pond:
@@ -51,7 +52,4 @@ class PondSystem:
             return
         before = pond.population
         pond.regenerate()
-        log.info(
-            f"[POND] tick {tick}: population {before:.0f} -> {pond.population:.0f} "
-            f"(capacity {pond.capacity:.0f})"
-        )
+        log.info("pond_regenerated", tick=tick, before=round(before), after=round(pond.population), capacity=round(pond.capacity))

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
+
+import structlog
 
 from conwai.scheduler import TickNumber
 from scenarios.bread_economy.actions.helpers import _capped_add
@@ -11,7 +12,7 @@ from scenarios.bread_economy.perception import BreadPerceptionBuilder
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 VALID_RESOURCES = ("coins", "flour", "water", "bread")
 
@@ -78,7 +79,7 @@ def _pay(entity_id: str, world: World, args: dict) -> str:
     perception = world.get_resource(BreadPerceptionBuilder)
     perception.notify(entity_id, f"-{amount} coins (paid to @{to})")
     perception.notify(to, f"+{amount} coins (payment from @{entity_id})")
-    log.info(f"[{entity_id}] paid {amount} coins to {to}")
+    log.info("paid", handle=entity_id, amount=amount, to=to)
     return f"paid {amount} coins to {to}"
 
 
@@ -108,7 +109,7 @@ def _give(entity_id: str, world: World, args: dict) -> str:
         _capped_add(other_inv, resource, amount)
     perception = world.get_resource(BreadPerceptionBuilder)
     perception.notify(to, f"received {amount} {resource} from @{entity_id}")
-    log.info(f"[{entity_id}] gave {amount} {resource} to {to}")
+    log.info("gave", handle=entity_id, amount=amount, resource=resource, to=to)
     return f"gave {amount} {resource} to {to}"
 
 
@@ -173,9 +174,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
             f"Use accept(offer_id={oid}) to accept.",
         )
 
-        log.info(
-            f"[{entity_id}] offer #{oid} to {to}: {give_amount} {give_type} for {want_amount} {want_type}"
-        )
+        log.info("offer_created", handle=entity_id, offer_id=oid, to=to, give_amount=give_amount, give_type=give_type, want_amount=want_amount, want_type=want_type)
         return (
             f"Offer sent to @{to}: {give_amount} {give_type} for {want_amount} {want_type}. Expires in {offer_book.expiry} ticks.",
             {"id": oid},
@@ -274,9 +273,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
                       "received_amount": want_amount, "gave_type": give_type,
                       "gave_amount": give_amount},
             ))
-        log.info(
-            f"[TRADE] #{oid}: {offerer} gave {give_amount} {give_type}, {entity_id} gave {want_amount} {want_type}"
-        )
+        log.info("trade_complete", offer_id=oid, offerer=offerer, offerer_gave=f"{give_amount} {give_type}", accepter=entity_id, accepter_gave=f"{want_amount} {want_type}")
         return f"Trade complete: received {give_amount} {give_type} from {offerer}, gave {want_amount} {want_type}."
 
     return _offer, _accept

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import logging
+import structlog
 from typing import TYPE_CHECKING
 
 from conwai.brain import BrainContext, Decision, Decisions
@@ -16,7 +16,7 @@ from conwai.processes.types import (
 if TYPE_CHECKING:
     from conwai.llm import LLMProvider
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 class InferenceProcess:
@@ -43,7 +43,7 @@ class InferenceProcess:
                 snap.system_prompt, snap.messages, tools=self.tools
             )
         except Exception as e:
-            log.error(f"[{agent_id}] LLM call failed: {e}")
+            log.error("llm_error", handle=agent_id, error=str(e))
             return
 
         if not resp.text and not resp.tool_calls:
@@ -54,10 +54,7 @@ class InferenceProcess:
             wm.entries.append(WorkingMemoryEntry(content=resp.text, kind="reasoning"))
             ctx.state.set(wm)
 
-        log.info(
-            f"[{agent_id}] ({resp.prompt_tokens}+{resp.completion_tokens} tok): "
-            f"{resp.text[:200] if resp.text else '(no text)'}"
-        )
+        log.info("llm_response", handle=agent_id, prompt_tokens=resp.prompt_tokens, completion_tokens=resp.completion_tokens, text_preview=resp.text[:200] if resp.text else "")
 
         decisions = ctx.bb.get(Decisions) or Decisions()
         for tc in resp.tool_calls:

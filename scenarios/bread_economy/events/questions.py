@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 import random
+
+import structlog
 from typing import TYPE_CHECKING
 
 from conwai.comm import BulletinBoard
@@ -9,7 +10,7 @@ from conwai.comm import BulletinBoard
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 QUESTIONS = [
     "Who do you trust the most here, and why?",
@@ -50,7 +51,7 @@ class QuestionSystem:
         question = QUESTIONS[idx]
         board = self._world.get_resource(BulletinBoard)
         board.post("WORLD", f"QUESTION FOR ALL: {question}")
-        log.info(f"[WORLD] question: {question}")
+        log.info("question_posted", question=question)
 
     # -- State persistence helpers --
 

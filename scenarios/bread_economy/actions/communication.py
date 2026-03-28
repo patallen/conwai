@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
+
+import structlog
 
 from conwai.actions import ActionRegistry
 from conwai.comm import BulletinBoard, MessageBus
@@ -14,7 +15,7 @@ from scenarios.bread_economy.perception import BreadPerceptionBuilder
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def _post_to_board(entity_id: str, world: World, args: dict) -> str:
@@ -34,7 +35,7 @@ def _post_to_board(entity_id: str, world: World, args: dict) -> str:
     board.post(entity_id, content)
     with world.mutate(entity_id, AgentMemory) as mem:
         mem.last_board_post = tick
-    log.info(f"[{entity_id}] posted: {content}")
+    log.info("board_post", handle=entity_id, content=content)
     perception = world.get_resource(BreadPerceptionBuilder)
     for other in world.entities():
         if other != entity_id and f"@{other}" in content:
@@ -60,10 +61,10 @@ def _send_message(entity_id: str, world: World, args: dict) -> str:
     bus = world.get_resource(MessageBus)
     err = bus.send(entity_id, to, message)
     if err:
-        log.info(f"[{entity_id}] SEND FAILED: {err}")
+        log.info("dm_send_failed", handle=entity_id, error=err)
         return f"DM failed: {err}"
     action_reg.set_tick_state(entity_id, "dm_sent", dm_sent + 1)
-    log.info(f"[{entity_id}] -> [{to}]: {message}")
+    log.info("dm_sent", handle=entity_id, to=to, message=message)
     alive = set(world.entities())
     if to in alive:
         with world.mutate(to, Economy) as rec_eco:

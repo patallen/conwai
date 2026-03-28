@@ -1,7 +1,8 @@
 """Board and DM actions — simplified from bread economy (no coin costs)."""
 from __future__ import annotations
-import logging
 from typing import TYPE_CHECKING
+
+import structlog
 from conwai.actions import ActionRegistry
 from conwai.comm import BulletinBoard, MessageBus
 from conwai.scheduler import TickNumber
@@ -11,7 +12,7 @@ from scenarios.commons.config import get_config
 if TYPE_CHECKING:
     from conwai.world import World
 
-log = logging.getLogger("conwai")
+log = structlog.get_logger()
 
 
 def _post_to_board(entity_id: str, world: World, args: dict) -> str:
@@ -24,7 +25,7 @@ def _post_to_board(entity_id: str, world: World, args: dict) -> str:
     board.post(entity_id, content)
     with world.mutate(entity_id, AgentMemory) as mem:
         mem.last_board_post = tick
-    log.info(f"[{entity_id}] posted: {content}")
+    log.info("board_post", handle=entity_id, content=content)
     return f"posted to board: {content}"
 
 
@@ -43,5 +44,5 @@ def _send_message(entity_id: str, world: World, args: dict) -> str:
     if err:
         return f"DM failed: {err}"
     action_reg.set_tick_state(entity_id, "dm_sent", dm_sent + 1)
-    log.info(f"[{entity_id}] -> [{to}]: {message}")
+    log.info("dm_sent", handle=entity_id, to=to, message=message)
     return f"sent DM to {to}"
