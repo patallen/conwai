@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
-from conwai.embeddings import FastEmbedder
+from conwai.llm import FastEmbedder
 from conwai.storage import SQLiteStorage
 
 THRESHOLDS = [0.70, 0.75, 0.80]

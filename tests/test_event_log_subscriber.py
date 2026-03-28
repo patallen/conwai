@@ -1,8 +1,6 @@
 from pathlib import Path
 
-from conwai.event_bus import EventBus
-from conwai.event_types import ActionExecuted, EntityDestroyed, EntitySpawned
-from conwai.events import EventLog
+from conwai.events import ActionExecuted, EntityDestroyed, EntitySpawned, EventBus, EventLog
 
 
 def test_event_log_subscribes_to_lifecycle():

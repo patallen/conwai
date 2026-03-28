@@ -2,7 +2,7 @@
 from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
-from conwai.engine import TickNumber
+from conwai.scheduler import TickNumber
 
 if TYPE_CHECKING:
     from conwai.world import World

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 from conwai.actions import ActionRegistry
-from conwai.engine import TickNumber
+from conwai.scheduler import TickNumber
 from scenarios.commons.components import FishHaul
 from scenarios.commons.config import get_config
 from scenarios.commons.systems import Pond

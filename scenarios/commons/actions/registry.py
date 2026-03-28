@@ -1,7 +1,7 @@
 """Action registry and LLM tool schemas for the commons scenario."""
 from __future__ import annotations
 from conwai.actions import Action, ActionRegistry
-from conwai.contrib.llm import tool_schema
+from conwai.llm import tool_schema
 from scenarios.commons.actions.fishing import _fish, _rest
 from scenarios.commons.actions.communication import _post_to_board, _send_message
 

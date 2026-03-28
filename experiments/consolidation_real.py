@@ -18,8 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-from conwai.embeddings import FastEmbedder
-from conwai.llm import LLMClient
+from conwai.llm import FastEmbedder, LLMClient
 from conwai.storage import SQLiteStorage
 
 CLUSTER_THRESHOLD = 0.70  # tighter than before

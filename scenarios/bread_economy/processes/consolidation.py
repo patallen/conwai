@@ -20,7 +20,7 @@ from conwai.processes.types import AgentHandle, Episode, Episodes, PerceptTick
 log = logging.getLogger("conwai")
 
 if TYPE_CHECKING:
-    from conwai.embeddings import Embedder
+    from conwai.llm import Embedder
 
 _MIN_ENTRIES = 15
 _N_QUESTIONS = 3

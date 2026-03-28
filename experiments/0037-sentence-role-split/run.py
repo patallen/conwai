@@ -66,7 +66,7 @@ def main() -> None:
             print()
 
     # Embed conditions and decisions separately
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
 
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 

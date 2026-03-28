@@ -1,5 +1,4 @@
-from conwai.bulletin_board import BulletinBoard
-from conwai.messages import MessageBus
+from conwai.comm import BulletinBoard, MessageBus
 from conwai.storage import SQLiteStorage
 
 

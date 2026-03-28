@@ -6,7 +6,7 @@ Feed it a bunch of diary-like entries, embed them, find clusters, see what emerg
 
 import numpy as np
 
-from conwai.embeddings import FastEmbedder
+from conwai.llm import FastEmbedder
 
 embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 

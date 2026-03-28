@@ -10,19 +10,17 @@ from faker import Faker
 import scenarios.commons.config as config
 from conwai.actions import ActionFeedback, ActionResult, PendingActions
 from conwai.brain import Brain
-from conwai.bulletin_board import BulletinBoard
-from conwai.engine import Engine, TickNumber
-from conwai.event_bus import EventBus
-from conwai.events import EventLog
+from conwai.comm import BulletinBoard, MessageBus
+from conwai.events import ActionExecuted, EventBus, EventLog
+from conwai.scheduler import Scheduler, TickNumber
 from conwai.llm import LLMClient
-from conwai.messages import MessageBus
 from conwai.processes.types import Episodes, WorkingMemory
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.commons.actions import create_registry, tool_definitions
 from scenarios.commons.components import AgentInfo, AgentMemory, FishHaul
 from scenarios.commons.config import get_config
-from scenarios.commons.perception import CommonsPerceptionBuilder, make_commons_perception
+from scenarios.commons.perception import make_commons_perception
 from scenarios.commons.systems import Pond, PondSystem
 from conwai.processes.activation_recall import ActivationRecall
 from conwai.processes import (
@@ -30,6 +28,7 @@ from conwai.processes import (
     InferenceProcess,
     MemoryCompression,
 )
+from conwai.tick_loop import TickLoop
 
 log = logging.getLogger("conwai")
 
@@ -117,7 +116,7 @@ async def run():
     world.set_resource(registry)
 
     # --- Embedder ---
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
     log.info("[WORLD] loading embedding model...")
     embedder = FastEmbedder()
     log.info("[WORLD] embedding model ready")
@@ -172,19 +171,6 @@ async def run():
             brain.load_state(data)
             log.info(f"[{handle}] loaded brain state")
 
-    # --- Scheduler ---
-    from conwai.scheduler import Scheduler
-    from conwai.event_types import ActionExecuted
-    from conwai.contrib.systems import BrainSystem, ActionSystem
-
-    scheduler = Scheduler(
-        bus=event_bus,
-        default_cost=cfg.activation_cost,
-    )
-
-    brain_system = BrainSystem(brains=brains, perception=perception.build)
-    brain_system.load_brain_states(world)
-
     async def think_then_act(handle):
         """Think (async LLM call), then execute actions sequentially."""
         start = time.monotonic()
@@ -195,7 +181,6 @@ async def run():
         percept = perception.build(handle, world)
         decisions = await brain.think(percept)
         world.set(handle, PendingActions(entries=decisions))
-        world.save_raw(handle, "brain_state", brain.save_state())
 
         # Act — execute sequentially, same as ActionSystem
         feedback_entries = []
@@ -208,40 +193,30 @@ async def run():
 
         log.info(f"[{handle}] tick {tick.value} took {time.monotonic() - start:.1f}s")
 
-    # Event-driven re-triggering: DM recipients get scheduled
+    # --- Scheduler ---
+    scheduler = Scheduler(bus=event_bus, default_cost=cfg.activation_cost)
+
+    # DM re-triggering
     def on_action(event):
         if event.action == "send_message":
             target = event.args.get("to", "").lstrip("@")
             if target in brains:
-                scheduler.schedule(
-                    target,
-                    lambda h=target: think_then_act(h),
-                    cost=cfg.retrigger_cost,
-                )
+                scheduler.schedule(target, lambda h=target: think_then_act(h), cost=cfg.retrigger_cost)
 
     event_bus.subscribe(ActionExecuted, on_action)
 
-    class ScheduledAgentSystem:
-        name = "agents"
+    # --- TickLoop ---
+    loop = TickLoop(scheduler=scheduler, event_bus=event_bus, world=world)
+    loop.add_pre_system(PondSystem())
 
-        async def run(self, w):
-            entities = set(world.entities())
-            handles = sorted(h for h in brains if h in entities)
-            registry.begin_tick(world, handles)
-            for handle in handles:
-                scheduler.schedule(handle, lambda h=handle: think_then_act(h))
-            await scheduler.run()
+    def persist():
+        world.flush()
+        for handle in brains:
+            world.save_raw(handle, "brain_state", brains[handle].save_state())
 
-    # --- Engine ---
-    engine = Engine(
-        world,
-        systems=[
-            PondSystem(),
-            ScheduledAgentSystem(),
-        ],
-    )
+    loop.on_persist = persist
 
-    # --- Tick loop ---
+    # --- Run loop ---
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")
     if tick_data:
@@ -251,10 +226,17 @@ async def run():
         config.reload()
         await wait_for_llm(clients[0])
         tick_start = time.monotonic()
-        storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
-        await engine.tick()
 
-        # Log summary
+        tick_number.value += 1
+        storage.save_component("_meta", "tick", {"value": tick_number.value})
+
+        entities = set(world.entities())
+        handles = sorted(h for h in brains if h in entities)
+        registry.begin_tick(world, handles)
+
+        await loop.tick(handles, think_then_act)
+
+        # Log
         pond_pop = int(pond.population)
         scores = [(fh.fish, eid) for eid, fh in world.query(FishHaul)]
         scores.sort(reverse=True)
@@ -264,7 +246,7 @@ async def run():
             f"pond: {pond_pop}/{int(pond.capacity)} | top: {top}"
         )
 
-    # --- Final results ---
+    # Final results
     log.info("=== SIMULATION COMPLETE ===")
     scores = [(fh.fish, eid) for eid, fh in world.query(FishHaul)]
     scores.sort(reverse=True)

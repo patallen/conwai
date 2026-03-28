@@ -4,7 +4,7 @@ import logging
 import random
 from typing import TYPE_CHECKING
 
-from conwai.bulletin_board import BulletinBoard
+from conwai.comm import BulletinBoard
 
 if TYPE_CHECKING:
     from conwai.world import World

@@ -5,8 +5,7 @@ from dataclasses import dataclass
 import pytest
 
 from conwai.component import Component
-from conwai.event_bus import EventBus
-from conwai.event_types import ComponentChanged, EntityDestroyed, EntitySpawned
+from conwai.events import ComponentChanged, EntityDestroyed, EntitySpawned, EventBus
 from conwai.world import World
 
 

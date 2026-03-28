@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from conwai.engine import TickNumber
+from conwai.scheduler import TickNumber
 from scenarios.bread_economy.actions.helpers import _capped_add
 from scenarios.bread_economy.components import Economy, Inventory
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
@@ -261,7 +261,7 @@ def make_offer_handlers(offer_book: OfferBook | None = None):
         )
 
         if world.bus:
-            from conwai.event_types import ActionExecuted
+            from conwai.events import ActionExecuted
             world.bus.emit(ActionExecuted(
                 entity=entity_id, action="trade",
                 data={"id": oid, "with": offerer, "received_type": give_type,

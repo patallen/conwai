@@ -10,7 +10,7 @@ from conwai.brain import BrainContext
 from conwai.processes.types import AgentHandle, Episode, Episodes, Observations, RecalledMemories
 
 if TYPE_CHECKING:
-    from conwai.embeddings import Embedder
+    from conwai.llm import Embedder
 
 log = logging.getLogger("conwai")
 

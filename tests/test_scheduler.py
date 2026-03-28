@@ -3,7 +3,7 @@
 import asyncio
 from dataclasses import dataclass
 
-from conwai.event_bus import Event, EventBus
+from conwai.events import Event, EventBus
 from conwai.scheduler import Scheduler
 
 

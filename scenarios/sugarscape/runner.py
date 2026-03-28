@@ -3,10 +3,11 @@ import logging
 import random
 import sys
 
-from conwai.actions import ActionFeedback, PendingActions
+from conwai.actions import ActionFeedback, ActionResult, PendingActions
 from conwai.brain import Brain
-from conwai.contrib.systems import ActionSystem, BrainSystem
-from conwai.engine import Engine, TickNumber
+from conwai.events import EventBus
+from conwai.scheduler import Scheduler, TickNumber
+from conwai.tick_loop import TickLoop
 from conwai.world import World
 from scenarios.sugarscape.actions import create_registry
 from scenarios.sugarscape.components import Position, Sugar, Vision
@@ -110,19 +111,27 @@ async def run(
             state_types=[SugarMemory],
         )
 
-    # Systems
-    brain_system = BrainSystem(brains=brains, perception=perception.build)
-    action_system = ActionSystem(actions=registry)
+    bus = EventBus()
+    scheduler = Scheduler(bus)
 
-    engine = Engine(
-        world,
-        systems=[
-            RegrowthSystem(),
-            brain_system,
-            action_system,
-            MetabolismSystem(),
-        ],
-    )
+    async def think_then_act(handle):
+        brain = brains[handle]
+        percept = perception.build(handle, world)
+        decisions = await brain.think(percept)
+        world.set(handle, PendingActions(entries=decisions))
+        feedback_entries = []
+        for decision in decisions:
+            result = registry.execute(handle, decision.action, decision.args, world)
+            feedback_entries.append(
+                ActionResult(action=decision.action, args=decision.args, result=result)
+            )
+        world.set(handle, ActionFeedback(entries=feedback_entries))
+
+    loop = TickLoop(scheduler=scheduler, event_bus=bus, world=world)
+    loop.add_pre_system(RegrowthSystem())
+    loop.add_post_system(MetabolismSystem())
+
+    tick_number = world.get_resource(TickNumber)
 
     # Run
     for t in range(ticks):
@@ -131,12 +140,14 @@ async def run(
             log.info(f"[WORLD] all agents dead at tick {t}")
             break
 
-        await engine.tick()
+        tick_number.value += 1
 
-        tick_num = world.get_resource(TickNumber).value
+        handles = [h for h in brains if h in set(world.entities())]
+        await loop.tick(handles, think_then_act)
+
         wealths = [s.wealth for _, s in world.query(Sugar)]
         g = gini(wealths)
-        print(f"\033[2J\033[H--- Tick {tick_num} ({alive} alive, gini={g:.2f}) ---")
+        print(f"\033[2J\033[H--- Tick {tick_number.value} ({alive} alive, gini={g:.2f}) ---")
         print(render(world, grid))
         print()
         for eid, sugar, vision in world.query(Sugar, Vision):

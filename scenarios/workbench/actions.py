@@ -4,10 +4,9 @@ import logging
 from typing import TYPE_CHECKING
 
 from conwai.actions import Action, ActionRegistry
-from conwai.bulletin_board import BulletinBoard
-from conwai.contrib.llm import tool_schema
+from conwai.comm import BulletinBoard, MessageBus
+from conwai.llm import tool_schema
 from conwai.events import EventLog
-from conwai.messages import MessageBus
 
 if TYPE_CHECKING:
     from conwai.world import World

@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-from conwai.embeddings import FastEmbedder
+from conwai.llm import FastEmbedder
 
 CACHE_PARSED = Path("experiments/helen_parsed.json")
 # NOTE: We need to re-embed sentences, so FastEmbedder is still needed here

@@ -3,8 +3,8 @@ import asyncio
 from conwai.actions import Action, ActionFeedback, ActionRegistry, ActionResult, PendingActions
 from conwai.brain import Brain, BrainContext, Decision, Decisions
 from conwai.component import Component
-from conwai.contrib.systems import ActionSystem, BrainSystem
-from conwai.engine import TickNumber
+from conwai.systems import ActionSystem, BrainSystem
+from conwai.scheduler import TickNumber
 from conwai.typemap import Percept
 from conwai.world import World
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from conwai.component import Component
-from conwai.event_bus import Event
+from conwai.events.bus import Event
 
 
 @dataclass
@@ -37,15 +37,3 @@ class ActionExecuted(Event):
     args: dict = field(default_factory=dict)
     result: str = ""
     data: dict = field(default_factory=dict)
-
-
-@dataclass
-class TickStarted(Event):
-    """A new simulation tick has begun."""
-    tick: int = 0
-
-
-@dataclass
-class TickEnded(Event):
-    """A simulation tick has completed."""
-    tick: int = 0

@@ -61,7 +61,7 @@ def main() -> None:
         decisions.append(dec)
 
     # Embed
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
 
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
     cond_vecs = np.array(embedder.embed(conditions))

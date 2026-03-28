@@ -130,7 +130,7 @@ def main() -> None:
 
     # Now: for each condition+decision cluster, what's the result distribution?
     np.load(Path("experiments/helen_embeddings.npz"))["vectors"]
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
 
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 

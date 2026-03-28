@@ -3,7 +3,7 @@ Single-agent test harness for memory research.
 
 Spawns one agent with the full brain pipeline (compression, recall, context,
 inference, strategic review). You interact by injecting board posts, DMs,
-and world events, then ticking the engine.
+and world events, then ticking the simulation.
 
 Usage:
     uv run python harness.py [--model MODEL] [--base-url URL] [--handle NAME]
@@ -27,16 +27,15 @@ import json
 import logging
 import sys
 
-from conwai.actions import ActionFeedback, PendingActions
+from conwai.actions import ActionFeedback, ActionResult, PendingActions
 from conwai.brain import Brain
-from conwai.bulletin_board import BulletinBoard
-from conwai.contrib.systems import ActionSystem, BrainSystem
-from conwai.embeddings import FastEmbedder
-from conwai.engine import Engine, TickNumber
-from conwai.events import EventLog
-from conwai.llm import LLMClient
-from conwai.messages import MessageBus
+from conwai.comm import BulletinBoard, MessageBus
+from conwai.llm import FastEmbedder, LLMClient
+from conwai.events import EventBus, EventLog
+from conwai.scheduler import TickNumber
 from conwai.processes.types import Episodes, WorkingMemory
+from conwai.scheduler import Scheduler
+from conwai.tick_loop import TickLoop
 from conwai.storage import SQLiteStorage
 from conwai.world import World
 from scenarios.bread_economy.actions import create_registry
@@ -75,7 +74,8 @@ async def run(args):
     storage = SQLiteStorage(path=args.data_dir / "state.db")
 
     # --- World ---
-    world = World(storage=storage)
+    event_bus = EventBus()
+    world = World(storage=storage, bus=event_bus)
     world.register(Economy, Economy(coins=cfg.starting_coins))
     world.register(
         Inventory,
@@ -161,20 +161,40 @@ async def run(args):
         state_types=[WorkingMemory, Episodes],
     )
 
-    brains = {handle: brain}
-    brain_system = BrainSystem(brains=brains, perception=perception.build)
-    brain_system.load_brain_states(world)
-    action_system = ActionSystem(actions=registry)
+    scheduler = Scheduler(bus=event_bus)
 
-    engine = Engine(
-        world,
-        systems=[
-            DecaySystem(),
-            brain_system,
-            action_system,
-            ConsumptionSystem(),
-        ],
-    )
+    async def think_then_act_single(_handle: str):
+        percept = perception.build(handle, world)
+        decisions = await brain.think(percept)
+        world.set(handle, PendingActions(entries=decisions))
+        feedback_entries = []
+        for decision in decisions:
+            result = registry.execute(handle, decision.action, decision.args, world)
+            feedback_entries.append(
+                ActionResult(action=decision.action, args=decision.args, result=result)
+            )
+        world.set(handle, ActionFeedback(entries=feedback_entries))
+
+    loop = TickLoop(scheduler=scheduler, event_bus=event_bus, world=world)
+    loop.add_pre_system(DecaySystem())
+    loop.add_post_system(ConsumptionSystem())
+
+    def persist():
+        world.flush()
+        world.save_raw(handle, "brain_state", brain.save_state())
+
+    loop.on_persist = persist
+
+    # Load brain state
+    data = world.load_raw(handle, "brain_state")
+    if data:
+        brain.load_state(data)
+        log.info(f"[{handle}] loaded brain state")
+
+    async def do_tick():
+        tick_number.value += 1
+        storage.save_component("_meta", "tick", {"value": tick_number.value})
+        await loop.tick([handle], think_then_act_single)
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")
@@ -270,10 +290,7 @@ async def run(args):
             parts = line.split()
             n = int(parts[1]) if len(parts) > 1 else 1
             for _ in range(n):
-                storage.save_component(
-                    "_meta", "tick", {"value": tick_number.value + 1}
-                )
-                await engine.tick()
+                await do_tick()
             print(f"  advanced to tick {tick_number.value}")
             continue
         elif line.startswith("@"):
@@ -291,8 +308,7 @@ async def run(args):
             print(f"  [WORLD]: {line}")
 
         # Auto-tick after each input
-        storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
-        await engine.tick()
+        await do_tick()
 
 
 def main():

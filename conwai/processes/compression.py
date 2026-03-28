@@ -16,7 +16,7 @@ from conwai.processes.types import (
 )
 
 if TYPE_CHECKING:
-    from conwai.embeddings import Embedder
+    from conwai.llm import Embedder
 
 log = logging.getLogger("conwai")
 

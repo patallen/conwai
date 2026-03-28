@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from scenarios.bread_economy.components import Economy, Inventory
 from scenarios.bread_economy.config import get_config
-from scenarios.bread_economy.systems import Treasury, deposit_to_treasury
+from scenarios.bread_economy.systems import deposit_to_treasury
 
 if TYPE_CHECKING:
     from conwai.world import World

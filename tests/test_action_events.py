@@ -1,6 +1,5 @@
 from conwai.actions import Action, ActionRegistry
-from conwai.event_bus import EventBus
-from conwai.event_types import ActionExecuted
+from conwai.events import ActionExecuted, EventBus
 from conwai.world import World
 
 

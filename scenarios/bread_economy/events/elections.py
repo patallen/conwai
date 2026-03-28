@@ -4,8 +4,8 @@ import logging
 import random
 from typing import TYPE_CHECKING
 
-from conwai.bulletin_board import BulletinBoard
-from conwai.engine import TickNumber
+from conwai.comm import BulletinBoard
+from conwai.scheduler import TickNumber
 from scenarios.bread_economy.components import Economy
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
 

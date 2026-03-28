@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from conwai.actions import Action, ActionRegistry
-from conwai.contrib.llm import tool_schema
+from conwai.llm import tool_schema
 from scenarios.bread_economy.actions.communication import _post_to_board, _send_message
 from scenarios.bread_economy.actions.crafting import _bake, _forage
 from scenarios.bread_economy.actions.economy import OfferBook, _give, _pay, make_offer_handlers

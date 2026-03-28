@@ -1,9 +1,8 @@
 from pathlib import Path
 
-from conwai.bulletin_board import BulletinBoard
-from conwai.engine import TickNumber
+from conwai.comm import BulletinBoard, MessageBus
 from conwai.events import EventLog
-from conwai.messages import MessageBus
+from conwai.scheduler import TickNumber
 from conwai.world import World
 from scenarios.workbench.actions import create_registry
 from scenarios.workbench.components import AgentInfo

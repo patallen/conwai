@@ -8,7 +8,7 @@ import time
 from typing import TYPE_CHECKING, Callable
 
 from conwai.actions import ActionFeedback, ActionResult, PendingActions
-from conwai.engine import TickNumber
+from conwai.scheduler import TickNumber
 
 if TYPE_CHECKING:
     from conwai.actions import ActionRegistry

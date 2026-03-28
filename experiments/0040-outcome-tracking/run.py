@@ -131,7 +131,7 @@ def main() -> None:
     )
 
     # Condition+decision clustering (from 0037/0038)
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
 
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 

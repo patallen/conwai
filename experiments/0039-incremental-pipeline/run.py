@@ -177,7 +177,7 @@ def main() -> None:
     print(f"Loaded {len(parsed)} entries\n")
 
     # Pre-compute condition and decision embeddings
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
 
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
 

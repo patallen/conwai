@@ -11,8 +11,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from conwai.embeddings import FastEmbedder
-from conwai.llm import LLMClient
+from conwai.llm import FastEmbedder, LLMClient
 
 CLUSTER_THRESHOLD = 0.65
 MAX_CLUSTER_SIZE = 5

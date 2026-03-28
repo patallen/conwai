@@ -24,19 +24,18 @@ from pathlib import Path
 
 from faker import Faker
 
-from conwai.actions import ActionFeedback, PendingActions
+from conwai.actions import ActionFeedback, ActionResult, PendingActions
 from conwai.brain import Brain
-from conwai.bulletin_board import BulletinBoard
-from conwai.contrib.systems import ActionSystem, BrainSystem
-from conwai.embeddings import FastEmbedder
-from conwai.engine import Engine, TickNumber
-from conwai.events import EventLog
-from conwai.llm import LLMClient
-from conwai.messages import MessageBus
+from conwai.comm import BulletinBoard, MessageBus
+from conwai.llm import FastEmbedder, LLMClient
+from conwai.events import EventBus, EventLog
+from conwai.scheduler import TickNumber
 from conwai.processes.types import Episodes, WorkingMemory
+from conwai.scheduler import Scheduler
+from conwai.tick_loop import TickLoop
 from conwai.storage import SQLiteStorage
 from conwai.world import World
-from scenarios.bread_economy.processes import (
+from conwai.processes import (
     ContextAssembly,
     InferenceProcess,
     MemoryCompression,
@@ -61,7 +60,8 @@ async def run(args):
     storage = SQLiteStorage(path=data_dir / "state.db")
 
     # --- World ---
-    world = World(storage=storage)
+    event_bus = EventBus()
+    world = World(storage=storage, bus=event_bus)
     world.register(AgentInfo)
     world.register(PendingActions)
     world.register(ActionFeedback)
@@ -133,11 +133,41 @@ async def run(args):
 
     bus.register("WORLD")
 
-    brain_system = BrainSystem(brains=brains, perception=perception.build)
-    brain_system.load_brain_states(world)
-    action_system = ActionSystem(actions=registry)
+    scheduler = Scheduler(bus=event_bus)
 
-    engine = Engine(world, systems=[brain_system, action_system])
+    async def think_then_act(handle):
+        b = brains[handle]
+        percept = perception.build(handle, world)
+        decisions = await b.think(percept)
+        world.set(handle, PendingActions(entries=decisions))
+        feedback_entries = []
+        for decision in decisions:
+            result = registry.execute(handle, decision.action, decision.args, world)
+            feedback_entries.append(
+                ActionResult(action=decision.action, args=decision.args, result=result)
+            )
+        world.set(handle, ActionFeedback(entries=feedback_entries))
+
+    loop = TickLoop(scheduler=scheduler, event_bus=event_bus, world=world)
+
+    def persist():
+        world.flush()
+        for h in brains:
+            world.save_raw(h, "brain_state", brains[h].save_state())
+
+    loop.on_persist = persist
+
+    for h, b in brains.items():
+        data = world.load_raw(h, "brain_state")
+        if data:
+            b.load_state(data)
+            log.info(f"[{h}] loaded brain state")
+
+    async def do_tick():
+        tick_number.value += 1
+        storage.save_component("_meta", "tick", {"value": tick_number.value})
+        handles = [h for h in brains if h in set(world.entities())]
+        await loop.tick(handles, think_then_act)
 
     tick_number = world.get_resource(TickNumber)
     tick_data = storage.load_component("_meta", "tick")
@@ -223,10 +253,7 @@ async def run(args):
             parts = line.split()
             n = int(parts[1]) if len(parts) > 1 else 1
             for _ in range(n):
-                storage.save_component(
-                    "_meta", "tick", {"value": tick_number.value + 1}
-                )
-                await engine.tick()
+                await do_tick()
             print(f"  advanced to tick {tick_number.value}")
             continue
         elif line.startswith("@"):
@@ -246,8 +273,7 @@ async def run(args):
             print(f"  [WORLD]: {line}")
 
         # Auto-tick after input
-        storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
-        await engine.tick()
+        await do_tick()
 
 
 def main():

@@ -94,7 +94,7 @@ def main() -> None:
     # Now embed the UNIQUE patterns and cluster to merge near-duplicates
     unique_patterns = list(pattern_counts.keys())
     print(f"\nEmbedding {len(unique_patterns)} unique pattern strings...")
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
 
     embedder = FastEmbedder(model_name="BAAI/bge-large-en-v1.5")
     pattern_vecs = np.array(embedder.embed(unique_patterns))

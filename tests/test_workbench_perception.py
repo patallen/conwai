@@ -1,7 +1,6 @@
 from conwai.actions import ActionFeedback, ActionResult
-from conwai.bulletin_board import BulletinBoard
-from conwai.engine import TickNumber
-from conwai.messages import MessageBus
+from conwai.comm import BulletinBoard, MessageBus
+from conwai.scheduler import TickNumber
 from conwai.processes.types import (
     AgentHandle,
     Identity,

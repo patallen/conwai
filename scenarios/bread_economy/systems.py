@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Callable
 
-from conwai.engine import TickNumber
 from conwai.events import EventLog
-from scenarios.bread_economy.components import AgentInfo, Economy, Hunger, Inventory
+from conwai.scheduler import TickNumber
+from scenarios.bread_economy.components import Economy, Hunger, Inventory
 from scenarios.bread_economy.config import get_config
 from scenarios.bread_economy.perception import BreadPerceptionBuilder
 
@@ -111,53 +111,6 @@ class SpoilageSystem:
                 perception.notify(
                     entity, f"{spoiled} bread spoiled (bread left: {inv.bread})"
                 )
-
-
-class AutoForageSystem:
-    """Automatically forages for each agent every tick. Agents don't choose to forage."""
-
-    name = "auto_forage"
-
-    async def run(self, world: World) -> None:
-        import random
-
-        cfg = get_config()
-        for entity, info, _inv in world.query(AgentInfo, Inventory):
-            skills = cfg.forage_skill_by_role.get(info.role, {"flour": 1, "water": 1})
-            cap = cfg.inventory_cap
-            flour = random.randint(0, skills["flour"])
-            water = random.randint(0, skills["water"])
-            flour = min(flour, max(0, cap - _inv.flour))
-            water = min(water, max(0, cap - _inv.water))
-            with world.mutate(entity, Inventory) as inv:
-                inv.flour += flour
-                inv.water += water
-
-
-class AutoBakeSystem:
-    """Automatically bakes bread when agent has enough ingredients and bread is low."""
-
-    name = "auto_bake"
-
-    async def run(self, world: World) -> None:
-        cfg = get_config()
-        flour_cost = cfg.bake_cost["flour"]
-        water_cost = cfg.bake_cost["water"]
-        bread_yield = cfg.bake_yield
-        cap = cfg.inventory_cap
-
-        for entity, _inv in world.query(Inventory):
-            with world.mutate(entity, Inventory) as inv:
-                # Bake when bread is low and we have ingredients
-                while (
-                    inv.bread < 20 and inv.flour >= flour_cost and inv.water >= water_cost
-                ):
-                    inv.flour -= flour_cost
-                    inv.water -= water_cost
-                    actual = min(bread_yield, max(0, cap - inv.bread))
-                    inv.bread += actual
-                    if actual == 0:
-                        break
 
 
 class ConsumptionSystem:

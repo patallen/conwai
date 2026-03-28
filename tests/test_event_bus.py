@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from conwai.event_bus import Event, EventBus
-from conwai.event_types import (
+from conwai.events import (
     ActionExecuted,
     ComponentChanged,
     EntityDestroyed,
     EntitySpawned,
-    TickEnded,
-    TickStarted,
+    Event,
+    EventBus,
 )
 
 
@@ -132,8 +131,6 @@ def test_event_types_are_events():
         EntitySpawned,
         EntityDestroyed,
         ActionExecuted,
-        TickStarted,
-        TickEnded,
     ):
         assert issubclass(cls, Event), f"{cls.__name__} must subclass Event"
 
@@ -183,16 +180,6 @@ def test_action_executed_default_args():
     assert b.args == {}, "default args must not be shared between instances"
 
 
-def test_tick_started_fields():
-    ev = TickStarted(tick=5)
-    assert ev.tick == 5
-
-
-def test_tick_ended_fields():
-    ev = TickEnded(tick=5)
-    assert ev.tick == 5
-
-
 def test_event_types_routed_through_bus():
     """EventBus correctly dispatches concrete event types."""
     bus = EventBus()
@@ -202,7 +189,7 @@ def test_event_types_routed_through_bus():
 
     bus.emit(EntitySpawned(entity="alice"))
     bus.emit(EntitySpawned(entity="bob"))
-    bus.emit(TickStarted(tick=1))  # different type, should not fire spawned handler
+    bus.emit(EntityDestroyed(entity="x"))  # different type, should not fire spawned handler
 
     bus.drain()
 

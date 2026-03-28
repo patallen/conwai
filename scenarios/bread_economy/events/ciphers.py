@@ -5,8 +5,7 @@ import random
 import string
 from typing import TYPE_CHECKING
 
-from conwai.bulletin_board import BulletinBoard
-from conwai.messages import MessageBus
+from conwai.comm import BulletinBoard, MessageBus
 from scenarios.bread_economy.components import AgentMemory, Economy
 from scenarios.bread_economy.config import get_config
 from scenarios.bread_economy.perception import BreadPerceptionBuilder

@@ -95,7 +95,7 @@ class ActionRegistry:
 
         bus = world.bus
         if bus:
-            from conwai.event_types import ActionExecuted
+            from conwai.events import ActionExecuted
             bus.emit(ActionExecuted(
                 entity=entity_id, action=name, args=args, result=result, data=data
             ))

@@ -7,9 +7,15 @@ import heapq
 import itertools
 import logging
 from collections.abc import Coroutine
+from dataclasses import dataclass
 from typing import Any, Callable
 
-from conwai.event_bus import EventBus
+from conwai.events import EventBus
+
+
+@dataclass
+class TickNumber:
+    value: int = 0
 
 log = logging.getLogger("conwai")
 

@@ -16,7 +16,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-from conwai.embeddings import FastEmbedder
+from conwai.llm import FastEmbedder
 
 DB_PATH = "data.removed-auto.bak/state.db"
 AGENTS = ["Jeffery", "Adam", "Cassandra"]

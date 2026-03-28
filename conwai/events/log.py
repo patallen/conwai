@@ -8,7 +8,7 @@ from time import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from conwai.event_bus import EventBus
+    from conwai.events.bus import EventBus
 
 
 class EventLog:
@@ -86,7 +86,7 @@ class EventLog:
 
     def subscribe_to(self, bus: EventBus) -> None:
         """Subscribe to an EventBus to auto-persist lifecycle and action events."""
-        from conwai.event_types import ActionExecuted, EntityDestroyed, EntitySpawned
+        from conwai.events.types import ActionExecuted, EntityDestroyed, EntitySpawned
 
         def on_action(event: ActionExecuted):
             log_data = dict(event.args)

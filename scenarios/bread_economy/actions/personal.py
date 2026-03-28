@@ -3,14 +3,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from conwai.events import EventLog
 from scenarios.bread_economy.actions.helpers import charge
 from scenarios.bread_economy.components import (
-    AgentInfo,
     AgentMemory,
-    Economy,
-    Hunger,
-    Inventory,
 )
 from scenarios.bread_economy.config import get_config
 

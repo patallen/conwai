@@ -4,9 +4,8 @@ import logging
 from typing import TYPE_CHECKING
 
 from conwai.actions import ActionRegistry
-from conwai.bulletin_board import BulletinBoard
-from conwai.engine import TickNumber
-from conwai.messages import MessageBus
+from conwai.comm import BulletinBoard, MessageBus
+from conwai.scheduler import TickNumber
 from scenarios.bread_economy.actions.helpers import charge
 from scenarios.bread_economy.components import AgentMemory, Economy
 from scenarios.bread_economy.config import get_config

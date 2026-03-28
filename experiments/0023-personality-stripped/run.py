@@ -16,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
-from conwai.embeddings import FastEmbedder
+from conwai.llm import FastEmbedder
 
 CACHE_PARSED = Path("experiments/helen_parsed.json")
 # Need FastEmbedder here because we re-embed stripped text

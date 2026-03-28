@@ -19,7 +19,7 @@ from pathlib import Path
 import httpx
 import numpy as np
 
-from conwai.embeddings import FastEmbedder
+from conwai.llm import FastEmbedder
 from conwai.storage import SQLiteStorage
 
 DB_PATH = "data.pre-abliterated.bak/state.db"

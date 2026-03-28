@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from conwai.engine import TickNumber
+from conwai.scheduler import TickNumber
 from scenarios.bread_economy.events.ciphers import CipherSystem
 from scenarios.bread_economy.events.elections import ElectionSystem
 from scenarios.bread_economy.events.questions import QuestionSystem

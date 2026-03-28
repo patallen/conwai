@@ -6,15 +6,13 @@ import time
 from faker import Faker
 
 import scenarios.bread_economy.config as config
-from conwai.actions import ActionFeedback, PendingActions
+from conwai.actions import ActionFeedback, ActionResult, PendingActions
 from conwai.brain import Brain
-from conwai.bulletin_board import BulletinBoard
-from conwai.contrib.systems import ActionSystem, BrainSystem
-from conwai.engine import Engine, TickNumber
-from conwai.event_bus import EventBus
-from conwai.events import EventLog
+from conwai.comm import BulletinBoard, MessageBus
+from conwai.events import EventBus, EventLog
+from conwai.scheduler import Scheduler, TickNumber
+from conwai.tick_loop import TickLoop
 from conwai.llm import LLMClient
-from conwai.messages import MessageBus
 from conwai.processes.types import Episodes, WorkingMemory
 from conwai.storage import SQLiteStorage
 from conwai.world import World
@@ -263,7 +261,7 @@ async def run():
     world.set_resource(registry)
 
     # --- Embedder (shared across all agents, stateless) ---
-    from conwai.embeddings import FastEmbedder
+    from conwai.llm import FastEmbedder
 
     log.info("[WORLD] loading embedding model...")
     embedder = FastEmbedder()
@@ -422,25 +420,48 @@ async def run():
         group_label = "IMP" if was_imp else "CTL"
         log.info(f"[{handle}] spawned as {role} (replacing {dead_entity_id}, {group_label})")
 
-    # --- Brain system ---
-    brain_system = BrainSystem(brains=brains, perception=perception.build)
-    brain_system.load_brain_states(world)
-    action_system = ActionSystem(actions=registry)
+    # --- Load brain states ---
+    for handle, brain in brains.items():
+        data = world.load_raw(handle, "brain_state")
+        if data:
+            brain.load_state(data)
+            log.info(f"[{handle}] loaded brain state")
 
-    # --- Engine ---
-    engine = Engine(
-        world,
-        systems=[
-            DecaySystem(),
-            TaxSystem(),
-            SpoilageSystem(),
-            DeathSystem(on_death=on_death),
-            world_events,
-            brain_system,
-            action_system,
-            ConsumptionSystem(),
-        ],
-    )
+    async def think_then_act(handle):
+        start = time.monotonic()
+        brain = brains[handle]
+        percept = perception.build(handle, world)
+        decisions = await brain.think(percept)
+        world.set(handle, PendingActions(entries=decisions))
+
+        feedback_entries = []
+        for decision in decisions:
+            result = registry.execute(handle, decision.action, decision.args, world)
+            feedback_entries.append(
+                ActionResult(action=decision.action, args=decision.args, result=result)
+            )
+        world.set(handle, ActionFeedback(entries=feedback_entries))
+        log.info(f"[{handle}] tick {tick_number.value} took {time.monotonic() - start:.1f}s")
+
+    scheduler = Scheduler(bus=event_bus)
+
+    loop = TickLoop(scheduler=scheduler, event_bus=event_bus, world=world)
+    for system in [DecaySystem(), TaxSystem(), SpoilageSystem(), DeathSystem(on_death=on_death), world_events]:
+        loop.add_pre_system(system)
+    loop.add_post_system(ConsumptionSystem())
+
+    def persist():
+        world.flush()
+        world.save_metadata("tick", {"value": tick_number.value})
+        for h in brains:
+            world.save_raw(h, "brain_state", brains[h].save_state())
+
+    loop.on_persist = persist
+
+    tick_number = world.get_resource(TickNumber)
+    tick_data = storage.load_component("_meta", "tick")
+    if tick_data:
+        tick_number.value = tick_data["value"]
 
     asyncio.create_task(
         process_commands(
@@ -450,18 +471,18 @@ async def run():
         )
     )
 
-    # --- Tick loop ---
-    tick_number = world.get_resource(TickNumber)
-    tick_data = storage.load_component("_meta", "tick")
-    if tick_data:
-        tick_number.value = tick_data["value"]
-
     while True:
         config.reload()
         await wait_for_llm(clients[0])
         tick_start = time.monotonic()
-        storage.save_component("_meta", "tick", {"value": tick_number.value + 1})
-        await engine.tick()
-        log.info(
-            f"[WORLD] tick {tick_number.value} completed in {time.monotonic() - tick_start:.1f}s"
-        )
+
+        tick_number.value += 1
+        storage.save_component("_meta", "tick", {"value": tick_number.value})
+
+        entities = set(world.entities())
+        handles = sorted(h for h in brains if h in entities)
+        registry.begin_tick(world, handles)
+
+        await loop.tick(handles, think_then_act)
+
+        log.info(f"[WORLD] tick {tick_number.value} completed in {time.monotonic() - tick_start:.1f}s")

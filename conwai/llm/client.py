@@ -145,3 +145,20 @@ class AnthropicLLMClient:
             prompt_tokens=response.usage.input_tokens,
             completion_tokens=response.usage.output_tokens,
         )
+
+
+def tool_schema(name: str, description: str, parameters: dict | None = None) -> dict:
+    """Build an OpenAI-compatible function tool schema."""
+    params = parameters or {}
+    return {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": {
+                "type": "object",
+                "properties": params,
+                "required": list(params.keys()),
+            },
+        },
+    }

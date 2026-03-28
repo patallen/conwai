@@ -1,7 +1,7 @@
 import asyncio
 import sys
 
-from conwai.infra.logging import setup_logging
+from conwai.log_setup import setup_logging
 
 if __name__ == "__main__":
     setup_logging()

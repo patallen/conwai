@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, TypeVar
 from conwai.component import Component
 
 if TYPE_CHECKING:
-    from conwai.event_bus import EventBus
+    from conwai.events import EventBus
     from conwai.storage import Storage
 
 log = logging.getLogger("conwai")
@@ -64,13 +64,13 @@ class World:
             finally:
                 self._suppress_events = False
         if self._bus:
-            from conwai.event_types import EntitySpawned
+            from conwai.events import EntitySpawned
             self._bus.emit(EntitySpawned(entity=entity_id))
         return entity_id
 
     def destroy(self, entity_id: str) -> None:
         if self._bus and entity_id in self._entities:
-            from conwai.event_types import EntityDestroyed
+            from conwai.events import EntityDestroyed
             self._bus.emit(EntityDestroyed(entity=entity_id))
         self._entities.discard(entity_id)
         self._components.pop(entity_id, None)
@@ -91,7 +91,7 @@ class World:
         old = self._components[entity].get(type(comp))
         self._components[entity][type(comp)] = comp
         if self._bus and not self._suppress_events:
-            from conwai.event_types import ComponentChanged
+            from conwai.events import ComponentChanged
             self._bus.emit(ComponentChanged(
                 entity=entity,
                 comp_type=type(comp),
@@ -113,7 +113,7 @@ class World:
             raise
         else:
             if self._bus and comp != snapshot:
-                from conwai.event_types import ComponentChanged
+                from conwai.events import ComponentChanged
                 self._bus.emit(ComponentChanged(
                     entity=entity,
                     comp_type=comp_type,
